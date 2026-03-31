@@ -1,8 +1,8 @@
-# msptiActivityKind<a name="ZH-CN_TOPIC_0000002154810617"></a>
+# MsptiActivityKind<a name="ZH-CN_TOPIC_0000002154810617"></a>
 
-msptiActivityKind为[HcclData](HcclData.md)、[KernelData](KernelData.md)、[MarkerData](MarkerData.md)和[RangeMarkerData](RangeMarkerData.md)调用的枚举类。
+MsptiActivityKind为[HcclData](HcclData.md)、[KernelData](KernelData.md)、[MarkerData](MarkerData.md)和[RangeMarkerData](RangeMarkerData.md)调用的枚举类。
 
-MSPTI通过msptiActivityKind对所有能采集到的数据进行分类，每个枚举值对应一个数据的结构体类型。定义如下：
+MSPTI通过MsptiActivityKind对所有能采集到的数据进行分类，每个枚举值对应一个数据的结构体类型。定义如下：
 
 ```python
 class MsptiActivityKind(Enum):

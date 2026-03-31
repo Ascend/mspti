@@ -1,8 +1,8 @@
-# msptiActivityFlag<a name="ZH-CN_TOPIC_0000002154732225"></a>
+# MsptiActivityFlag<a name="ZH-CN_TOPIC_0000002154732225"></a>
 
 Activity Record的活动标记。标记可以通过按位OR组合，将多个标记与Activity Record关联。每个标记都特定与某一Activity Record关联。
 
-msptiActivityFlag为[MarkerData](MarkerData.md)结构体内调用的枚举类，定义如下：
+MsptiActivityFlag为[MarkerData](MarkerData.md)结构体内调用的枚举类，定义如下：
 
 ```python
 class MsptiActivityFlag(Enum):

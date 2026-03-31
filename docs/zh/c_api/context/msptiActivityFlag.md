@@ -9,7 +9,7 @@ typedef enum {
     MSPTI_ACTIVITY_FLAG_NONE = 0,   // 表示没有Activity Record的活动标记
     MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS = 1 << 0, // 调用mstxMarkA接口传入stream设置为nullptr时，Host侧标记瞬时事件，MSPTI_ACTIVITY_KIND_MARKER使用
     MSPTI_ACTIVITY_FLAG_MARKER_START = 1 << 1, // 调用mstxRangeStartA接口传入stream设置为nullptr时，Host侧标识打点开始，MSPTI_ACTIVITY_KIND_MARKER使用
-    MSPTI_ACTIVITY_FLAG_MARKER_END = 1 << 2 // 调用mstxRangeEnd传入的ID来自传入的stream设置为nullptr的mstxRangeStartA，MSPTI_ACTIVITY_KIND_MARKER使用
+    MSPTI_ACTIVITY_FLAG_MARKER_END = 1 << 2, // 调用mstxRangeEnd传入的ID来自传入的stream设置为nullptr的mstxRangeStartA，MSPTI_ACTIVITY_KIND_MARKER使用
     MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE = 1 << 3, // 调用mstxMarkA接口传入有效stream时，对应的打点数据类型，MSPTI_ACTIVITY_KIND_MARKER使用
     MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE = 1 << 4, // 调用mstxRangeStartA接口传入有效stream时，对应的打点数据类型，MSPTI_ACTIVITY_KIND_MARKER使用
     MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE = 1 << 5 // 调用mstxRangeEnd传入的ID来自传入有效stream时的mstxRangeStartA，MSPTI_ACTIVITY_KIND_MARKER使用

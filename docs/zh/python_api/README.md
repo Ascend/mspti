@@ -25,8 +25,8 @@ msPTI API的功能介绍和使用示例请参见[msPTI工具](../README.md)。
 |[KernelMonitor.flush_all](./context/KernelMonitor-flush_all.md)|调用回调函数，将缓冲区中的所有Activity数据写入用户内存。|
 |[KernelMonitor.set_buffer_size](./context/KernelMonitor-set_buffer_size.md)|在采集开始前设置Activity Buffer的大小。|
 |**MstxMonitor类型**|**MstxMonitor说明**|
-|[MstxMonitor.start](./context/MstxMonitor-start.md)|标识数据采集mstx打点的开始。|
-|[MstxMonitor.stop](./context/MstxMonitor-stop.md)|标识数据采集mstx打点的结束。|
+|[MstxMonitor.start](./context/MstxMonitor-start.md)|标识数据采集msTX打点的开始。|
+|[MstxMonitor.stop](./context/MstxMonitor-stop.md)|标识数据采集msTX打点的结束。|
 |[MstxMonitor.enable_domain](./context/MstxMonitor-enable_domain.md)|开启对应域打点的采集。|
 |[MstxMonitor.disable_domain](./context/MstxMonitor-disable_domain.md)|关闭对应域打点的采集。|
 |[MstxMonitor.flush_all](./context/MstxMonitor-flush_all.md)|调用回调函数，将缓冲区中的所有Activity数据写入用户内存。|

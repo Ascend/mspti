@@ -1,6 +1,6 @@
-# msptiResult<a name="ZH-CN_TOPIC_0000002119450416"></a>
+# MsptiResult<a name="ZH-CN_TOPIC_0000002119450416"></a>
 
-msptiResult是MSPTI返回的错误和结果代码，为枚举类。定义如下：
+MsptiResult是MSPTI返回的错误和结果代码，为枚举类。定义如下：
 
 ```python
 class MsptiResult(Enum):

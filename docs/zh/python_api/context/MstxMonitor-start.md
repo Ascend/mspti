@@ -18,7 +18,7 @@
 
 ## 函数功能<a name="section463019538153"></a>
 
-标识数据采集mstx打点的开始。
+标识数据采集msTX打点的开始。
 
 ## 函数原型<a name="section759854510169"></a>
 
@@ -41,14 +41,14 @@ def start(self, mark_cb : Callable[[MarkerData], None] = empty_callback, range_c
 </td>
 <td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.2 "><p id="p187904392335"><a name="p187904392335"></a><a name="p187904392335"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p10230442103813"><a name="p10230442103813"></a><a name="p10230442103813"></a>用于传递采集到的mstx瞬时打点数据。调用结构体<a href="MarkerData.md">MarkerData</a>。</p>
+<td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p10230442103813"><a name="p10230442103813"></a><a name="p10230442103813"></a>用于传递采集到的msTX瞬时打点数据。调用结构体<a href="MarkerData.md">MarkerData</a>。</p>
 </td>
 </tr>
 <tr id="row160312818386"><td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p16031928153815"><a name="p16031928153815"></a><a name="p16031928153815"></a>range_cb：Callable</p>
 </td>
 <td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.2 "><p id="p86031728153812"><a name="p86031728153812"></a><a name="p86031728153812"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p126031228143811"><a name="p126031228143811"></a><a name="p126031228143811"></a>用于传递采集到的mstx range打点数据。调用结构体<a href="RangeMarkerData.md">RangeMarkerData</a>。</p>
+<td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p126031228143811"><a name="p126031228143811"></a><a name="p126031228143811"></a>用于传递采集到的msTX range打点数据。调用结构体<a href="RangeMarkerData.md">RangeMarkerData</a>。</p>
 </td>
 </tr>
 </tbody>

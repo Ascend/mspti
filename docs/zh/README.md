@@ -69,7 +69,7 @@ msPTI工具不可与任何其他性能数据采集工具同时使用，否则会
   | 样例                                             | 说明                                                         |
   | ------------------------------------------------ | ------------------------------------------------------------ |
   | [callback_domain](../../samples/callback_domain) | 1. 展示Callback API功能，可以通过msptiEnableDomain，在runtime API的前后执行Callback操作。 |
-  | [callback_mstx](../../samples/callback_mstx)     | 1. 展示Callback与mstx接口相结合功能，使用Callback API和mstx打点功能，在runtime的Launch Kernel前后打点，采集算子数据。<br/> 2. 演示Callback中userdata用法，用户可以通过userdata透传配置或者部分运行参数。 |
+  | [callback_mstx](../../samples/callback_mstx)     | 1. 展示Callback与msTX接口相结合功能，使用Callback API和msTX打点功能，在runtime的Launch Kernel前后打点，采集算子数据。<br/> 2. 演示Callback中userdata用法，用户可以通过userdata透传配置或者部分运行参数。 |
 
 - Activity API
 

@@ -2,17 +2,31 @@
 
 ## 安装说明
 
-本文主要介绍msPTI工具的安装方式。
+本文档主要介绍msPTI工具的安装方式：**使用CANN包安装**和**源码编译安装**。
 
-## 安装前准备
+msPTI工具完整功能集成在CANN包中，且msPTI依赖CANN包，因此使用msPTI工具需要先[安装CANN包](#使用cann包安装)，若需要升级安装本工具代码仓中的最新功能，可以通过[源码编译安装](#可选源码编译安装)，在已安装CANN包的环境下覆盖安装msPTI包。
 
-- 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+## 使用CANN包安装
 
-- 软件环境请参见《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_quick.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit)》安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量。
+msPTI工具完整功能已集成在CANN包中发布，可通过以下方式完成安装：
 
-## 安装run包
+- 方式一：依据CANN官方文档安装
 
-### 源码编译
+  请参见《[CANN安装官方文档](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=netyum&OS=openEuler)》，按文档逐步完成安装与配置。
+
+- 方式二：使用CANN官方容器镜像
+
+  请访问《[CANN官方镜像仓库](https://www.hiascend.com/developer/ascendhub/detail/17da20d1c2b6493cb38765adeba85884)》，按仓库中的指引完成镜像拉取及容器启动。
+
+## （可选）源码编译安装
+
+如需使用最新代码的功能，可下载本仓库代码，自行编译、打包并完成安装。
+
+> [!note] 说明
+>
+> 编译出的msPTI run包需要在已安装CANN的环境中进行覆盖安装才能使用。
+
+### 编译run包
 
 执行如下命令编译run包：
 
@@ -26,7 +40,7 @@ bash scripts/build.sh [<version>]
 上述编译命令中的version参数即为软件包名称中的version，表示该run包的版本号。
 run包中的arch表示系统架构，根据实际运行系统自动适配。
 
-### 安装步骤
+### 安装run包
 
 1. 增加对run包的可执行权限。
 
@@ -64,7 +78,7 @@ msPTI工具run包的安装命令可配置如下参数：
 | --------| -------  |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | --install | 可选 | 安装软件包。可配置--install-path参数指定软件的安装路径；不配置--install-path参数时，则直接安装到默认路径下。                                                                                                             |
 | --uninstall | 可选 | 卸载软件包。可配置--install-path参数指定软件安装时的路径；不配置--install-path参数时，则直接卸载默认路径下的mspti。|
-| --install-path | 可选 | 安装路径，必须指定到cann层目录，比如/usr/local/Ascend/cann-9.0.0。如果用户未指定安装路径，则软件会安装到默认路径下，默认安装路径如下：<br> - root用户：“/usr/local/Ascend/cann”。<br>- 非root用户：“\${HOME}/Ascend/cann”，${HOME}为当前用户的家目录。 |
+| --install-path | 可选 | 安装路径，必须指定到cann层目录，比如/usr/local/Ascend/cann-9.0.0。如果用户未指定安装路径，则软件会安装到默认路径下，默认安装路径如下：<br>&#8226; root用户：“/usr/local/Ascend/cann”。<br>&#8226; 非root用户：“${HOME}/Ascend/cann”，${HOME}为当前用户的家目录。 |
 | --install-for-all | 可选 | 安装时，允许其他用户具有安装用户组的权限。当安装携带该参数时，支持其他用户使用msPTI运行业务，但该参数存在安全风险，请谨慎使用。                                                                                                               |
 
 安装run包还可指定其他参数，具体可通过./xxx.run --help命令查看。
