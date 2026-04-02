@@ -5,7 +5,7 @@ msptiCallbackIdRuntime为[msptiEnableCallback](msptiEnableCallback.md)调用的�
 ```cpp
 typedef enum {
     MSPTI_CBID_RUNTIME_DEVICE_SET = 1, //表示跟踪函数为aclrtSetDevice
-    MSPTI_CBID_RUNTIME_DEVICE_RESET = 2, //表示跟踪函数为aclrtSetDevice
+    MSPTI_CBID_RUNTIME_DEVICE_RESET = 2, //表示跟踪函数为aclrtResetDevice
     //其他枚举值与上述例子类似，不再赘述
 } msptiCallbackIdRuntime;
 ```
