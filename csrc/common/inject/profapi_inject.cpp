@@ -43,6 +43,20 @@ public:
         Mspti::Common::RegisterFunction("libprofapi", "MsprofGetHashId");
         Mspti::Common::RegisterFunction("libprofapi", "MsprofRegTypeInfo");
         Mspti::Common::RegisterFunction("libprofapi", "profRegDeviceStateCallback");
+        static const std::vector<std::pair<int, VOID_PTR>> CALLBACK_FUNC_LIST = {
+            {PROFILE_REPORT_GET_HASH_ID_C_CALLBACK,
+                reinterpret_cast<VOID_PTR>(Mspti::Inject::Detail::MsptiGetHashIdImpl)},
+            {PROFILE_REPORT_REG_TYPE_INFO_C_CALLBACK,
+                reinterpret_cast<VOID_PTR>(Mspti::Inject::Detail::MsptiRegReportTypeInfoImpl)},
+        };
+        for (auto& iter : CALLBACK_FUNC_LIST) {
+            auto ret = Mspti::Inject::MsprofRegisterProfileCallback(iter.first, iter.second, sizeof(VOID_PTR));
+            if (ret != MSPTI_SUCCESS) {
+                MSPTI_LOGE("Register callback for type %d failed with error code %d.", iter.first, ret);
+            } else {
+                MSPTI_LOGI("Register callback for type %d successfully.", iter.first);
+            }
+        }
     }
     ~ProfApiInject() = default;
 };

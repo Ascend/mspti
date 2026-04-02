@@ -110,7 +110,7 @@ msptiResult DevTaskManager::StartDevProfTask(uint32_t deviceId,
             auto profTasks = Mspti::Ascend::DevProfTaskFactory::CreateTasks(deviceId, kind);
             decltype(profTasks) successTasks;
             auto ret = StartAllDevKindProfTask(profTasks, successTasks);
-            task_map_.insert({{deviceId, kind}, std::move(successTasks)});
+            task_map_.emplace(std::make_pair(deviceId, kind), std::move(successTasks));
             if (ret != MSPTI_SUCCESS) {
                 MSPTI_LOGE("The device %u start DevProfTask failed.", deviceId);
                 return ret;

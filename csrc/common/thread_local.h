@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <utility>
 #include <functional>
+#include <system_error>
 
 #include "csrc/common/plog_manager.h"
 

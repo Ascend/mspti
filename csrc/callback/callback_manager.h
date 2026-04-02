@@ -23,6 +23,7 @@
 #include <unordered_set>
 #include <memory>
 #include <mutex>
+#include <array>
 
 #include "csrc/include/mspti_result.h"
 #include "csrc/include/mspti_callback.h"

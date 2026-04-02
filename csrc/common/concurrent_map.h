@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <stdexcept>
+#include <array>
 
 namespace Mspti {
 namespace Common {

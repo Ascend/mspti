@@ -26,6 +26,7 @@
 #include <thread>
 #include <vector>
 #include <unordered_set>
+#include <array>
 
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/include/mspti_activity.h"
