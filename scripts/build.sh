@@ -25,10 +25,10 @@ VERSION=""
 print_help() {
     cat << EOF
 Usage:
-  bash smoke.sh [options]
+  bash build.sh [options]
 
 Description:
-  Used for building Ascend-mindstudio-mspti_<version>_linux-<arch>.run
+  Used for building mindstudio-profiler-tools-interface_<version>_<arch>.run
 
 Options:
   --help | -h    Show this help message
@@ -36,9 +36,9 @@ Options:
   <version>      Build with specified version, only the first (and only) parameter is valid
 
 Examples:
-  bash smoke.sh
-  bash smoke.sh Debug
-  bash smoke.sh v1.2.3
+  bash build.sh
+  bash build.sh Debug
+  bash build.sh v1.2.3
 EOF
 }
 
