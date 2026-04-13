@@ -9,7 +9,7 @@
 
 | 产品类型                                    | 是否支持 |
 | ------------------------------------------- | :------: |
-| 昇腾950代际产品                   |    √     |
+| Atlas 350 加速卡                   |    √     |
 | Atlas A3 训练系列产品/Atlas A3 推理系列产品 |    √     |
 | Atlas A2 训练系列产品/Atlas A2 推理系列产品 |    √     |
 | Atlas 200I/500 A2 推理产品                  |    √     |
@@ -59,7 +59,7 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1599514253189"><a name="p1599514253189"></a><a name="p1599514253189"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1840545320573"><a name="p1840545320573"></a><a name="p1840545320573"></a>组件，当前仅支持Runtime。</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1840545320573"><a name="p1840545320573"></a><a name="p1840545320573"></a>组件，当前仅支持Runtime和Hccl。</p>
 </td>
 </tr>
 <tr id="row255615065712"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p1655711508571"><a name="p1655711508571"></a><a name="p1655711508571"></a>cbid</p>
