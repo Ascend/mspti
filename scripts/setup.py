@@ -18,15 +18,22 @@
 __version__ = '0.0.1'
 
 import os
-from setuptools import setup
-from setuptools import find_packages
+import configparser
+from setuptools import setup, find_packages
 
 cur_path = os.path.abspath(os.path.dirname(__file__))
 root_path = os.path.join(cur_path, "..")
+version = os.environ.get("WHL_VERSION")
+
+if not version:
+    version_file = os.path.join(root_path, "version.info")
+    config = configparser.ConfigParser()
+    config.read(version_file, encoding="utf-8")
+    version = config.get("PACKAGE", "Version", fallback=__version__)
 
 setup(
     name="mspti",
-    version=__version__,
+    version=version,
     description="mspti desc",
     url="mspti",
     author="mspti",

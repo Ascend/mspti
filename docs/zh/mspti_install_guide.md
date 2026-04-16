@@ -18,10 +18,10 @@ git clone https://gitcode.com/Ascend/mspti.git
 cd mspti
 bash scripts/build.sh [<version>]
 ```
-
-编译完成后，会在mspti/output目录下生成msPTI工具的run包，run包名称格式为`mindstudio-profiler-tools-interface_<version>_<arch>.run`。
-上述编译命令中的version参数即为软件包名称中的version，表示该run包的版本号。
-run包中的arch表示系统架构，根据实际运行系统自动适配。
+- 支持通过环境变量指定版本号（优先级最高）：`BUILD_VERSION`用于设置run包版本，`WHL_VERSION`用于设置whl包版本。
+- 支持通过命令行参数指定版本号（优先级低于环境变量），默认版本号为`version.info`中的`Version`字段。
+- run包中的arch表示系统架构，根据实际运行系统自动适配。
+- 编译完成后，会在mspti/output目录下生成msPTI工具的run包，run包名称格式为`mindstudio-profiler-tools-interface_<version>_<arch>.run`。
 
 ### 安装run包
 

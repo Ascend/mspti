@@ -74,7 +74,7 @@ function create_temp_dir() {
     local mspti_dir="${PREFIX_DIR}/mspti"
 
     cp ${mspti_dir}/libmspti.so ${temp_dir}
-    cp ${TOP_DIR}/build/dist/mspti-0.0.1-py3-none-any.whl ${temp_dir}
+    cp ${TOP_DIR}/build/dist/mspti-*-py3-none-any.whl ${temp_dir}
     cp ${TOP_DIR}/csrc/include/mspti.h ${temp_dir}
     cp ${TOP_DIR}/csrc/include/mspti_activity.h ${temp_dir}
     cp ${TOP_DIR}/csrc/include/mspti_callback.h ${temp_dir}
@@ -101,8 +101,12 @@ function copy_script() {
     chmod 500 "${temp_dir}/${script_name}"
 }
 
-function version() {
-    if [[ "$VERSION" != "none" ]]; then
+function get_version() {
+    if [[ -n "$BUILD_VERSION" ]]; then
+        sed -i "s/^Version=.*/Version=${BUILD_VERSION}/" "${TOP_DIR}/version.info"
+        echo "${BUILD_VERSION}"
+    elif [[ "$VERSION" != "none" ]]; then
+        sed -i "s/^Version=.*/Version=${VERSION}/" "${TOP_DIR}/version.info"
         echo "${VERSION}"
     elif [ -f "${TOP_DIR}/version.info" ]; then
         local version=$(grep "^Version=" "${TOP_DIR}/version.info" | cut -d"=" -f2)
@@ -114,7 +118,7 @@ function version() {
 
 function get_package_name() {
     local name=${MSPTI_RUN_NAME}
-    local version=$(version)
+    local version=$(get_version)
     local os_arch=$(arch)
     echo "${name}_${version}_${os_arch}.run"
 }
@@ -157,7 +161,7 @@ function delete_sed_param() {
 
 function check_file_exist() {
     local temp_dir=${1}
-    check_package ${temp_dir}/mspti-0.0.1-py3-none-any.whl ${PKG_LIMIT_SIZE}
+    check_package ${temp_dir}/mspti-*-py3-none-any.whl ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${INSTALL_SCRIPT} ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${UNINSTALL_SCRIPT} ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${UTILS_SCRIPT} ${PKG_LIMIT_SIZE}
@@ -194,13 +198,12 @@ function check_package() {
 function main() {
     local main_script=${1}
     local filer=${2}
-    sed_param ${main_script}
+    get_version
     build_python_whl
     create_temp_dir ${MSPTI_TEMP_DIR}
     check_file_exist ${MSPTI_TEMP_DIR}
     create_run_package ${MSPTI_RUN_NAME} ${MSPTI_TEMP_DIR} ${main_script} ${filer}
     check_package ${OUTPUT_DIR}/$(get_package_name) ${PKG_LIMIT_SIZE}
-    delete_sed_param ${main_script}
 }
 
 parse_script_args $*

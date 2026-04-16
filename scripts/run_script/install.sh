@@ -71,9 +71,13 @@ function implement_install() {
     copy_file ${UNINSTALL_SCRIPT} ${install_path}/${UNINSTALL_SCRIPT_DIR}/${UNINSTALL_SCRIPT} ${right}
     copy_file ${UTILS_SCRIPT} ${install_path}/${UNINSTALL_SCRIPT_DIR}/${UTILS_SCRIPT} ${right}
     copy_file ${VERSION_INFO} ${install_path}/${MSPTI_SHARE_INFO}/${VERSION_INFO} ${right}
-    local mspti_whl=${install_path}/${MSPTI_PYTHON_PATH}/${MSPTI_WHL}
-    copy_file ${MSPTI_WHL} ${mspti_whl} ${right}
-    install_whl_package ${pylocal} ${mspti_whl} ${install_path}/python/site-packages
+    # install new whl
+    remove ${install_path}/python/site-packages/mspti-*.dist-info
+    remove ${install_path}/${MSPTI_PYTHON_PATH}/${MSPTI_WHL}
+    mspti_whl_name=$(echo ${MSPTI_WHL})
+    mspti_whl="${install_path}/${MSPTI_PYTHON_PATH}/${mspti_whl_name}"
+    copy_file "${mspti_whl_name}" "${mspti_whl}" "${right}"
+    install_whl_package "${pylocal}" "${mspti_whl}" "${install_path}/python/site-packages"
 }
 
 function copy_file() {
@@ -84,19 +88,16 @@ function copy_file() {
         print ${LEVEL_ERROR} "${filename} does not exist."
         return 1
     fi
+    local parent_dir=$(dirname ${target_file})
+    local parent_right=$(stat -c '%a' "${parent_dir}")
+    chmod u+w "${parent_dir}"
     if [ -f "${target_file}" ] || [ -d "${target_file}" ]; then
-        local parent_dir=$(dirname ${target_file})
-        local parent_right=$(stat -c '%a' ${parent_dir})
-        chmod u+w ${parent_dir}
-        chmod -R u+w ${target_file}
-        rm -rf ${target_file}
-        cp -r ${filename} ${target_file}
-        chmod -R ${_right} ${target_file}
-        chmod ${parent_right} ${parent_dir}
-    else
-        cp -r ${filename} ${target_file}
-        chmod -R ${_right} ${target_file}
+        chmod -R u+w "${target_file}"
+        rm -rf "${target_file}"
     fi
+    cp -r "${filename}" "${target_file}"
+    chmod -R "${_right}" "${target_file}"
+    chmod "${parent_right}" "${parent_dir}"
     print ${LEVEL_INFO} "${filename} copy success."
     return 0
 }
