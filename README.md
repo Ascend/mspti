@@ -1,108 +1,96 @@
-# MindStudio-Profiler-Tools-Interface
+<h1 align="center">MindStudio Profiler Tools Interface</h1>
 
-## 简介
+<div align="center">
+  <p><b>昇腾 Profiling 工具接口</b></p>
 
-msPTI工具（MindStudio Profiler Tools Interface）是MindStudio针对Ascend设备提出的一套Profiling API，用户可以通过msPTI构建针对NPU应用程序的工具，用于分析应用程序的性能。
+[📖 用户指南](./docs/zh/README.md) |
+[🛠️ 安装指南](./docs/zh/mspti_install_guide.md) |
+[📚 API 参考](./docs/zh/c_api/README.md) |
+[🌐 软件下载](https://gitcode.com/Ascend/mspti/releases)
 
-msPTI为通用场景接口，使用msPTI API开发的Profiling分析工具可以在各种框架的推理训练场景生效。
+</div>
 
-msPTI主要包括以下功能：
+<br>
 
-- Tracing：在msPTI中Tracing是指CANN应用程序执行启动CANN活动的时间戳和附加信息的收集，如CANN API、Kernel、内存拷贝等。通过了解程序运行耗时，识别CANN代码的性能问题。可以使用Activity API和Callback API收集Tracing信息。
-- Profiling：在msPTI中Profiling是指单独收集一个或一组Kernel的NPU性能指标。
+## 📢 最新消息
 
-## 目录结构
+* [2026.02.06]：版本说明新增 `26.0.0-alpha.1` 发布记录，兼容 CANN `> 8.5.0`，详情请参见 《[版本说明](./docs/zh/release_notes.md)》。
 
-目录如下：
+## 📌 简介
 
-```ColdFusion
-└── docs                      // 文档
-    └── zh                    // 中文文档
-└── csrc                      // 使用C开发的一套API
-└── mspti                     // 将C API的功能作为底层逻辑封装的一套Python的API
-└── samples                   // 工具样例存放目录
-└── scripts                   // 存放whl包构建脚本，run包编译、安装相关脚本，UT运行、覆盖率脚本等
-└── test                      // 测试部分，存放UT代码
-└── README.md                 // 整体仓说明文档
+msPTI（MindStudio Profiler Tools Interface）是面向 Ascend 设备的 Profiling API 集合，帮助开发者为 NPU 应用构建性能采集与分析工具，适用于推理与训练场景。
 
+msPTI 主要提供以下能力：
+
+- `Tracing`：采集 CANN API、Kernel、内存拷贝、通信、打点等时间戳及附加信息，用于定位执行链路中的性能瓶颈。
+- `Profiling`：单独采集一个或一组 Kernel 的 NPU 性能指标，支撑计算与通信分析。
+
+## 🔍 目录结构
+
+```text
+├─docs
+│  └─zh                  # 中文文档、安装指南、版本说明、安全声明、API 参考
+├─csrc                   # C/C++ 核心实现
+│  ├─activity            # Activity 数据采集与解析
+│  ├─callback            # Callback 订阅与回调管理
+│  ├─common              # 公共基础能力
+│  └─include             # msPTI C API 头文件
+├─mspti                  # Python 封装
+│  ├─monitor             # Kernel / HCCL / MSTX Monitor
+│  └─csrc                # Python 扩展绑定实现
+├─samples                # C++ / Python 样例
+├─scripts                # 构建、打包、安装、测试脚本
+├─test                   # UT / ST 测试代码
+├─CMakeLists.txt         # C++ 构建入口
+└─README.md              # 仓库总览
 ```
 
-## 环境部署
+## 📖 功能介绍
 
-### 环境和依赖
+| 模块 | 功能简介 | 文档                                            |
+| --- | --- |-----------------------------------------------|
+| `Activity API` | 采集 API、Kernel、Memory、HCCL、Marker、External Correlation 等活动数据，用于构建 Tracing / Profiling 工具。 | [C API 参考](./docs/zh/c_api/README.md)         |
+| `Callback API` | 订阅 Runtime / HCCL 回调，在 API 调用前后执行自定义逻辑或关联采集数据。 | [C API 参考](./docs/zh/c_api/README.md)         |
+| `Python API` | 提供 `KernelMonitor`、`HcclMonitor`、`MstxMonitor` 等接口，快速接入 Python 场景分析能力。 | [Python API 参考](./docs/zh/python_api/README.md) |
+| `样例集` | 覆盖 callback、activity、correlation、HCCL、Python monitor 等典型场景，便于快速上手。 | [用户指南](./docs/zh/README.md)                  |
+
+## 🛠️ 安装指南
+
+msPTI 运行依赖配套版本的 CANN 环境。安装 msPTI 前，请先完成以下环境准备：
 
 - 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+- 安装配套版本的 CANN Toolkit 开发套件包和 ops 算子包，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 
-- 工具的使用运行需要提前获取并安装CANN开源版本，当前CANN开源版本正在发布中，敬请期待。
+完成上述准备后，可通过以下两种方式安装 msPTI：
 
-### 工具安装
+- 方式一：从 [releases 页面](https://gitcode.com/Ascend/mspti/releases) 下载预构建的 `run` 包，执行 MD5 校验后安装。
+- 方式二：从源码仓执行 `bash scripts/build.sh [<version>]` 先构建 `run` 包，再安装。
 
-安装msPTI工具，详情请参见《[msPTI工具安装指南](docs/zh/mspti_install_guide.md)》。
+完整环境准备、两种安装方式的详细步骤、安装参数与示例命令请参见 《[msPTI 工具安装指南](./docs/zh/mspti_install_guide.md)》。
 
-## 功能介绍
+## 🚀 快速入门
 
-使用msPTI工具，详情请参见《[msPTI工具用户指南](docs/zh/README.md)》。
+快速入门介绍msPTI工具的使用流程，具体请参见《[msPTI快速入门](./docs/zh/quick_start.md)》。
 
-## API参考
+## 📝 相关说明
 
-- [msPTI C API参考](docs/zh/c_api/README.md)
+- 《[安全声明]()》
+- [LICENSE](./LICENSE)
+- [Third_Party_Open_Source_Software_Notice](./Third_Party_Open_Source_Software_Notice)
+- 欢迎通过 [Issues](https://gitcode.com/Ascend/mspti/issues) 和 Pull Request 参与贡献；提交前请完成本地自测并确保新增能力带有必要测试。
 
-  介绍msPTI工具C语言的API。
+## 💬 建议与交流
 
-- [msPTI Python API参考](docs/zh/python_api/README.md)
+欢迎大家为社区做贡献。如果有任何疑问或建议，请提交 [Issues](https://gitcode.com/Ascend/mspti/issues)，我们会尽快回复。感谢你的支持。
 
-  介绍msPTI工具Python语言的API。
+|                                      📱 关注 MindStudio 公众号                                      | 💬 更多交流与支持                                                                                                                                                                                                                                                                                                                                                                                                                    |
+|:----------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|    <img src="./docs/zh/figures/officialAccount.png" width="120"><br><sub>*扫码关注获取最新动态*</sub>    | 💡 **加入微信交流群**：<br>关注公众号，回复“交流群”即可获取入群二维码。<br><br>🛠️ **其他渠道**：<br>👉 昇腾助手：[![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](docs/zh/figures/xiaozhushou.png)<br>👉 昇腾论坛：[![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/)                                                         |
 
-## 免责声明
+## 🤝 致谢
 
-### 致msPTI使用者
+msPTI 由华为昇腾计算 MindStudio 开发部贡献，感谢来自社区的每一个 PR，欢迎持续参与共建。
 
-- 本工具仅供调试和开发使用，使用者需自行承担使用风险，并理解以下内容：
-  - 数据处理及删除：用户在使用本工具过程中产生的数据属于用户责任范畴。建议用户在使用完毕后及时删除相关数据，以防信息泄露。
-  - 数据保密与传播：使用者了解并同意不得将通过本工具产生的数据随意外发或传播。对于由此产生的信息泄露、数据泄露或其他不良后果，本工具及其开发者概不负责。
-  - 用户输入安全性：用户需自行保证输入的命令行的安全性，并承担因输入不当而导致的任何安全风险或损失。对于输入命令行不当所导致的问题，本工具及其开发者概不负责。
-- 免责声明范围：本免责声明适用于所有使用本工具的个人或实体。使用本工具即表示您同意并接受本声明的内容，并愿意承担因使用该功能而产生的风险和责任，如有异议请停止使用本工具。
-- 在使用本工具之前，请**谨慎阅读并理解以上免责声明的内容**。对于使用本工具所产生的任何问题或疑问，请及时联系开发者。
+## 关于 MindStudio 团队
 
-### 致数据所有者
-
-如果您不希望您的模型或数据集等信息在msPTI中被提及，或希望更新msPTI中有关的描述，请在GitCode提交Issue，我们将根据您的Issue要求删除或更新您的相关描述。衷心感谢您对msPTI的理解和贡献。
-
-## 安全声明
-
-描述msPTI产品的安全加固信息、公网地址信息及通信矩阵等内容。详情请参见《[msPTI工具安全声明](./docs/zh/security_statement.md)》。
-
-## License
-
-msPTI产品的使用许可证，详见[LICENSE](./LICENSE)文件。
-
-msPTI工具docs目录下的文档适用CC-BY 4.0许可证，具体请参见[LICENSE](./docs/LICENSE)。
-
-## 贡献声明
-
-1. **提交错误报告**：如果您在msPTI中发现了一个不存在安全问题的漏洞，请在msPTI仓库中的Issues中搜索，以防该漏洞被重复提交，如果找不到漏洞可以创建一个新的Issues。如果发现了一个安全问题，请不要将其公开，请参阅安全问题处理方式。提交错误报告时应该包含完整信息。
-2. **安全问题处理**：本项目中对安全问题处理的形式，请通过邮箱通知项目核心人员确认编辑。
-3. **解决现有问题**：通过查看仓库的Issues列表可以发现需要处理的问题信息，可以尝试解决其中的某个问题。
-4. **如何提出新功能**：请使用Issues的Feature标签进行标记，我们会定期处理和确认开发。
-5. **开始贡献：**
-    a. Fork本项目的仓库。
-    b. Clone到本地。
-    c. 创建开发分支。
-    d. 本地自测：提交前请通过所有的单元测试，包括新增的单元测试。
-    e. 提交代码。
-    f. 新建Pull Request。
-    g. 代码检视：您需要根据评审意见修改代码，并再次推送更新。此过程可能会有多轮。
-    h. 当您的PR获得足够数量的检视者批准后，Committer会进行最终审核。
-    i. 审核和测试通过后，CI会将您的PR合并入到项目的主干分支。
-
-## 建议与交流
-
-欢迎大家为社区做贡献。如果有任何疑问或建议，请提交[Issues](https://gitcode.com/Ascend/mspti/issues)，我们会尽快回复。感谢您的支持。
-
-## 致谢
-
-msPTI由华为公司的下列部门联合贡献：
-
-- 昇腾计算MindStudio开发部
-
-感谢来自社区的每一个PR，欢迎贡献msPTI！
+MindStudio 团队围绕昇腾开发场景持续建设训练、推理、性能分析等工具链能力。更多信息请访问 [昇腾社区](https://www.hiascend.com/developer/software/mindstudio) 和 [昇腾论坛](https://www.hiascend.com/forum/)。
