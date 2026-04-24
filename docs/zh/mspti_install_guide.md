@@ -3,7 +3,7 @@
 msPTI工具的安装方式包括：
 
 - 使用CANN包安装：msPTI工具完整功能已集成在CANN包中发布，可直接安装CANN包，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
-- [使用run包安装](https://gitcode.com/Ascend/mspti/blob/772c7e9f6a0bcbe080a5d1a249c2a2e3a43f81d5/docs/zh/mspti_install_guide.md#使用run包安装)：msPTI工具完整功能集成在CANN包中且msPTI依赖CANN包，因此使用msPTI工具需要**先完成CANN包的安装**，若需要升级安装本工具代码仓中的最新功能，可以使用run包安装，在已安装CANN包的环境下覆盖安装msPTI包。
+- [使用run包安装](#使用run包安装)：msPTI工具完整功能集成在CANN包中且msPTI依赖CANN包，因此使用msPTI工具需要**先完成CANN包的安装**，若需要升级安装本工具代码仓中的最新功能，可以使用run包安装，在已安装CANN包的环境下覆盖安装msPTI包。
 
 ## 使用run包安装
 
@@ -18,6 +18,7 @@ git clone https://gitcode.com/Ascend/mspti.git
 cd mspti
 bash scripts/build.sh [<version>]
 ```
+
 - 支持通过环境变量指定版本号（优先级最高）：`BUILD_VERSION`用于设置run包版本，`WHL_VERSION`用于设置whl包版本。
 - 支持通过命令行参数指定版本号（优先级低于环境变量），默认版本号为`version.info`中的`Version`字段。
 - run包中的arch表示系统架构，根据实际运行系统自动适配。

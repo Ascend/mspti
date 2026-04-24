@@ -24,7 +24,7 @@
 
 - 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
-- 软件环境请参见《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_quick.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit)》安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量。
+- 软件环境请参见[CANN快速安装](https://www.hiascend.com/cann/download)安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量。
 - msPTI Python API部分的样例依赖于PyTorch框架和torch_npu插件，请确保安装。参见《[Ascend Extension for PyTorch](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/installation_guide/installing_PyTorch.md)》中的“安装PyTorch”。
 
 **约束**
