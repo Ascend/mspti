@@ -1,6 +1,6 @@
 # MarkerData<a name="ZH-CN_TOPIC_0000002154732221"></a>
 
-展示msTX接口的瞬时打点数据，msTX接口详细介绍请参见《[msTX接口参考](https://gitcode.com/Ascend/mstx/blob/26.0.0/docs/zh/api_reference/mstx_api_reference.md)》。
+展示msTX接口的瞬时打点数据，msTX接口详细介绍请参见《[msTX接口参考](https://gitcode.com/Ascend/mstx/blob/26.0.0/docs/zh/api_reference/README.md)》。
 
 MarkerData为[MstxMonitor.start](MstxMonitor-start.md)调用的结构体，定义如下：
 
