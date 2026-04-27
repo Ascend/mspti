@@ -54,6 +54,9 @@ function parse_script_args() {
             shift
             continue
             ;;
+        --check)
+            exit 0
+            ;;
         *)
             print ${LEVEL_ERROR} "Input option '$3' is invalid. Please try --help."
             exit 1
