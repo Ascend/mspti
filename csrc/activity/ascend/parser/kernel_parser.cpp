@@ -17,35 +17,35 @@
 
 #include "csrc/activity/ascend/parser/kernel_parser.h"
 
-#include <tuple>
 #include <list>
-#include <unordered_map>
 #include <mutex>
 #include <queue>
+#include <tuple>
+#include <unordered_map>
 
-#include "csrc/common/utils.h"
-#include "csrc/common/plog_manager.h"
-#include "csrc/common/context_manager.h"
-#include "csrc/common/object_pool.h"
 #include "csrc/activity/activity_manager.h"
-#include "csrc/activity/ascend/parser/cann_hash_cache.h"
 #include "csrc/activity/ascend/channel/stars_common.h"
 #include "csrc/activity/ascend/entity/device_task.h"
+#include "csrc/activity/ascend/parser/cann_hash_cache.h"
+#include "csrc/common/context_manager.h"
+#include "csrc/common/object_pool.h"
+#include "csrc/common/plog_manager.h"
+#include "csrc/common/utils.h"
 
 
 namespace Mspti {
 namespace Parser {
 namespace {
-    inline const char* GetValidKernelTypeName(TsTaskType taskType)
+inline const char* GetValidKernelTypeName(TsTaskType taskType)
 {
-        switch (taskType) {
-            case TS_TASK_TYPE_KERNEL_AICORE:    return "KERNEL_AICORE";
-            case TS_TASK_TYPE_KERNEL_AICPU:     return "KERNEL_AICPU";
-            case TS_TASK_TYPE_KERNEL_AIVEC:     return "KERNEL_AIVEC";
-            case TS_TASK_TYPE_KERNEL_MIX_AIC:   return "KERNEL_MIX_AIC";
-            case TS_TASK_TYPE_KERNEL_MIX_AIV:   return "KERNEL_MIX_AIV";
-            default: return "";
-}
+    switch (taskType) {
+        case TS_TASK_TYPE_KERNEL_AICORE:    return "KERNEL_AICORE";
+        case TS_TASK_TYPE_KERNEL_AICPU:     return "KERNEL_AICPU";
+        case TS_TASK_TYPE_KERNEL_AIVEC:     return "KERNEL_AIVEC";
+        case TS_TASK_TYPE_KERNEL_MIX_AIC:   return "KERNEL_MIX_AIC";
+        case TS_TASK_TYPE_KERNEL_MIX_AIV:   return "KERNEL_MIX_AIV";
+        default: return "";
+    }
 }
 }
 
@@ -111,7 +111,7 @@ msptiResult KernelParser::KernelParserImpl::ReportRtTaskTrack(uint32_t agingFlag
         data->data.runtimeTrack.taskInfo,
         agingFlag == 1);
     return MSPTI_SUCCESS;
-    }
+}
 
 msptiResult KernelParser::KernelParserImpl::ReportSocLog(uint32_t deviceId, const HalLogData& originData)
 {
@@ -165,9 +165,9 @@ msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
             std::get<1>(dstKey) = 0;
         }
         // judgeGraph
-    if (agingFlag) {
+        if (agingFlag) {
             kernel_map_[dstKey].push(std::move(kernel));
-    } else {
+        } else {
             unaging_kernel_map_.emplace(dstKey, std::move(kernel));
         }
     }
@@ -178,35 +178,35 @@ msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
 msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTask &task)
 {
     auto dstKey = std::make_tuple(task.deviceId, task.streamId, task.taskId);
-        auto it = kernel_map_.find(dstKey);
-        if (it == kernel_map_.end()) {
-            return MSPTI_SUCCESS;
-        }
-        auto &kernelList = it->second;
-        if (kernelList.empty()) {
-            MSPTI_LOGE("The cache kernel list data is empty.");
-            kernel_map_.erase(it);
-            return MSPTI_ERROR_INNER;
-        }
+    auto it = kernel_map_.find(dstKey);
+    if (it == kernel_map_.end()) {
+        return MSPTI_SUCCESS;
+    }
+    auto &kernelList = it->second;
+    if (kernelList.empty()) {
+        MSPTI_LOGE("The cache kernel list data is empty.");
+        kernel_map_.erase(it);
+        return MSPTI_ERROR_INNER;
+    }
     auto& kernel = kernelList.front();
     kernel->start = task.start;
     kernel->end = task.end;
     auto recordAns = Mspti::Activity::ActivityManager::GetInstance()->Record(
         Common::ReinterpretConvert<msptiActivity *>(kernel.get()), sizeof(msptiActivityKernel));
     kernelList.pop();
-        if (kernelList.empty()) {
-            kernel_map_.erase(it);
-        }
-    return recordAns;
+    if (kernelList.empty()) {
+        kernel_map_.erase(it);
     }
+    return recordAns;
+}
 
 msptiResult KernelParser::KernelParserImpl::DealUnAgingRtTaskTrack(const DeviceTask &task)
 {
     auto dstKey = std::make_tuple(task.deviceId, task.streamId, task.taskId);
-        auto it = unaging_kernel_map_.find(dstKey);
-        if (it == unaging_kernel_map_.end()) {
-            return MSPTI_SUCCESS;
-        }
+    auto it = unaging_kernel_map_.find(dstKey);
+    if (it == unaging_kernel_map_.end()) {
+        return MSPTI_SUCCESS;
+    }
     auto& kernel = it->second;
     kernel->ds.deviceId = task.deviceId;
     kernel->ds.streamId = task.streamId;
@@ -237,16 +237,15 @@ bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const So
         auto it = device_kernel_map_.find(dstKey);
         if (it == device_kernel_map_.end()) {
             return false;
-    }
+        }
         task = std::move(it->second);  // copy
         device_kernel_map_.erase(it);
         std::vector<uint64_t> timeFromSysCnt =
-                Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(deviceId,
-                                                                                    {task->start, socLog.timestamp});
+            Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(deviceId, {task->start, socLog.timestamp});
         task->start = timeFromSysCnt[0];
         task->end = timeFromSysCnt[1];
         return true;
-}
+    }
     return false;
 }
 
@@ -275,5 +274,5 @@ msptiResult KernelParser::ReportStarsSocLog(uint32_t deviceId, const HalLogData&
 {
     return pImpl->ReportSocLog(deviceId, originData);
 }
-}
-}
+} // namespace Common
+} // namespace Mspti

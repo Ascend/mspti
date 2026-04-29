@@ -13,19 +13,19 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/activity/ascend/parser/mstx_parser.h"
 
 #include "csrc/activity/activity_manager.h"
-#include "csrc/include/mspti_activity.h"
-#include "csrc/common/plog_manager.h"
-#include "csrc/common/context_manager.h"
+#include "csrc/activity/ascend/parser/hccl_reporter.h"
 #include "csrc/common/config.h"
-#include "csrc/common/utils.h"
+#include "csrc/common/context_manager.h"
+#include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/thread_local.h"
-#include "csrc/activity/ascend/parser/hccl_reporter.h"
+#include "csrc/common/utils.h"
+#include "csrc/include/mspti_activity.h"
 
 namespace Mspti {
 namespace Parser {
@@ -46,7 +46,7 @@ inline Mspti::Common::ThreadLocal<msptiActivityMarker> GetDefaultMarkActivity()
         });
     return instance;
 }
-}
+}  // namespace
 
 std::unordered_map<uint64_t, std::string> MstxParser::hashMarkMsg_;
 std::mutex MstxParser::markMsgMtx_;
@@ -55,7 +55,7 @@ std::mutex MstxParser::markMsgMtx_;
 std::mutex MstxParser::innerMarkerMutex_;
 std::unordered_map<uint64_t, AclrtStream> MstxParser::innerMarkIds;
 
-MstxParser *MstxParser::GetInstance()
+MstxParser* MstxParser::GetInstance()
 {
     static MstxParser instance;
     return &instance;
@@ -66,7 +66,7 @@ const std::string* MstxParser::TryCacheMarkMsg(const char* msg)
     // msg字符串已在对外接口进行判空和长度判断操作
     std::lock_guard<std::mutex> lk(markMsgMtx_);
     if (hashMarkMsg_.size() > MARK_MAX_CACHE_NUM) {
-        MSPTI_LOGE("Cache mark msg failed, current size: %u, limit size: %u", hashMarkMsg_.size(), MARK_MAX_CACHE_NUM);
+        MSPTI_LOGE("Cache mark msg failed, current size: %zu, limit size: %u", hashMarkMsg_.size(), MARK_MAX_CACHE_NUM);
         return nullptr;
     }
     uint64_t hashId = Common::GetHashIdImple(msg);
@@ -86,9 +86,9 @@ msptiResult MstxParser::ReportMark(const char* msg, AclrtStream stream, const ch
         return MSPTI_ERROR_INNER;
     }
     uint64_t markId = ++gMarkId_;
-    if (stream != nullptr && Common::ProfTrace(markId,
-        static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE), MARK_TAG_ID, stream) !=
-                              MSPTI_SUCCESS) {
+    if (stream != nullptr &&
+        Common::ProfTrace(markId, static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE),
+                          MARK_TAG_ID, stream) != MSPTI_SUCCESS) {
         MSPTI_LOGE("Failed to run markA func.");
         return MSPTI_ERROR_INNER;
     }
@@ -98,8 +98,8 @@ msptiResult MstxParser::ReportMark(const char* msg, AclrtStream stream, const ch
         return MSPTI_ERROR_INNER;
     }
     activity->kind = MSPTI_ACTIVITY_KIND_MARKER;
-    activity->flag = (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE :
-                    MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS;
+    activity->flag = (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE
+                                         : MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS;
     activity->sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
     activity->id = markId;
     activity->objectId.pt.processId = Mspti::Common::Utils::GetPid();
@@ -107,19 +107,19 @@ msptiResult MstxParser::ReportMark(const char* msg, AclrtStream stream, const ch
     activity->name = msgPtr->c_str();
     activity->domain = domain;
     activity->timestamp = timestamp;
-    return Mspti::Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity*>(activity), sizeof(msptiActivityMarker));
+    return Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activity),
+                                                                   sizeof(msptiActivityMarker));
 }
 
 msptiResult MstxParser::ReportRangeStartA(const char* msg, AclrtStream stream, uint64_t& markId, const char* domain)
 {
     RangeStartContext mstxContext{};
-    uint64_t timestamp = 0;
+    uint64_t timestamp{0};
     if (Common::ContextManager::GetInstance()->GetHostTimeInfo(mstxContext.devTimeInfo)) {
-        timestamp = Common::ContextManager::GetInstance()->CalculateRealTime(Mspti::Common::Utils::GetHostSysCnt(),
-                                                              mstxContext.devTimeInfo);
+        timestamp = Common::ContextManager::CalculateRealTime(
+            Common::ContextManager::GetInstance()->GetHostSysCnt(), mstxContext.devTimeInfo);
     } else {
-        timestamp = Mspti::Common::Utils::GetClockRealTimeNs();
+        timestamp = Common::ContextManager::GetInstance()->GetHostTimeStampNs();
     }
     mstxContext.stream = stream;
     auto msgPtr = TryCacheMarkMsg(msg);
@@ -128,9 +128,9 @@ msptiResult MstxParser::ReportRangeStartA(const char* msg, AclrtStream stream, u
         return MSPTI_ERROR_INNER;
     }
     markId = ++gMarkId_;
-    if (stream != nullptr && Common::ProfTrace(markId,
-                                               static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE),
-                                               MARK_TAG_ID, stream) != MSPTI_SUCCESS) {
+    if (stream != nullptr &&
+        Common::ProfTrace(markId, static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE), MARK_TAG_ID,
+                          stream) != MSPTI_SUCCESS) {
         MSPTI_LOGE("Failed to run range startA func.");
         return MSPTI_ERROR_INNER;
     }
@@ -140,8 +140,8 @@ msptiResult MstxParser::ReportRangeStartA(const char* msg, AclrtStream stream, u
         return MSPTI_ERROR_INNER;
     }
     activity->kind = MSPTI_ACTIVITY_KIND_MARKER;
-    activity->flag = (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE :
-                    MSPTI_ACTIVITY_FLAG_MARKER_START;
+    activity->flag =
+        (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE : MSPTI_ACTIVITY_FLAG_MARKER_START;
     activity->sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
     activity->id = markId;
     activity->objectId.pt.processId = Mspti::Common::Utils::GetPid();
@@ -160,7 +160,7 @@ msptiResult MstxParser::ReportRangeStartA(const char* msg, AclrtStream stream, u
 
 msptiResult MstxParser::ReportRangeEnd(uint64_t rangeId)
 {
-    uint64_t timestamp;
+    uint64_t timestamp{0};
     bool withStream = false;
     {
         std::lock_guard<std::mutex> lock(rangeInfoMtx_);
@@ -169,8 +169,8 @@ msptiResult MstxParser::ReportRangeEnd(uint64_t rangeId)
             MSPTI_LOGW("Input rangeId[%lu] is invalid.", rangeId);
             return MSPTI_SUCCESS;
         }
-        timestamp = Common::ContextManager::GetInstance()->CalculateRealTime(Mspti::Common::Utils::GetHostSysCnt(),
-                                                              iter->second.devTimeInfo);
+        timestamp = Common::ContextManager::CalculateRealTime(
+            Common::ContextManager::GetInstance()->GetHostSysCnt(), iter->second.devTimeInfo);
         if (iter->second.stream) {
             if (Common::ProfTrace(rangeId, static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE),
                                   MARK_TAG_ID, iter->second.stream) != MSPTI_SUCCESS) {
@@ -195,13 +195,13 @@ msptiResult MstxParser::ReportRangeEnd(uint64_t rangeId)
     activity->name = "";
     activity->domain = "";
     activity->timestamp = timestamp;
-    return Mspti::Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity*>(activity), sizeof(msptiActivityMarker));
+    return Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activity),
+                                                                   sizeof(msptiActivityMarker));
 }
 
 void MstxParser::ReportMarkDataToActivity(uint32_t deviceId, const StepTraceBasic* stepTrace)
 {
-    if (!stepTrace) {
+    if (UNLIKELY(!stepTrace)) {
         return;
     }
     Common::DevTimeInfo devTimeInfo;
@@ -223,7 +223,7 @@ void MstxParser::ReportMarkDataToActivity(uint32_t deviceId, const StepTraceBasi
     msptiActivityMarker mark;
     mark.kind = MSPTI_ACTIVITY_KIND_MARKER;
     mark.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_DEVICE;
-    mark.timestamp = Common::ContextManager::GetInstance()->CalculateRealTime(stepTrace->timestamp, devTimeInfo);
+    mark.timestamp = Common::ContextManager::CalculateRealTime(stepTrace->timestamp, devTimeInfo);
     mark.id = stepTrace->indexId;
     mark.flag = static_cast<msptiActivityFlag>(stepTrace->modelId);
     mark.objectId.ds.deviceId = deviceId;
@@ -235,8 +235,8 @@ void MstxParser::ReportMarkDataToActivity(uint32_t deviceId, const StepTraceBasi
         HcclReporter::GetInstance()->RecordHcclMarker(&mark);
         return;
     }
-    Mspti::Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity*>(&mark), sizeof(msptiActivityMarker));
+    Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&mark),
+                                                            sizeof(msptiActivityMarker));
 }
 
 bool MstxParser::IsInnerMarker(uint64_t markId)
@@ -248,9 +248,9 @@ bool MstxParser::IsInnerMarker(uint64_t markId)
 msptiResult MstxParser::InnerDeviceStartA(AclrtStream stream, uint64_t& markId)
 {
     markId = ++gMarkId_;
-    if (stream != nullptr && Common::ProfTrace(markId,
-                                               static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE),
-                                               MARK_TAG_ID, stream) != MSPTI_SUCCESS) {
+    if (stream != nullptr &&
+        Common::ProfTrace(markId, static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE), MARK_TAG_ID,
+                          stream) != MSPTI_SUCCESS) {
         MSPTI_LOGE("Failed to run range startA func.");
         return MSPTI_ERROR_INNER;
     }
@@ -270,15 +270,14 @@ msptiResult MstxParser::InnerDeviceEndA(uint64_t rangeId)
             MSPTI_LOGW("Input rangeId[%lu] is invalid.", rangeId);
             return MSPTI_SUCCESS;
         }
-        if (iter->second && Common::ProfTrace(rangeId,
-                                              static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE),
-                                              MARK_TAG_ID, iter->second) != MSPTI_SUCCESS) {
+        if (iter->second &&
+            Common::ProfTrace(rangeId, static_cast<uint64_t>(MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE), MARK_TAG_ID,
+                              iter->second) != MSPTI_SUCCESS) {
             MSPTI_LOGE("Failed to run range end func.");
             return MSPTI_ERROR_INNER;
         }
     }
     return MSPTI_SUCCESS;
 }
-
-} // Parser
-} // Mspti
+}  // namespace Parser
+}  // namespace Mspti
