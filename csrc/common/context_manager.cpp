@@ -13,20 +13,21 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/common/context_manager.h"
 
-#include "csrc/common/config.h"
-#include "csrc/common/plog_manager.h"
-#include "csrc/common/inject/driver_inject.h"
-#include "csrc/common/utils.h"
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
+#include "csrc/common/config.h"
+#include "csrc/common/inject/driver_inject.h"
+#include "csrc/common/plog_manager.h"
+#include "csrc/common/utils.h"
 
 namespace Mspti {
 namespace Common {
-const int64_t SYNC_HOST_TERM_SECONDS = 7;
+constexpr int64_t SYNC_HOST_TERM_SECONDS = 7;
+constexpr uint64_t ERR_FREQ = 0;
 
 ContextManager *ContextManager::GetInstance()
 {
@@ -78,7 +79,6 @@ static uint64_t GetDevFreq(uint32_t device)
 
 static uint64_t GetHostFreq()
 {
-    constexpr uint64_t ERR_FREQ = 0;
     int64_t freq = 0;
     DrvError ret = HalGetDeviceInfo(0, DRV_MODULE_TYPE_SYSTEM, DRV_INFO_TYPE_HOST_OSC_FREQUE, &freq);
     return (ret == DRV_ERROR_NONE) ? freq : ERR_FREQ;
@@ -87,15 +87,11 @@ static uint64_t GetHostFreq()
 static bool HostFreqIsEnableImpl()
 {
     int32_t apiVersion = 0;
-    constexpr int32_t SUPPORT_OSC_FREQ_API_VERSION = 0x071905; // 支持获取host freq的驱动版本号
+    constexpr int32_t SUPPORT_OSC_FREQ_API_VERSION = 0x071905;  // 支持获取host freq的驱动版本号
     if (halGetAPIVersion(&apiVersion) != DRV_ERROR_NONE) {
         return false;
     }
-    bool ret = false;
-    if (apiVersion >= SUPPORT_OSC_FREQ_API_VERSION) {
-        ret = GetHostFreq() > 0;
-    }
-    return ret;
+    return apiVersion >= SUPPORT_OSC_FREQ_API_VERSION ? (GetHostFreq() > ERR_FREQ) : false;
 }
 
 static uint64_t GetDevStartSysCnt(uint32_t device)
@@ -168,7 +164,7 @@ uint64_t ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, uint64_t sysCn
     return CalculateRealTime(sysCnt, devTimeInfo);
 }
 
-std::vector<uint64_t> ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, const std::vector<uint64_t>& sysCnts)
+std::vector<uint64_t> ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, const std::vector<uint64_t> &sysCnts)
 {
     DevTimeInfo devTimeInfo{};
     {
@@ -201,13 +197,13 @@ uint64_t ContextManager::GetRealTimeFromSysCnt(uint64_t sysCnt)
 
 uint64_t ContextManager::CalculateRealTimeWithMonotonicTime(uint64_t timestamp, const DevTimeInfo &devTimeInfo)
 {
-    int64_t diff = static_cast<int64_t>(timestamp) - static_cast<int64_t>(devTimeInfo.startMonotonicRawNs); 
+    int64_t diff = static_cast<int64_t>(timestamp) - static_cast<int64_t>(devTimeInfo.startMonotonicRawNs);
     return diff + static_cast<int64_t>(devTimeInfo.startRealTime);
 }
 
 uint64_t ContextManager::CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevTimeInfo &devTimeInfo)
 {
-    if (devTimeInfo.freq == 0) {
+    if (UNLIKELY(devTimeInfo.freq == ERR_FREQ)) {
         return sysCnt;
     }
     int64_t delta = static_cast<int64_t>(sysCnt) - static_cast<int64_t>(devTimeInfo.startSysCnt);
@@ -218,16 +214,19 @@ uint64_t ContextManager::CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevT
 
 uint64_t ContextManager::CalculateRealTime(uint64_t sysCnt, const DevTimeInfo &devTimeInfo)
 {
-    if (!HostFreqIsEnable() || devTimeInfo.freq == 0) {
-        return CalculateRealTimeWithMonotonicTime(sysCnt, devTimeInfo);
-    }
-    return CalculateRealTimeWithSysCnt(sysCnt, devTimeInfo);
+    return (devTimeInfo.freq == ERR_FREQ) ? CalculateRealTimeWithMonotonicTime(sysCnt, devTimeInfo)
+                                        : CalculateRealTimeWithSysCnt(sysCnt, devTimeInfo);
 }
 
 uint64_t ContextManager::GetHostTimeStampNs()
 {
-    return HostFreqIsEnable() ? GetRealTimeFromSysCnt(Mspti::Common::Utils::GetHostSysCnt()):
-        Mspti::Common::Utils::GetClockRealTimeNs();
+    return HostFreqIsEnable() ? GetRealTimeFromSysCnt(Common::Utils::GetHostSysCnt())
+                              : Common::Utils::GetClockRealTimeNs();
+}
+
+uint64_t ContextManager::GetHostSysCnt()
+{
+    return HostFreqIsEnable() ? Common::Utils::GetHostSysCnt() : Common::Utils::GetClockMonotonicRawNs();
 }
 
 PlatformType ContextManager::GetChipType(uint32_t deviceId)
@@ -270,9 +269,7 @@ void ContextManager::Run()
 {
     while (true) {
         std::unique_lock<std::mutex> lock(cv_mutex_);
-        cv_.wait_for(lock, std::chrono::seconds(SYNC_HOST_TERM_SECONDS), [this] {
-            return isQuit_.load();
-        });
+        cv_.wait_for(lock, std::chrono::seconds(SYNC_HOST_TERM_SECONDS), [this] { return isQuit_.load(); });
         if (isQuit_) {
             break;
         }
@@ -308,12 +305,9 @@ msptiResult ContextManager::StopSyncTime()
     return MSPTI_SUCCESS;
 }
 
-ContextManager::~ContextManager()
-{
-    StopSyncTime();
-}
+ContextManager::~ContextManager() { StopSyncTime(); }
 
-bool ContextManager::GetHostTimeInfo(DevTimeInfo& devTimeInfo)
+bool ContextManager::GetHostTimeInfo(DevTimeInfo &devTimeInfo)
 {
     std::lock_guard<std::mutex> lk(hostTimeMtx_);
     if (hostTimeInfo_ == nullptr) {
@@ -323,7 +317,7 @@ bool ContextManager::GetHostTimeInfo(DevTimeInfo& devTimeInfo)
     return true;
 }
 
-bool ContextManager::GetCurDevTimeInfo(uint32_t deviceId, DevTimeInfo& devTimeInfo)
+bool ContextManager::GetCurDevTimeInfo(uint32_t deviceId, DevTimeInfo &devTimeInfo)
 {
     std::lock_guard<std::mutex> lk(devTimeMtx_);
     auto iter = devTimeInfo_.find(deviceId);
@@ -333,6 +327,5 @@ bool ContextManager::GetCurDevTimeInfo(uint32_t deviceId, DevTimeInfo& devTimeIn
     devTimeInfo = *iter->second;
     return true;
 }
-
-}  // Common
-}  // Mspti
+}  // namespace Common
+}  // namespace Mspti

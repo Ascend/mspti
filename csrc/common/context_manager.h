@@ -13,20 +13,21 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_COMMON_CONTEXT_MANAGER_H
 #define MSPTI_COMMON_CONTEXT_MANAGER_H
 
 #include <atomic>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
-#include <condition_variable>
 #include <thread>
+#include <unordered_map>
 #include <vector>
-#include "csrc/include/mspti_result.h"
+
 #include "csrc/common/concurrent_map.h"
+#include "csrc/include/mspti_result.h"
 
 namespace Mspti {
 namespace Common {
@@ -58,14 +59,15 @@ public:
     bool HostFreqIsEnable();
     bool GetHostTimeInfo(DevTimeInfo& devTimeInfo);
     bool GetCurDevTimeInfo(uint32_t deviceId, DevTimeInfo& devTimeInfo);
-    uint64_t CalculateRealTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
-    static uint64_t CalculateRealTimeWithMonotonicTime(uint64_t sysCnt, const DevTimeInfo &devTimeInfo);
-    static uint64_t CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevTimeInfo &devTimeInfo);
+    static uint64_t CalculateRealTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
+    static uint64_t CalculateRealTimeWithMonotonicTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
+    static uint64_t CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
     uint64_t GetRealTimeFromSysCnt(uint32_t deviceId, uint64_t sysCnt);
     std::vector<uint64_t> GetRealTimeFromSysCnt(uint32_t deviceId, const std::vector<uint64_t>& sysCnts);
     // Host
     uint64_t GetRealTimeFromSysCnt(uint64_t sysCnt);
     uint64_t GetHostTimeStampNs();
+    uint64_t GetHostSysCnt();
     PlatformType GetChipType(uint32_t deviceId);
     uint64_t GetCorrelationId(uint32_t threadId = 0);
     uint64_t UpdateAndReportCorrelationId();
@@ -77,10 +79,10 @@ public:
 private:
     ContextManager() = default;
     ~ContextManager();
-    explicit ContextManager(const ContextManager &obj) = delete;
-    ContextManager& operator=(const ContextManager &obj) = delete;
-    explicit ContextManager(ContextManager &&obj) = delete;
-    ContextManager& operator=(ContextManager &&obj) = delete;
+    explicit ContextManager(const ContextManager& obj) = delete;
+    ContextManager& operator=(const ContextManager& obj) = delete;
+    explicit ContextManager(ContextManager&& obj) = delete;
+    ContextManager& operator=(ContextManager&& obj) = delete;
 
     void Run();
 
@@ -102,7 +104,6 @@ private:
     ConcurrentMap<uint32_t, uint64_t> threadCorrelationIdInfo_;
     std::unordered_map<uint32_t, ContextInfo> deviceInfoCache_;
 };
-}  // Common
-}  // Mspti
-
+}  // namespace Common
+}  // namespace Mspti
 #endif
