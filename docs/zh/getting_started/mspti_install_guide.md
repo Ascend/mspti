@@ -1,41 +1,48 @@
 # msPTI工具安装指南
 
+## 安装说明
+
 msPTI工具的安装方式包括：
 
-- 使用CANN包安装：msPTI工具完整功能已集成在CANN包中发布，可直接安装CANN包，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
+- 使用CANN包安装：msPTI工具完整功能已集成在CANN包中，请参考《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包）并配置环境变量。
 - [使用run包安装](#使用run包安装)：msPTI工具完整功能集成在CANN包中且msPTI依赖CANN包，因此使用msPTI工具需要**先完成CANN包的安装**，若需要升级安装本工具代码仓中的最新功能，可以使用run包安装，在已安装CANN包的环境下覆盖安装msPTI包。
 
 ## 使用run包安装
 
-如需使用最新代码的功能，可下载本仓库代码，自行编译、打包并完成安装。
+如需使用最新代码的功能，可下载本仓库代码，自行编译run包并完成安装。
 
 ### 获取run包
 
 支持两种方式获取run包：
 
-- 方式一：从releases页面下载run包。
-- 方式二：基于源码构建run包。
+- 方式一：从Release页面下载
+- 方式二：源码编译
 
-#### 方式一：releases页面下载
+#### 方式一：Release页面下载
 
-run包发布地址：[msPTI releases](https://gitcode.com/Ascend/mspti/releases)
+1. 请参考[msPTI Release](https://gitcode.com/Ascend/mspti/releases)下载msPTI的run包和对应数字签名文件（.sha256）。
 
-下载后建议先进行完整性校验（MD5）后再安装。示例如下：
+   下载本软件即表示您同意《[华为企业业务最终用户许可协议（EULA）](https://e.huawei.com/cn/about/eula)》的条款和条件。
 
-```shell
-wget https://gitcode.com/Ascend/mspti/releases/download/<tag>/mindstudio-profiler-tools-interface_<version>_<arch>.run
-md5sum mindstudio-profiler-tools-interface_<version>_<arch>.run
-echo "<expected_md5> mindstudio-profiler-tools-interface_<version>_<arch>.run" | md5sum -c -
-```
+2. 验证run包的完整性。
 
-- `<expected_md5>`请以release页面同版本安装包对应的MD5值为准。
-- 各版本安装包MD5清单请参见[版本说明](../release_notes.md)。
+   1. 在run包所在目录执行如下命令获取run包的sha256校验码。
 
-**MD5sum 校验不一致处理建议：**
+      ```bash
+      sha256sum {name}.run
+      ```
 
-- 若`md5sum -c -`输出`FAILED`，请勿继续安装。
-- 请先删除当前文件并重新下载，再次执行MD5校验。
-- 仍无法通过校验时，请在releases页面核对文件名与版本是否一致，并通过Issues反馈问题。
+      打印如下示例信息。
+
+      ```ColdFusion
+      {sha256} {name}.run
+      ```
+
+   2. 用记事本打开数字签名文件查看sha256校验码。
+
+   3. 比对两个文件的sha256校验码是否一致。
+
+      若两个校验码一致，则表示下载了正确的软件包；若不一致，请不要使用该软件包，需要支持与服务请在论坛求助或提交技术工单。
 
 #### 方式二：源码编译
 
@@ -44,26 +51,26 @@ echo "<expected_md5> mindstudio-profiler-tools-interface_<version>_<arch>.run" |
 ```bash
 git clone https://gitcode.com/Ascend/mspti.git
 cd mspti
-bash scripts/build.sh [<version>]
+bash scripts/build.sh [{version}]
 ```
 
 - 支持通过环境变量指定版本号（优先级最高）：`BUILD_VERSION`用于设置run包版本，`WHL_VERSION`用于设置whl包版本。
 - 支持通过命令行参数指定版本号（优先级低于环境变量），默认版本号为`version.info`中的`Version`字段。
 - run包中的arch表示系统架构，根据实际运行系统自动适配。
-- 编译完成后，会在mspti/output目录下生成msPTI工具的run包，run包名称格式为`mindstudio-profiler-tools-interface_<version>_<arch>.run`。
+- 编译完成后，会在mspti/output目录下生成msPTI工具的run包，run包名称格式为`mindstudio-profiler-tools-interface_{version}_{arch}.run`。
 
 ### 安装run包
 
 1. 增加对run包的可执行权限。
 
     ```shell
-    chmod +x mindstudio-profiler-tools-interface_<version>_<arch>.run
+    chmod +x mindstudio-profiler-tools-interface_{version}_{arch}.run
     ```
 
 2. 安装run包。
 
     ```shell
-    ./mindstudio-profiler-tools-interface_<version>_<arch>.run --install
+    ./mindstudio-profiler-tools-interface_{version}_{arch}.run --install
     ```
 
     安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#参数说明)。
@@ -79,6 +86,28 @@ bash scripts/build.sh [<version>]
     ```text
     MindStudio-Profiler-Tools-Interface package install success.
     ```
+
+## 升级
+
+msPTI工具升级可参照[使用run包安装](#使用run包安装)中的步骤直接安装msPTI最新的run包即可，新的run包会自动覆盖原有的run包。
+
+## 卸载
+
+卸载msPTI工具有如下两种方式：
+
+方式一：通过--uninstall参数单独卸载
+
+```bash
+./mindstudio-profiler-tools-interface_{version}_{arch}.run --uninstall --install-path=<mspti_install_path>
+```
+
+> [!note]
+>
+> 需要在run包所在路径执行该命令，其中`mspti_install_path`为该run包安装路径。
+
+方式二：卸载CANN包
+
+msPTI默认会安装在CANN包的安装路径下，直接卸载CANN包的时候会将msPTI一起卸载。
 
 ## 附录
 
