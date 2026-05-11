@@ -3,10 +3,11 @@
 <div align="center">
   <p><b>昇腾 Profiling 工具接口</b></p>
 
-[📖 用户指南](./docs/zh/getting_started/samples_guide.md) |
-[🛠️ 安装指南](./docs/zh/getting_started/mspti_install_guide.md) |
-[📚 API 参考](./docs/zh/c_api/README.md) |
-[🌐 软件下载](https://gitcode.com/Ascend/mspti/releases)
+[![Ask DeepWiki](https://badgen.net/badge/Ask/DeepWiki/blue)](https://deepwiki.com/MrYuWangang/mspti)
+[![Ask ZRead](https://badgen.net/badge/Ask/ZRead/orange)](https://zread.ai/MrYuWangang/mspti)
+[![doc](https://badgen.net/badge/doc/readthedocs/green)](https://mindstudio-profiler-docs.readthedocs.io/zh-cn/latest/mspti/)
+[![License](https://badgen.net/badge/License/MulanPSL-2.0/blue)](https://gitcode.com/Ascend/mspti/blob/master/LICENSE)
+[![Ascend](https://img.shields.io/badge/Hardware-Ascend-orange.svg)](https://www.hiascend.com/)
 
 </div>
 
