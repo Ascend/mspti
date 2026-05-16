@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
+# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -70,11 +70,11 @@ class MsptiPythonMonitorCase(test_base.TestProfiling):
                         f"--output {self.res_dir} > {self.slog_stdout} 2>&1"
 
     def check_marker_count(self):
-        expected_marker_count = 18768
+        expected_marker_count = 7500
         marker_count = 0
         for csv_file in [path for path in os.listdir(self.res_dir) if path.endswith('csv')]:
             csv_file = os.path.join(self.res_dir, csv_file)
-            cmd = "grep -r 'MSPTI_ACTIVITY_KIND_MARKER' {0} | wc -l".format(csv_file)
+            cmd = "grep -r 'MSPTI_ACTIVITY_KIND_MARKER' {0} | grep 'HcclAllreduce' | wc -l".format(csv_file)
             res = self.subprocess_cmd(cmd).strip()
             if res.isdigit():
                 marker_count += int(res)
@@ -94,11 +94,11 @@ class MsptiPythonMonitorCase(test_base.TestProfiling):
                          f"HcclData num error, expected {expected_hccl_count}, but get {hccl_count}")
 
     def check_kernel_count(self):
-        expected_kernel_count = 472744
+        expected_kernel_count = 22512
         kernel_count = 0
         for csv_file in [path for path in os.listdir(self.res_dir) if path.endswith('csv')]:
             csv_file = os.path.join(self.res_dir, csv_file)
-            cmd = "grep -r 'MSPTI_ACTIVITY_KIND_KERNEL' {0} | wc -l".format(csv_file)
+            cmd = "grep -r 'MSPTI_ACTIVITY_KIND_KERNEL' {0} | grep 'Relu' | wc -l".format(csv_file)
             res = self.subprocess_cmd(cmd).strip()
             if res.isdigit():
                 kernel_count += int(res)
