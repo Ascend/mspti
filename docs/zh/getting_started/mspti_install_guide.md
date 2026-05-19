@@ -1,50 +1,28 @@
 # msPTI工具安装指南
 
-## 安装说明
+## 1. 安装说明
 
-msPTI工具的安装方式包括：
+本工具已集成于CANN中，若已安装CANN且无需更新此工具，可直接使用，无需按本文档安装。
 
-- 使用CANN包安装：msPTI工具完整功能已集成在CANN包中，请参考《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包）并配置环境变量。
-- [使用run包安装](#使用run包安装)：msPTI工具完整功能集成在CANN包中且msPTI依赖CANN包，因此使用msPTI工具需要**先完成CANN包的安装**，若需要升级安装本工具代码仓中的最新功能，可以使用run包安装，在已安装CANN包的环境下覆盖安装msPTI包。
+若您的环境尚未安装CANN，请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），并配置环境变量。
 
-## 使用run包安装
+如需单独升级本工具或使用最新版本，您可通过以下三种方式进行安装：[在线安装](#21-在线安装)、[离线安装](#22-离线安装)、[源码安装](#23-源码安装)。
+
+## 2. 安装方式
+
+### 2.1 在线安装
+
+若您的设备具备互联网访问能力，可通过一条命令自动完成工具的下载与安装。请参见昇腾社区MindStudio[下载](https://www.hiascend.com/developer/software/mindstudio/download)页面，选择对应的CANN版本，并在安装方式中选择“在线安装”，系统将引导您完成后续操作。
+
+### 2.2 离线安装
+
+对处于企业内网等无外网环境的设备，请先在可联网的机器上下载完整的离线安装包，再将其传输至目标设备进行安装。请参见昇腾社区MindStudio[下载](https://www.hiascend.com/developer/software/mindstudio/download)页面，选择对应的CANN版本，并在安装方式中选择“离线安装”，获取对应的安装包及操作指引。
+
+### 2.3 源码安装
 
 如需使用最新代码的功能，可下载本仓库代码，自行编译run包并完成安装。
 
-### 获取run包
-
-支持两种方式获取run包：
-
-- 方式一：从Release页面下载
-- 方式二：源码编译
-
-#### 方式一：Release页面下载
-
-1. 请参考[msPTI Release](https://gitcode.com/Ascend/mspti/releases)下载msPTI的run包和对应数字签名文件（.sha256）。
-
-   下载本软件即表示您同意《[华为企业业务最终用户许可协议（EULA）](https://e.huawei.com/cn/about/eula)》的条款和条件。
-
-2. 验证run包的完整性。
-
-   1. 在run包所在目录执行如下命令获取run包的sha256校验码。
-
-      ```bash
-      sha256sum {name}.run
-      ```
-
-      打印如下示例信息。
-
-      ```ColdFusion
-      {sha256} {name}.run
-      ```
-
-   2. 用记事本打开数字签名文件查看sha256校验码。
-
-   3. 比对两个文件的sha256校验码是否一致。
-
-      若两个校验码一致，则表示下载了正确的软件包；若不一致，请不要使用该软件包，需要支持与服务请在论坛求助或提交技术工单。
-
-#### 方式二：源码编译
+#### 2.3.1 执行编译打包
 
 执行如下命令编译run包：
 
@@ -59,7 +37,7 @@ bash scripts/build.sh [{version}]
 - run包中的arch表示系统架构，根据实际运行系统自动适配。
 - 编译完成后，会在mspti/output目录下生成msPTI工具的run包，run包名称格式为`mindstudio-profiler-tools-interface_{version}_{arch}.run`。
 
-### 安装run包
+#### 2.3.2 安装run包
 
 1. 增加对run包的可执行权限。
 
@@ -73,7 +51,7 @@ bash scripts/build.sh [{version}]
     ./mindstudio-profiler-tools-interface_{version}_{arch}.run --install
     ```
 
-    安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#参数说明)。
+    安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#51-参数说明)。
 
     执行安装命令时，会自动执行--check参数，校验软件包的一致性和完整性，出现如下回显信息，表示软件包校验成功。
 
@@ -87,31 +65,42 @@ bash scripts/build.sh [{version}]
     MindStudio-Profiler-Tools-Interface package install success.
     ```
 
-## 升级
+## 3. 卸载
 
-msPTI工具升级可参照[使用run包安装](#使用run包安装)中的步骤直接安装msPTI最新的run包即可，新的run包会自动覆盖原有的run包。
+可通过如下步骤卸载：
 
-## 卸载
+1. 下载脚本。
 
-卸载msPTI工具有如下两种方式：
+   ```bash
+   curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.0.0/ms_install.py
+   ```
 
-方式一：通过--uninstall参数单独卸载
+   > [!NOTE]
+   >
+   > - 需要联网环境才能下载，若环境不允许联网或离线，请先在可联网的环境下载该脚本后拷贝到目标设备。
+   > - 若执行命令无响应或出现连接失败、SSL证书错误等问题，请参见[FAQ](https://www.hiascend.com/developer/blog/details/02176213671719317003)。
 
-```bash
-./mindstudio-profiler-tools-interface_{version}_{arch}.run --uninstall --install-path=<mspti_install_path>
-```
+2. 执行卸载。
 
-> [!NOTE]
->
-> 需要在run包所在路径执行该命令，其中`mspti_install_path`为该run包安装路径。
+   ```bash
+   python ms_install.py uninstall {tools_name}
+   ```
 
-方式二：卸载CANN包
+   其中{tools_name}配置为需卸载的工具名称，可通过`python ms_install.py help`命令查询，在打印信息中的Available Tools字段下显示工具名称。
 
-msPTI默认会安装在CANN包的安装路径下，直接卸载CANN包的时候会将msPTI一起卸载。
+   卸载成功打印如下信息：
 
-## 附录
+   ```ColdFusion
+   Successfully uninstalled 1 tool ({tools_name})
+   ```
 
-### 参数说明
+## 4. 升级
+
+升级即“先卸后装”。直接执行安装命令，工具将自动卸载旧版本，并引导您完成覆盖安装。
+
+## 5. 附录
+
+### 5.1 参数说明
 
 msPTI工具run包的安装命令可配置如下参数：
 
