@@ -13,7 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_COMMON_INJECT_PROFAPI_INJECT_H
 #define MSPTI_COMMON_INJECT_PROFAPI_INJECT_H
@@ -21,7 +21,8 @@
 #include "csrc/common/inject/inject_base.h"
 #include "csrc/include/mspti_result.h"
 
-enum ProfilerCallbackType {
+enum ProfilerCallbackType
+{
     PROFILE_CTRL_CALLBACK = 0,
     PROFILE_DEVICE_STATE_CALLBACK,
     PROFILE_REPORT_API_CALLBACK,
@@ -41,35 +42,36 @@ enum ProfilerCallbackType {
     PROFILE_DEVICE_STATE_C_CALLBACK,
 };
 
-#define MSPROF_DATA_HEAD_MAGIC_NUM  0x5a5a
+#define MSPROF_DATA_HEAD_MAGIC_NUM 0x5a5a
 #define MSPROF_EVENT_FLAG 0xFFFFFFFFFFFFFFFFULL
 #define PROF_INVALID_MODE_ID 0xFFFFFFFFUL
 #define MAX_DEV_NUM 64
 
-#define PROF_ACL_API              0x00000001ULL
-#define PROF_TASK_TIME            0x00000800ULL
-#define PROF_HCCL_TRACE           0x00000020ULL
-#define PROF_RUNTIME_TRACE        0x0000004000000ULL
-#define PROF_RUNTIME_API         0x00000100ULL
+#define PROF_ACL_API 0x00000001ULL
+#define PROF_TASK_TIME 0x00000800ULL
+#define PROF_HCCL_TRACE 0x00000020ULL
+#define PROF_RUNTIME_TRACE 0x0000004000000ULL
+#define PROF_RUNTIME_API 0x00000100ULL
 
-#define MSPTI_CONFIG_KERNEL       (PROF_TASK_TIME | PROF_RUNTIME_TRACE)
-#define MSPTI_CONFIG_API          (PROF_ACL_API | PROF_TASK_TIME)
-#define MSPTI_CONFIG_COMMUNICATION          (PROF_ACL_API | PROF_RUNTIME_TRACE | PROF_TASK_TIME | PROF_HCCL_TRACE)
-#define MSPTI_CONFIG_RUNTIME_API          (PROF_RUNTIME_API)
+#define MSPTI_CONFIG_KERNEL (PROF_TASK_TIME | PROF_RUNTIME_TRACE)
+#define MSPTI_CONFIG_API (PROF_ACL_API | PROF_TASK_TIME)
+#define MSPTI_CONFIG_COMMUNICATION (PROF_ACL_API | PROF_RUNTIME_TRACE | PROF_TASK_TIME | PROF_HCCL_TRACE)
+#define MSPTI_CONFIG_RUNTIME_API (PROF_RUNTIME_API)
 
-#define MSPROF_REPORT_RUNTIME_LEVEL     5000U
-#define MSPROF_REPORT_NODE_BASE_LEVEL    10000U
-#define MSPROF_REPORT_HCCL_NODE_LEVEL   5500U
-#define MSPROF_REPORT_ACL_LEVEL         20000U
+#define MSPROF_REPORT_RUNTIME_LEVEL 5000U
+#define MSPROF_REPORT_NODE_BASE_LEVEL 10000U
+#define MSPROF_REPORT_HCCL_NODE_LEVEL 5500U
+#define MSPROF_REPORT_ACL_LEVEL 20000U
 
-#define MSPROF_REPORT_HCCL_MASTER_TYPE  10001U
-#define MSPROF_REPORT_HCCL_SLAVE_TYPE   10002U
-#define MSPROF_STREAM_EXPAND_SPEC_TYPE   804U
+#define MSPROF_REPORT_HCCL_MASTER_TYPE 10001U
+#define MSPROF_REPORT_HCCL_SLAVE_TYPE 10002U
+#define MSPROF_STREAM_EXPAND_SPEC_TYPE 804U
 
 const uint32_t MSPROF_REPORT_NODE_HCCL_OP_INFO_TYPE = 10;
-const uint32_t MSPROF_REPORT_NODE_LAUNCH_TYPE       = 5;
+const uint32_t MSPROF_REPORT_NODE_LAUNCH_TYPE = 5;
 
-enum AclApiTag {
+enum AclApiTag
+{
     ACL_OP = 1,
     ACL_MODEL = 2,
     ACL_RTS = 3,
@@ -82,7 +84,9 @@ enum AclApiTag {
     ACL_ATB = 11,
 };
 
-struct MsprofApi { // for MsprofReportApi
+// for MsprofReportApi
+struct MsprofApi
+{
     uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
     uint16_t level;
     uint32_t type;
@@ -93,18 +97,21 @@ struct MsprofApi { // for MsprofReportApi
     uint64_t itemId;
 };
 
-struct MsprofEvent {  // for MsprofReportEvent
+// for MsprofReportEvent
+struct MsprofEvent
+{
     uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
     uint16_t level;
     uint32_t type;
     uint32_t threadId;
-    uint32_t requestId; // 0xFFFF means single event
+    uint32_t requestId;  // 0xFFFF means single event
     uint64_t timeStamp;
     uint64_t reserve = MSPROF_EVENT_FLAG;
     uint64_t itemId;
 };
 
-struct MsprofRuntimeTrack {
+struct MsprofRuntimeTrack
+{
     uint16_t deviceId;
     uint16_t streamId;
     uint32_t taskInfo;
@@ -112,7 +119,8 @@ struct MsprofRuntimeTrack {
     uint64_t kernelName;
 };
 
-struct MsprofNodeBasicInfo {
+struct MsprofNodeBasicInfo
+{
     uint64_t opName;
     uint32_t taskType;
     uint64_t opType;
@@ -121,42 +129,38 @@ struct MsprofNodeBasicInfo {
     uint8_t opState;
 };
 
-struct MsprofAttrInfo {
+struct MsprofAttrInfo
+{
     uint64_t opName;
     uint32_t attrType;
     uint64_t hashId;
 };
 
 #pragma pack(1)
-struct MsprofHcclOPInfo {  // for MsprofReportCompactInfo buffer data
+// for MsprofReportCompactInfo buffer data
+struct MsprofHcclOPInfo
+{
     uint8_t relay : 1;
     uint8_t retry : 1;
     uint8_t dataType;
-    uint64_t algType;     // 通信算子使用的算法,hash的key,其值是以"-"分隔的字符串
+    uint64_t algType;  // 通信算子使用的算法,hash的key,其值是以"-"分隔的字符串
     uint64_t count;
     uint64_t groupName;
 };
 #pragma pack()
 
 #pragma pack(1)
-struct MsprofStreamExpandSpecInfo {  // for MsprofReportCompactInfo buffer data
-    uint8_t expandStatus; // 1: 扩容场景 0: 非扩容场景
+// for MsprofReportCompactInfo buffer data
+struct MsprofStreamExpandSpecInfo
+{
+    uint8_t expandStatus;  // 1: 扩容场景 0: 非扩容场景
     uint8_t reserved1;
     uint16_t reserved2;
 };
 #pragma pack()
 
-enum TsTaskType {
-    TS_TASK_TYPE_KERNEL_AICORE = 0,
-    TS_TASK_TYPE_KERNEL_AICPU = 1,
-    TS_TASK_TYPE_KERNEL_AIVEC = 66,
-    TS_TASK_TYPE_FLIP = 98,
-    TS_TASK_TYPE_KERNEL_MIX_AIC = 108,
-    TS_TASK_TYPE_KERNEL_MIX_AIV = 109,
-    TS_TASK_TYPE_RESERVED,
-};
-
-enum RtProfileDataType {
+enum RtProfileDataType
+{
     RT_PROFILE_TYPE_TASK_BEGIN = 0,
     RT_PROFILE_TYPE_TASK_END = 800,
     RT_PROFILE_TYPE_MEMCPY_INFO = 801,
@@ -167,14 +171,16 @@ enum RtProfileDataType {
 };
 
 const uint16_t MSPROF_COMPACT_INFO_DATA_LENGTH = 40;
-struct MsprofCompactInfo {
+struct MsprofCompactInfo
+{
     uint16_t magicNumber = MSPROF_DATA_HEAD_MAGIC_NUM;
     uint16_t level;
     uint32_t type;
     uint32_t threadId;
     uint32_t dataLen;
     uint64_t timeStamp;
-    union {
+    union
+    {
         uint8_t info[MSPROF_COMPACT_INFO_DATA_LENGTH];
         MsprofRuntimeTrack runtimeTrack;
         MsprofNodeBasicInfo nodeBasicInfo;
@@ -186,7 +192,8 @@ struct MsprofCompactInfo {
 
 #define PATH_LEN_MAX 1023
 #define PARAM_LEN_MAX 4095
-struct CommandHandleParams {
+struct CommandHandleParams
+{
     uint32_t pathLen;
     uint32_t storageLimit;  // MB
     uint32_t profDataLen;
@@ -194,7 +201,8 @@ struct CommandHandleParams {
     char profData[PARAM_LEN_MAX + 1];
 };
 
-struct CommandHandle {
+struct CommandHandle
+{
     uint64_t profSwitch;
     uint64_t profSwitchHi;
     uint32_t devNums;
@@ -205,7 +213,8 @@ struct CommandHandle {
     struct CommandHandleParams params;
 };
 
-enum CommandHandleType {
+enum CommandHandleType
+{
     PROF_COMMANDHANDLE_TYPE_INIT = 0,
     PROF_COMMANDHANDLE_TYPE_START,
     PROF_COMMANDHANDLE_TYPE_STOP,
@@ -219,10 +228,13 @@ struct ProfSetDevPara
     bool isOpen;
 };
 
-namespace Mspti {
-namespace Inject {
+namespace Mspti
+{
+namespace Inject
+{
 
-enum ProfApiErrorCode {
+enum ProfApiErrorCode
+{
     PROFAPI_ERROR_NONE = 0,
     PROFAPI_ERROR_MEM_NOT_ENOUGH,
     PROFAPI_ERROR_GET_ENV,
@@ -244,7 +256,8 @@ int32_t profRegDeviceStateCallback(ProfSetDeviceHandle handle);
 // 新数据结构上报方式
 int32_t MsprofRegisterProfileCallback(int32_t callbackType, VOID_PTR callback, uint32_t len);
 
-namespace Detail {
+namespace Detail
+{
 int32_t MsprofReporterCallbackImpl(uint32_t moduleId, uint32_t type, VOID_PTR data, uint32_t len);
 int8_t MsptiHostFreqIsEnableImpl();
 uint64_t MsptiGetHashIdImpl(const char* hashInfo, size_t len);
@@ -254,8 +267,8 @@ int32_t MsptiCompactInfoReporterCallbackImpl(uint32_t agingFlag, CONST_VOID_PTR 
 int32_t MsptiAddiInfoReporterCallbackImpl(uint32_t agingFlag, CONST_VOID_PTR data, uint32_t length);
 int32_t MsptiRegReportTypeInfoImpl(uint16_t level, uint32_t typeId, const char* name, size_t len);
 int32_t MsprofDeviceStateImpl(VOID_PTR deviceState, uint32_t len);
-}
-}
-}
+}  // namespace Detail
+}  // namespace Inject
+}  // namespace Mspti
 
-#endif // MSPTI_COMMON_INJECT_PROFAPI_INJECT_H
+#endif  // MSPTI_COMMON_INJECT_PROFAPI_INJECT_H

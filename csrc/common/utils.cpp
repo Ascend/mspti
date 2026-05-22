@@ -13,33 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/common/utils.h"
 
-#include <ctime>
-#include <sys/prctl.h>
-#include <unistd.h>
-#include <unordered_map>
-#include <sys/syscall.h>
 #include <linux/limits.h>
-#include "securec.h"
+#include <sys/prctl.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+
+#include <ctime>
+#include <unordered_map>
+
 #include "csrc/common/plog_manager.h"
+#include "securec.h"
 
-namespace Mspti {
-namespace Common {
-
+namespace Mspti
+{
+namespace Common
+{
 const std::unordered_map<std::string, std::string> INVALID_CHAR = {
-    {"\n", "\\n"}, {"\f", "\\f"}, {"\r", "\\r"}, {"\b", "\\b"}, {"\t", "\\t"},
-    {"\v", "\\v"}, {"\u007F", "\\u007F"}, {"\"", "\\\""}, {"'", "\'"},
-    {"\\", "\\\\"}, {"%", "\\%"}, {">", "\\>"}, {"<", "\\<"}, {"|", "\\|"},
-    {"&", "\\&"}, {"$", "\\$"}, {";", "\\;"}, {"`", "\\`"}
-};
+    {"\n", "\\n"},         {"\f", "\\f"},  {"\r", "\\r"}, {"\b", "\\b"},  {"\t", "\\t"}, {"\v", "\\v"},
+    {"\u007F", "\\u007F"}, {"\"", "\\\""}, {"'", "\'"},   {"\\", "\\\\"}, {"%", "\\%"},  {">", "\\>"},
+    {"<", "\\<"},          {"|", "\\|"},   {"&", "\\&"},  {"$", "\\$"},   {";", "\\;"},  {"`", "\\`"}};
 
 uint64_t Utils::GetClockMonotonicRawNs()
 {
     struct timespec ts;
-    if (memset_s(&ts, sizeof(timespec), 0, sizeof(timespec)) != EOK) {
+    if (memset_s(&ts, sizeof(timespec), 0, sizeof(timespec)) != EOK)
+    {
         return 0;
     }
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
@@ -49,7 +51,8 @@ uint64_t Utils::GetClockMonotonicRawNs()
 uint64_t Utils::GetClockRealTimeNs()
 {
     struct timespec ts;
-    if (memset_s(&ts, sizeof(timespec), 0, sizeof(timespec)) != EOK) {
+    if (memset_s(&ts, sizeof(timespec), 0, sizeof(timespec)) != EOK)
+    {
         return 0;
     }
     clock_gettime(CLOCK_REALTIME, &ts);
@@ -93,11 +96,13 @@ uint32_t Utils::GetTid()
 
 std::string Utils::RealPath(const std::string& path)
 {
-    if (path.empty() || path.size() > PATH_MAX) {
+    if (path.empty() || path.size() > PATH_MAX)
+    {
         return "";
     }
     char realPath[PATH_MAX] = {0};
-    if (realpath(path.c_str(), realPath) == nullptr) {
+    if (realpath(path.c_str(), realPath) == nullptr)
+    {
         return "";
     }
     return std::string(realPath);
@@ -105,12 +110,15 @@ std::string Utils::RealPath(const std::string& path)
 
 std::string Utils::RelativeToAbsPath(const std::string& path)
 {
-    if (path.empty() || path.size() > PATH_MAX) {
+    if (path.empty() || path.size() > PATH_MAX)
+    {
         return "";
     }
-    if (path[0] != '/') {
+    if (path[0] != '/')
+    {
         char pwd_path[PATH_MAX] = {0};
-        if (getcwd(pwd_path, PATH_MAX) != nullptr) {
+        if (getcwd(pwd_path, PATH_MAX) != nullptr)
+        {
             return std::string(pwd_path) + "/" + path;
         }
         return "";
@@ -118,26 +126,30 @@ std::string Utils::RelativeToAbsPath(const std::string& path)
     return std::string(path);
 }
 
-bool Utils::FileExist(const std::string &path)
+bool Utils::FileExist(const std::string& path)
 {
-    if (path.empty() || path.size() > PATH_MAX) {
+    if (path.empty() || path.size() > PATH_MAX)
+    {
         return false;
     }
     return (access(path.c_str(), F_OK) == 0) ? true : false;
 }
 
-bool Utils::FileReadable(const std::string &path)
+bool Utils::FileReadable(const std::string& path)
 {
-    if (path.empty() || path.size() > PATH_MAX) {
+    if (path.empty() || path.size() > PATH_MAX)
+    {
         return false;
     }
     return (access(path.c_str(), R_OK) == 0) ? true : false;
 }
 
-bool Utils::CheckCharValid(const std::string &str)
+bool Utils::CheckCharValid(const std::string& str)
 {
-    for (auto &item: INVALID_CHAR) {
-        if (str.find(item.first) != std::string::npos) {
+    for (auto& item : INVALID_CHAR)
+    {
+        if (str.find(item.first) != std::string::npos)
+        {
             MSPTI_LOGE("The path contains invalid character: %s.", item.second.c_str());
             return false;
         }
@@ -145,10 +157,19 @@ bool Utils::CheckCharValid(const std::string &str)
     return true;
 }
 
-std::string Utils::GetEnv(const std::string& name) {
+std::string Utils::GetEnv(const std::string& name)
+{
     const char* value = std::getenv(name.c_str());
     return value ? std::string(value) : std::string();
 }
 
-}  // Common
-}  // Mspti
+bool Utils::StartsWith(const std::string& str, const std::string& prefix)
+{
+    if (prefix.size() > str.size())
+    {
+        return false;
+    }
+    return str.compare(0, prefix.size(), prefix) == 0;
+}
+}  // namespace Common
+}  // namespace Mspti

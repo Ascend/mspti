@@ -13,7 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_COMMON_UTILS_H
 #define MSPTI_COMMON_UTILS_H
@@ -30,74 +30,87 @@
 #endif
 #endif
 
-namespace {
-    constexpr std::size_t GOLDEN_RATIO = 0x9e3779b9;
-    constexpr int SHIFT_LEFT  = 6;
-    constexpr int SHIFT_RIGHT = 2;
-    constexpr uint32_t SECTONSEC = 1000000000UL;
-}
+namespace
+{
+constexpr std::size_t GOLDEN_RATIO = 0x9e3779b9;
+constexpr int SHIFT_LEFT = 6;
+constexpr int SHIFT_RIGHT = 2;
+constexpr uint32_t SECTONSEC = 1000000000UL;
+}  // namespace
 
-template<typename T>
+template <typename T>
 void UNUSED(T&& x)
 {
     (void)x;
 }
 
-namespace Mspti {
-namespace Common {
-
-template<typename Types, typename... Args>
-inline void MsptiMakeSharedPtr(std::shared_ptr<Types> &ptr, Args&&... args)
+namespace Mspti
 {
-    try {
+namespace Common
+{
+
+template <typename Types, typename... Args>
+inline void MsptiMakeSharedPtr(std::shared_ptr<Types>& ptr, Args&&... args)
+{
+    try
+    {
         ptr = std::make_shared<Types>(std::forward<Args>(args)...);
-    } catch (std::bad_alloc &e) {
+    }
+    catch (std::bad_alloc& e)
+    {
         throw;
-    } catch (...) {
+    }
+    catch (...)
+    {
         ptr = nullptr;
         return;
     }
 }
 
-template<typename Types, typename... Args>
-inline void MsptiMakeUniquePtr(std::unique_ptr<Types> &ptr, Args&&... args)
+template <typename Types, typename... Args>
+inline void MsptiMakeUniquePtr(std::unique_ptr<Types>& ptr, Args&&... args)
 {
-    try {
+    try
+    {
         ptr = std::make_unique<Types>(std::forward<Args>(args)...);
-    } catch (std::bad_alloc &e) {
+    }
+    catch (std::bad_alloc& e)
+    {
         throw;
-    } catch (...) {
+    }
+    catch (...)
+    {
         ptr = nullptr;
         return;
     }
 }
 
-template<typename T, typename V>
+template <typename T, typename V>
 inline T ReinterpretConvert(V ptr)
 {
     return reinterpret_cast<T>(ptr);
 }
 
-inline uint64_t GetHashIdImple(const std::string &hashInfo)
+inline uint64_t GetHashIdImple(const std::string& hashInfo)
 {
     static const uint32_t UINT32_BITS = 32;
     uint32_t prime[2] = {29, 131};
     uint32_t hash[2] = {0};
-    for (char d : hashInfo) {
+    for (char d : hashInfo)
+    {
         hash[0] = hash[0] * prime[0] + static_cast<uint32_t>(d);
         hash[1] = hash[1] * prime[1] + static_cast<uint32_t>(d);
     }
     return (((static_cast<uint64_t>(hash[0])) << UINT32_BITS) | hash[1]);
 }
 
-struct TupleHashImpl {
+struct TupleHashImpl
+{
     template <typename Tuple, std::size_t... I>
     static std::size_t HashTupleImpl(const Tuple& t, std::index_sequence<I...>)
     {
         std::size_t seed = 0;
-        (void)std::initializer_list<int>{
-                (HashCombine(seed, std::get<I>(t)), 0)...
-        };
+        (void)std::initializer_list<int>{(HashCombine(seed, std::get<I>(t)), 0)...};
         return seed;
     }
 
@@ -105,13 +118,12 @@ struct TupleHashImpl {
     static void HashCombine(std::size_t& seed, const T& val)
     {
         std::size_t h = std::hash<T>{}(val);
-        seed ^= h + GOLDEN_RATIO
-                + (seed << SHIFT_LEFT)
-                + (seed >> SHIFT_RIGHT);
+        seed ^= h + GOLDEN_RATIO + (seed << SHIFT_LEFT) + (seed >> SHIFT_RIGHT);
     }
 };
 
-struct TupleHash {
+struct TupleHash
+{
     template <typename Tuple>
     std::size_t operator()(const Tuple& t) const
     {
@@ -119,7 +131,8 @@ struct TupleHash {
     }
 };
 
-struct PairHash {
+struct PairHash
+{
     template <typename T1, typename T2>
     std::size_t operator()(const std::pair<T1, T2>& p) const
     {
@@ -130,8 +143,9 @@ struct PairHash {
     }
 };
 
-class Utils {
-public:
+class Utils
+{
+   public:
     static uint64_t GetClockMonotonicRawNs();
     static uint64_t GetClockRealTimeNs();
     static uint64_t GetHostSysCnt();
@@ -139,13 +153,12 @@ public:
     static uint32_t GetTid();
     static std::string RealPath(const std::string& path);
     static std::string RelativeToAbsPath(const std::string& path);
-    static bool FileExist(const std::string &path);
-    static bool FileReadable(const std::string &path);
-    static bool CheckCharValid(const std::string &str);
+    static bool FileExist(const std::string& path);
+    static bool FileReadable(const std::string& path);
+    static bool CheckCharValid(const std::string& str);
     static std::string GetEnv(const std::string& name);
+    static bool StartsWith(const std::string& str, const std::string& prefix);
 };
-
-}  // Common
-}  // Mspti
-
-#endif
+}  // namespace Common
+}  // namespace Mspti
+#endif  // MSPTI_COMMON_UTILS_H
