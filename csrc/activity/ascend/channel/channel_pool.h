@@ -28,14 +28,13 @@
 namespace Mspti {
 namespace Ascend {
 namespace Channel {
-
-const size_t CHANNELPOLL_THREAD_QUEUE_SIZE = 8192;
 class ChannelPool {
 public:
     ChannelPool(uint32_t pool_size) : pool_size_(pool_size) {}
     ~ChannelPool() = default;
     msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId);
+    msptiResult FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult Start();
     void Stop();
 
@@ -52,8 +51,7 @@ private:
     std::unordered_map<size_t, std::shared_ptr<ChannelReader>> readers_map_;
     std::mutex mtx_;
 };
-}  // Channel
-}  // Ascend
-}  // Mspti
-
-#endif
+}  // namespace Channel
+}  // namespace Ascend
+}  // namespace Mspti
+#endif // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_H

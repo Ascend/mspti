@@ -15,25 +15,25 @@
  * -------------------------------------------------------------------------
 */
 #include "csrc/activity/ascend/channel/channel_reader.h"
-
+#include <climits>
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/channel/channel_data.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/parser/device_task_calculator.h"
-#include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
-#include "csrc/common/inject/inject_base.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/utils.h"
 #include "csrc/activity/ascend/channel/soclog_convert.h"
 #include "csrc/activity/ascend/channel/tsfw_convert.h"
 #include "csrc/activity/ascend/parser/kernel_parser.h"
-#include "csrc/include/mspti_activity.h"
 #include "securec.h"
 
 namespace Mspti {
 namespace Ascend {
 namespace Channel {
+namespace {
+constexpr size_t MAX_BUFFER_SIZE = 1024 * 1024 * 2;
+}  // namespace
 
 ChannelReader::ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId)
     : deviceId_(deviceId),
@@ -52,6 +52,30 @@ msptiResult ChannelReader::Uinit()
 {
     isInited_ = false;
     MSPTI_LOGI("Uinit channel reader, deviceId=%u, channelId=%d, totalSize=%lu", deviceId_, channelId_, totalSize_);
+    return MSPTI_SUCCESS;
+}
+
+msptiResult ChannelReader::FlushDrvBuff()
+{
+    // 1. query flush size
+    std::unique_lock<std::mutex> guard(flushMutex_);
+    unsigned int flushSize = 0;
+    const int32_t ret = HalProfDataFlush(deviceId_, channelId_, &flushSize);
+    if (ret != MSPTI_SUCCESS) {
+        MSPTI_LOGE("HalProfDataFlush failed, deviceId:%u, channelId:%u, ret:%d", deviceId_, channelId_, ret);
+        return MSPTI_ERROR_INNER;
+    }
+    MSPTI_LOGI("Flush deviceId:%u, channelId:%u, flushSize:%u", deviceId_, channelId_, flushSize);
+    // 2. wait flush finished
+    if (flushSize == 0) {
+        MSPTI_LOGI("No drv data need flush for deviceId:%u, channelId:%u", deviceId_, channelId_);
+        return MSPTI_SUCCESS;
+    }
+    needWait_ = true;
+    flushBufSize_ = flushSize;
+
+    constexpr uint32_t maxWaitTime = 20;
+    flushFlag_.wait_for(guard, std::chrono::milliseconds(maxWaitTime), [this] { return !this->needWait_; });
     return MSPTI_SUCCESS;
 }
 
@@ -81,8 +105,12 @@ msptiResult ChannelReader::Execute()
     char buf[MAX_BUFFER_SIZE] = {0};
     size_t cur_pos = 0;
     int currLen = 0;
+    std::unique_lock<std::mutex> guard(flushMutex_, std::defer_lock);
     while (isInited_ && !isChannelStopped_) {
+        guard.lock();
         currLen = ProfChannelRead(deviceId_, channelId_, buf + cur_pos, MAX_BUFFER_SIZE - cur_pos);
+        CheckIfSendFlush(currLen);
+        guard.unlock();
         if (currLen <= 0) {
             if (currLen < 0) {
                 MSPTI_LOGE("Read data from driver failed.");
@@ -105,6 +133,29 @@ msptiResult ChannelReader::Execute()
         cur_pos = cur_pos + uint_currLen - last_pos;
     }
     return MSPTI_SUCCESS;
+}
+
+void ChannelReader::CheckIfSendFlush(int currLen)
+{
+    if (needWait_) {
+        // Check for overflow, if curLen is very large, Sure to send flush finished
+        if (flushCurSize_ > UINT_MAX - currLen) {
+            SendFlushFinished();
+        } else {
+            flushCurSize_ += currLen;
+            if (flushBufSize_ <= flushCurSize_ || currLen == 0) {
+                SendFlushFinished();
+            }
+        }
+    }
+}
+
+void ChannelReader::SendFlushFinished()
+{
+    needWait_ = false;
+    flushCurSize_ = 0;
+    flushBufSize_ = 0;
+    flushFlag_.notify_all();
 }
 
 size_t ChannelReader::TransDataToActivityBuffer(char buffer[], size_t valid_size,

@@ -46,8 +46,8 @@ class KernelMonitor(BaseMonitor):
     def stop(self) -> MsptiResult:
         ret = BaseMonitor.stop_monitor()
         if ret == MsptiResult.MSPTI_SUCCESS:
+            ret = MsptiResult(_kernel_unregister_cb())
             self.user_cb = None
-            return MsptiResult(_kernel_unregister_cb())
         return ret
 
     def callback(self, origin_data: dict):

@@ -126,6 +126,19 @@ void DevProfTask::Run()
     StopTask();
 }
 
+msptiResult DevProfTask::Flush()
+{
+    if (!CanFlush()) {
+        MSPTI_LOGW("Task device: %u, channel: %d is not start or flush is not support.", deviceId_, channelId_);
+        return MSPTI_SUCCESS;
+    }
+    auto ret = Ascend::Channel::ChannelPoolManager::GetInstance()->FlushDrvBuff(deviceId_, channelId_);
+    if (ret != MSPTI_SUCCESS) {
+        MSPTI_LOGE("FlushDrvBuff failed while flush data from device: %u, channel id: %u.", deviceId_, channelId_);
+    }
+    return ret;
+}
+
 // DevProfTaskTsFw的引用计数，保证在第一次使能时，Start Device任务
 // 最后一次反使能时，Stop Device任务
 std::map<uint32_t, uint32_t> DevProfTaskTsFw::ref_cnts_;
@@ -205,6 +218,17 @@ msptiResult DevProfTaskTsFw::StopTask()
     return MSPTI_SUCCESS;
 }
 
+bool DevProfTaskTsFw::CanFlush()
+{
+    std::lock_guard<std::mutex> lk(cnt_mtx_);
+    auto iter = ref_cnts_.find(deviceId_);
+    if (iter == ref_cnts_.end()) {
+        MSPTI_LOGW("The TsFw DevProfTask was not start. DeviceId: %u", deviceId_);
+        return false;
+    }
+    return iter->second > 0;
+}
+
 // DevProfTaskStars的引用计数，保证在第一次使能时，Start Device任务
 // 最后一次反使能时，Stop Device任务
 std::map<uint32_t, uint32_t> DevProfTaskStars::ref_cnts_;
@@ -282,5 +306,15 @@ msptiResult DevProfTaskStars::StopTask()
     return MSPTI_SUCCESS;
 }
 
-}  // Ascend
-}  // Mspti
+bool DevProfTaskStars::CanFlush()
+{
+    std::lock_guard<std::mutex> lk(cnt_mtx_);
+    auto iter = ref_cnts_.find(deviceId_);
+    if (iter == ref_cnts_.end()) {
+        MSPTI_LOGW("The Stars DevProfTask was not start. DeviceId: %u", deviceId_);
+        return false;
+    }
+    return iter->second > 0;
+}
+}  // namespace Ascend
+}  // namespace Mspti

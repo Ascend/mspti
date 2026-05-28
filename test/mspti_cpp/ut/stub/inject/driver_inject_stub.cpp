@@ -104,3 +104,11 @@ DrvError DrvGetDevIDs(uint32_t* devices, uint32_t len)
     }
     return DRV_ERROR_NONE;
 }
+
+int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int *data_len)
+{
+    if (data_len) {
+        *data_len = 256;
+    }
+    return 0;
+}

@@ -17,6 +17,7 @@
 #include "csrc/common/inject/driver_inject.h"
 
 #include <functional>
+#include <pthread.h>
 #include "csrc/common/utils.h"
 #include "csrc/common/function_loader.h"
 
@@ -31,6 +32,7 @@ enum DriverFunctionIndex {
     FUNC_PROF_CHANNEL_POLL,
     FUNC_HAL_GET_DEVICE_INFO,
     FUNC_HAL_GET_API_VERSION,
+    FUNC_HAL_PROF_DATA_FLUSH,
     FUNC_DRIVER_COUNT
 };
 
@@ -49,6 +51,7 @@ void LoadDriverFunction()
     g_driverFuncArray[FUNC_PROF_CHANNEL_POLL] = Mspti::Common::RegisterFunction("libascend_hal", "prof_channel_poll");
     g_driverFuncArray[FUNC_HAL_GET_DEVICE_INFO] = Mspti::Common::RegisterFunction("libascend_hal", "halGetDeviceInfo");
     g_driverFuncArray[FUNC_HAL_GET_API_VERSION] = Mspti::Common::RegisterFunction("libascend_hal", "halGetAPIVersion");
+    g_driverFuncArray[FUNC_HAL_PROF_DATA_FLUSH] = Mspti::Common::RegisterFunction("libascend_hal", "halProfDataFlush");
 }
 }
 
@@ -167,4 +170,17 @@ DrvError halGetAPIVersion(int32_t *apiVersion)
     }
     THROW_FUNC_NOTFOUND(func, __FUNCTION__, "libascend_hal.so");
     return func(apiVersion);
+}
+
+int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int *data_len)
+{
+    pthread_once(&g_once, LoadDriverFunction);
+    void *voidFunc = g_driverFuncArray[FUNC_HAL_PROF_DATA_FLUSH];
+    using HalProfDataFlushFunc = std::function<decltype(HalProfDataFlush)>;
+    HalProfDataFlushFunc func = Mspti::Common::ReinterpretConvert<decltype(&HalProfDataFlush)>(voidFunc);
+    if (func == nullptr) {
+        Mspti::Common::GetFunction("libascend_hal", "halProfDataFlush", func);
+    }
+    THROW_FUNC_NOTFOUND(func, "halProfDataFlush", "libascend_hal.so");
+    return func(device_id, channel_id, data_len);
 }

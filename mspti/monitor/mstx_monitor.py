@@ -60,9 +60,9 @@ class MstxMonitor(BaseMonitor):
     def stop(self) -> MsptiResult:
         ret = BaseMonitor.stop_monitor()
         if ret == MsptiResult.MSPTI_SUCCESS:
+            ret = MsptiResult(_mstx_unregister_cb())
             self.mark_user_cb = None
             self.range_user_cb = None
-            return MsptiResult(_mstx_unregister_cb())
         return ret
 
     def enable_domain(self, domain_name: str):

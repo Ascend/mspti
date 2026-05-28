@@ -25,6 +25,9 @@
 namespace Mspti {
 namespace Ascend {
 namespace Channel {
+namespace {
+constexpr size_t CHANNELPOLL_THREAD_QUEUE_SIZE = 8192;
+}  // namespace
 
 size_t ChannelPool::GetChannelIndex(uint32_t devId, AI_DRV_CHANNEL channelId)
 {
@@ -59,6 +62,20 @@ msptiResult ChannelPool::RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId)
         readers_map_.erase(channel_index);
     }
     return MSPTI_SUCCESS;
+}
+
+msptiResult ChannelPool::FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId)
+{
+    size_t channel_index = GetChannelIndex(devId, channelId);
+    std::shared_ptr<ChannelReader> reader{nullptr};
+    {
+        std::lock_guard<std::mutex> lk(mtx_);
+        auto channel_iter = readers_map_.find(channel_index);
+        if (channel_iter != readers_map_.end()) {
+            reader = channel_iter->second;
+        }
+    }
+    return reader != nullptr ? reader->FlushDrvBuff() : MSPTI_ERROR_INNER;
 }
 
 msptiResult ChannelPool::Start()

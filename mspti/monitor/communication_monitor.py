@@ -46,8 +46,8 @@ class CommunicationMonitor(BaseMonitor):
     def stop(self) -> MsptiResult:
         ret = BaseMonitor.stop_monitor()
         if ret == MsptiResult.MSPTI_SUCCESS:
+            ret = MsptiResult(_communication_unregister_cb())
             self.user_cb = None
-            return MsptiResult(_communication_unregister_cb())
         return ret
 
     def callback(self, origin_data: dict):

@@ -26,7 +26,7 @@ namespace Ascend {
 namespace Channel {
 
 namespace {
-    constexpr uint32_t MAX_DEV_NUM = 64;
+constexpr uint32_t MAX_DEV_NUM = 64;
 }
 
 ChannelPoolManager *ChannelPoolManager::GetInstance()
@@ -124,6 +124,15 @@ msptiResult ChannelPoolManager::RemoveReader(uint32_t devId, AI_DRV_CHANNEL chan
     }
     return MSPTI_SUCCESS;
 }
-}  // Channel
-}  // Ascend
-}  // Mspti
+
+msptiResult ChannelPoolManager::FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId)
+{
+    std::lock_guard<std::mutex> lock(channelPollMutex_);
+    if (drvChannelPoll_) {
+        return drvChannelPoll_->FlushDrvBuff(devId, channelId);
+    }
+    return MSPTI_SUCCESS;
+}
+}  // namespace Channel
+}  // namespace Ascend
+}  // namespace Mspti

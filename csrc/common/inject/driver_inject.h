@@ -86,8 +86,10 @@ int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char *outBuf,
 int ProfChannelPoll(struct ProfPollInfo* outBuf, int num, int timeout);
 DrvError HalGetDeviceInfo(uint32_t deviceId, int32_t moduleType, int32_t infoType, int64_t* value);
 DrvError halGetAPIVersion(int32_t* apiVersion);
+int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int *data_len);
+
 #if defined(__cplusplus)
 }
-#endif
+#endif // __cplusplus
 
-#endif
+#endif // MSPTI_COMMON_INJECT_DRIVER_INJECT_H

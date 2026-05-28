@@ -38,6 +38,7 @@ public:
     bool CheckChannelValid(uint32_t devId, uint32_t channelId);
     msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId);
+    msptiResult FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId);
 
 private:
     ChannelPoolManager() = default;
@@ -53,8 +54,7 @@ private:
     std::unordered_map<uint32_t, std::set<uint32_t>> channels_;
     std::mutex channels_mtx_;
 };
-}  // Channel
-}  // Ascend
-}  // Mspti
-
-#endif
+}  // namespace Channel
+}  // namespace Ascend
+}  // namespace Mspti
+#endif  // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_MANAGER_H

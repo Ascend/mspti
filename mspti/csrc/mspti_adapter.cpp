@@ -321,6 +321,7 @@ msptiResult MsptiAdapter::Stop()
     if (refCnt_ >= 1) {
         refCnt_--;
     }
+    MSPTI_LOGI("Mspti adapter stop, refCnt=%d", refCnt_.load());
     return (refCnt_ == 0) ? msptiUnsubscribe(subscriber_) : MSPTI_SUCCESS;
 }
 
@@ -365,9 +366,11 @@ msptiResult MsptiAdapter::RegisterMstxCallback(PyObject *mstxCallback)
 msptiResult MsptiAdapter::UnregisterMstxCallback()
 {
     std::lock_guard<std::mutex> lk(mtx_);
+    auto ret = msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER);
+    msptiActivityFlushAll(1);
     Py_XDECREF(mstxCallback_);
     mstxCallback_ = nullptr;
-    return msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER);
+    return ret;
 }
 
 PyObject* MsptiAdapter::GetMstxCallback() const
@@ -391,9 +394,11 @@ PyObject* MsptiAdapter::GetKernelCallback() const
 msptiResult MsptiAdapter::UnregisterKernelCallback()
 {
     std::lock_guard<std::mutex> lk(mtx_);
+    auto ret = msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL);
+    msptiActivityFlushAll(1);
     Py_XDECREF(kernelCallback_);
     kernelCallback_ = nullptr;
-    return msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL);
+    return ret;
 }
 
 msptiResult MsptiAdapter::RegisterHcclCallback(PyObject *hcclCallback)
@@ -412,9 +417,11 @@ PyObject* MsptiAdapter::GetHcclCallback() const
 msptiResult MsptiAdapter::UnregisterHcclCallback()
 {
     std::lock_guard<std::mutex> lk(mtx_);
+    auto ret = msptiActivityDisable(MSPTI_ACTIVITY_KIND_HCCL);
+    msptiActivityFlushAll(1);
     Py_XDECREF(hcclCallback_);
     hcclCallback_ = nullptr;
-    return MSPTI_SUCCESS;
+    return ret;
 }
 
 msptiResult MsptiAdapter::RegisterCommunicationCallback(PyObject *communicationCallback)
@@ -433,9 +440,11 @@ PyObject* MsptiAdapter::GetCommunicationCallback() const
 msptiResult MsptiAdapter::UnregisterCommunicationCallback()
 {
     std::lock_guard<std::mutex> lk(mtx_);
+    auto ret = msptiActivityDisable(MSPTI_ACTIVITY_KIND_COMMUNICATION);
+    msptiActivityFlushAll(1);
     Py_XDECREF(communicationCallback_);
     communicationCallback_ = nullptr;
-    return MSPTI_SUCCESS;
+    return ret;
 }
 
 msptiResult MsptiAdapter::EnableDomain(const char* domain)

@@ -18,6 +18,9 @@
 #ifndef MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H
 #define MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H
 
+#include <mutex>
+#include <condition_variable>
+
 #include "csrc/common/task.h"
 #include "csrc/include/mspti_result.h"
 #include "csrc/common/inject/inject_base.h"
@@ -25,9 +28,6 @@
 namespace Mspti {
 namespace Ascend {
 namespace Channel {
-
-constexpr uint64_t MAX_BUFFER_SIZE = 1024 * 1024 * 2;
-
 class ChannelReader : public Mspti::Common::Task {
 public:
     ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId);
@@ -36,6 +36,7 @@ public:
     virtual size_t HashId();
     msptiResult Init();
     msptiResult Uinit();
+    msptiResult FlushDrvBuff();
 
     void SetChannelStopped();
     bool GetSchedulingStatus() const;
@@ -46,6 +47,8 @@ private:
         AI_DRV_CHANNEL channelId);
     static size_t TransTsFwData(char buffer[], size_t valid_size, uint32_t deviceId);
     static size_t TransStarsLog(char buffer[], size_t valid_size, uint32_t deviceId);
+    void CheckIfSendFlush(int currLen);
+    void SendFlushFinished();
 
 private:
     // basic info
@@ -58,10 +61,15 @@ private:
     volatile bool isInited_{false};
     volatile bool isScheduling_{false};
     volatile bool isChannelStopped_{false};
+
+    // flush
+    bool needWait_{false};
+    uint32_t flushBufSize_{0};
+    uint32_t flushCurSize_{0};
+    std::mutex flushMutex_;
+    std::condition_variable flushFlag_;
 };
-
-}  // Channel
-}  // Ascend
-}  // Mspti
-
-#endif
+}  // namespace Channel
+}  // namespace Ascend
+}  // namespace Mspti
+#endif // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H

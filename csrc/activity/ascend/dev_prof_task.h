@@ -13,7 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 #define MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
@@ -36,15 +36,21 @@ namespace Ascend {
 
 class DevProfTask {
 public:
-    explicit DevProfTask() = default;
+    DevProfTask(uint32_t deviceId, AI_DRV_CHANNEL channelId) : deviceId_(deviceId), channelId_(channelId) {}
     virtual ~DevProfTask() = default;
     msptiResult Start();
     msptiResult Stop();
+    virtual msptiResult Flush();
 
 private:
     void Run();
     virtual msptiResult StartTask() = 0;
     virtual msptiResult StopTask() = 0;
+    virtual bool CanFlush() { return false; }
+
+protected:
+    uint32_t deviceId_;
+    AI_DRV_CHANNEL channelId_;
 
 private:
     std::thread t_;
@@ -55,42 +61,37 @@ private:
 
 class DevProfTaskDefault : public DevProfTask {
 public:
-    DevProfTaskDefault(uint32_t deviceId) : deviceId_(deviceId) {}
+    DevProfTaskDefault(uint32_t deviceId) : DevProfTask(deviceId, PROF_CHANNEL_UNKNOWN) {}
 
 private:
-    msptiResult StartTask() override {return MSPTI_SUCCESS;}
-    msptiResult StopTask() override {return MSPTI_SUCCESS;}
-
-private:
-    uint32_t deviceId_;
+    msptiResult StartTask() override { return MSPTI_SUCCESS; }
+    msptiResult StopTask() override { return MSPTI_SUCCESS; }
 };
 
 class DevProfTaskTsFw : public DevProfTask {
 public:
-    DevProfTaskTsFw(uint32_t deviceId) : deviceId_(deviceId) {};
+    DevProfTaskTsFw(uint32_t deviceId) : DevProfTask(deviceId, PROF_CHANNEL_TS_FW) {}
 
 private:
     msptiResult StartTask() override;
     msptiResult StopTask() override;
+    bool CanFlush() override;
 
 private:
-    AI_DRV_CHANNEL channelId_ = PROF_CHANNEL_TS_FW;
-    uint32_t deviceId_;
     static std::map<uint32_t, uint32_t> ref_cnts_;
     static std::mutex cnt_mtx_;
 };
 
 class DevProfTaskStars : public DevProfTask {
 public:
-    DevProfTaskStars(uint32_t deviceId) : deviceId_(deviceId) {};
+    DevProfTaskStars(uint32_t deviceId) : DevProfTask(deviceId, PROF_CHANNEL_STARS_SOC_LOG) {}
 
 private:
     msptiResult StartTask() override;
     msptiResult StopTask() override;
+    bool CanFlush() override;
 
 private:
-    AI_DRV_CHANNEL channelId_ = PROF_CHANNEL_STARS_SOC_LOG;
-    uint32_t deviceId_;
     static std::map<uint32_t, uint32_t> ref_cnts_;
     static std::mutex cnt_mtx_;
 };
@@ -104,10 +105,9 @@ private:
 
 private:
     // <deviceId, ChannelID>
-    const static std::map<Mspti::Common::PlatformType,
-        std::map<msptiActivityKind, std::set<AI_DRV_CHANNEL>>> kindToChannel_map_;
+    const static std::map<Mspti::Common::PlatformType, std::map<msptiActivityKind, std::set<AI_DRV_CHANNEL>>>
+        kindToChannel_map_;
 };
-
-}  // Ascend
-}  // Mspti
-#endif
+}  // namespace Ascend
+}  // namespace Mspti
+#endif  // MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H

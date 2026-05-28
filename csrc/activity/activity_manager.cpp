@@ -20,6 +20,8 @@
 #include <cstring>
 #include <functional>
 #include <algorithm>
+#include <thread>
+#include <chrono>
 #include "securec.h"
 
 #include "csrc/activity/ascend/dev_task_manager.h"
@@ -30,15 +32,13 @@
 
 namespace Mspti {
 namespace Activity {
-
 namespace {
-
 msptiResult IsNeedLdPreload(msptiActivityKind kind)
 {
     // Some activity kinds depend on LD_PRELOAD hooking (libmspti.so). If those
     // kinds are enabled but LD_PRELOAD does not contain libmspti.so, return
     // MSPTI_ERROR_WITHOUT_LD_PRELOAD to notify the caller.
-    static const std::set<msptiActivityKind> needLdPreloadKinds = {
+    static const std::unordered_set<msptiActivityKind> needLdPreloadKinds = {
         MSPTI_ACTIVITY_KIND_HCCL,
         MSPTI_ACTIVITY_KIND_MEMORY,
         MSPTI_ACTIVITY_KIND_MEMSET,
@@ -54,7 +54,18 @@ msptiResult IsNeedLdPreload(msptiActivityKind kind)
     }
     return MSPTI_SUCCESS;
 }
+
+inline bool IsNeededDevTask(msptiActivityKind kind)
+{
+    static const std::unordered_set<msptiActivityKind> needDevTaskKinds = {
+        MSPTI_ACTIVITY_KIND_MARKER,
+        MSPTI_ACTIVITY_KIND_KERNEL,
+        MSPTI_ACTIVITY_KIND_HCCL,
+        MSPTI_ACTIVITY_KIND_COMMUNICATION
+    };
+    return needDevTaskKinds.find(kind) != needDevTaskKinds.end();
 }
+}  // namespace
 
 void ActivityBuffer::Init(msptiBuffersCallbackRequestFunc func)
 {
@@ -193,18 +204,13 @@ msptiResult ActivityManager::Register(msptiActivityKind kind)
     append_only_activity_switch_[kind] = true;
     MSPTI_LOGI("Register Activity kind: %d", static_cast<int>(kind));
 
-    std::vector<uint32_t> localDevices;
-    {
-        std::lock_guard<std::mutex> lk(devices_mtx_);
-        localDevices.assign(devices_.begin(), devices_.end());
-    }
-
+    auto localDevices = GetAllValidDevice();
     ActivitySwitchType curOpenSwitch{};
     curOpenSwitch[kind] = true;
     for (auto device : localDevices) {
-        Mspti::Ascend::DevTaskManager::GetInstance()->StartDevProfTask(device, curOpenSwitch);
+        Ascend::DevTaskManager::GetInstance()->StartDevProfTask(device, curOpenSwitch);
     }
-    Mspti::Parser::ParserManager::GetInstance()->StartAnalysisTask(kind);
+    Parser::ParserManager::GetInstance()->StartAnalysisTask(kind);
     return MSPTI_SUCCESS;
 }
 
@@ -214,8 +220,19 @@ msptiResult ActivityManager::UnRegister(msptiActivityKind kind)
         MSPTI_LOGE("The ActivityKind: %d was not support.", static_cast<int>(kind));
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
+    if (IsNeededDevTask(kind)) {
+        auto localDevices = GetAllValidDevice();
+        for (auto device : localDevices) {
+            Ascend::DevTaskManager::GetInstance()->FlushDevProfData(device, kind);
+        }
+        if (!localDevices.empty() &&
+            Common::ContextManager::GetInstance()->GetChipType(*localDevices.begin()) == Common::PlatformType::CHIP_V6) {
+            constexpr uint32_t sleep_ms = 20;
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
+        }
+    }
+    Parser::ParserManager::GetInstance()->StopAnalysisTask(kind);
     activity_switch_[kind] = false;
-    Mspti::Parser::ParserManager::GetInstance()->StopAnalysisTask(kind);
     MSPTI_LOGI("UnRegister Activity kind: %d", static_cast<int>(kind));
     return MSPTI_SUCCESS;
 }

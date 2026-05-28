@@ -39,6 +39,7 @@ public:
     static DevTaskManager* GetInstance();
     msptiResult StartDevProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
     msptiResult StopDevProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
+    msptiResult FlushDevProfData(uint32_t deviceId, msptiActivityKind kind);
     bool CheckDeviceOnline(uint32_t deviceId);
     void RegisterReportCallback();
     void UnRegisterReportCallback();
