@@ -227,6 +227,19 @@ TEST_F(ActivityUtest, IsActivityKindEnableWillReturnFalseWhenNotEnableMarkerKind
     EXPECT_EQ(false, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
 }
 
+TEST_F(ActivityUtest, MsptiActivityIsEnabledWillReturnTrueWhenEnableMarkerKind)
+{
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(true, msptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+}
+
+TEST_F(ActivityUtest, MsptiActivityIsEnabledWillReturnFalseWhenDisableMarkerKind)
+{
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(false, msptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER));
+}
+
 TEST_F(ActivityUtest, ShouldRetSuccessWhenSetPeriodFlushTime)
 {
     MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)

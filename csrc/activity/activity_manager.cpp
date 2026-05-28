@@ -438,6 +438,11 @@ msptiResult msptiActivityDisable(msptiActivityKind kind)
     return Mspti::Activity::ActivityManager::GetInstance()->UnRegister(kind);
 }
 
+bool msptiActivityIsEnabled(msptiActivityKind kind)
+{
+    return Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(kind);
+}
+
 msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record)
 {
     return Mspti::Activity::ActivityManager::GetInstance()->GetNextRecord(buffer, validBufferSizeBytes, record);

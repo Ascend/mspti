@@ -34,6 +34,7 @@
 #endif
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include "mspti_result.h"
 
@@ -744,6 +745,16 @@ msptiResult msptiActivityEnable(msptiActivityKind kind);
  * @return MSPTI_SUCCESS
  */
 msptiResult msptiActivityDisable(msptiActivityKind kind);
+
+/**
+ * @brief Query whether a specific kind of activity record is enabled.
+ *
+ * @param kind [in] The kind of activity record to query
+ *
+ * @return true if the activity kind is enabled
+ * @return false if the activity kind is disabled
+ */
+bool msptiActivityIsEnabled(msptiActivityKind kind);
 
 /**
  * @brief Enable collection of Domain marker.

@@ -43,6 +43,11 @@ msptiResult msptiActivityDisable(msptiActivityKind kind)
     return MSPTI_SUCCESS;
 }
 
+bool msptiActivityIsEnabled(msptiActivityKind kind)
+{
+    return false;
+}
+
 msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record)
 {
     return MSPTI_SUCCESS;

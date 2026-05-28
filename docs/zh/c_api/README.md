@@ -22,8 +22,9 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |--|--|
 |**Function类型**|**Function说明**|
 |[msptiActivityRegisterCallbacks](./context/msptiActivityRegisterCallbacks.md)|向MSPTI注册回调函数，用于Activity Buffer处理。|
-|[msptiActivityEnable](./context/msptiActivityEnable.md)|用于使能指定Activity类型数据的采集。|
-|[msptiActivityDisable](./context/msptiActivityDisable.md)|停止收集特定类型的Activity Record。|
+|[msptiActivityEnable](./context/msptiActivityEnable.md)|用于使能指定类型Activity Kind数据的采集。|
+|[msptiActivityDisable](./context/msptiActivityDisable.md)|停止采集指定类型Activity Kind的数据。|
+|[msptiActivityIsEnabled](./context/msptiActivityIsEnabled.md)|查询指定类型Activity Kind的采集是否使能。|
 |[msptiActivityGetNextRecord](./context/msptiActivityGetNextRecord.md)|依次从Activity Buffer获取Activity Record数据。|
 |[msptiActivityFlushAll](./context/msptiActivityFlushAll.md)|订阅者手动Flush Activity Buffer中记录的数据。|
 |[msptiActivityFlushPeriod](./context/msptiActivityFlushPeriod.md)|设置Flush的执行周期。|
