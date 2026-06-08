@@ -13,7 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 // System headers
 #include <vector>
@@ -33,7 +33,8 @@
 int64_t GetShapeSize(const std::vector<int64_t>& shape)
 {
     int64_t shapeSize = 1;
-    for (auto i : shape) {
+    for (auto i : shape)
+    {
         shapeSize *= i;
     }
     return shapeSize;
@@ -48,7 +49,8 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
     ACL_CALL(aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE));
 
     std::vector<int64_t> strides(shape.size(), 1);
-    for (int64_t i = shape.size() - 2; i >= 0; i--) {
+    for (int64_t i = shape.size() - 2; i >= 0; i--)
+    {
         strides[i] = shape[i + 1] * strides[i + 1];
     }
 
@@ -92,7 +94,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     ACL_CALL(aclnnAddGetWorkspaceSize(self, other, alpha, out, &workspaceSize, &executor));
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         ACL_CALL(aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST));
     }
     ACL_CALL(aclnnAdd(workspaceAddr, workspaceSize, executor, stream));
@@ -102,7 +105,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     std::vector<float> resultData(size, 0);
     ACL_CALL(aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), outDeviceAddr,
                          size * sizeof(float), ACL_MEMCPY_DEVICE_TO_HOST));
-    for (int64_t i = 0; i < size; i++) {
+    for (int64_t i = 0; i < size; i++)
+    {
         LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
@@ -114,7 +118,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     aclrtFree(selfDeviceAddr);
     aclrtFree(otherDeviceAddr);
     aclrtFree(outDeviceAddr);
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         aclrtFree(workspaceAddr);
     }
     return 0;

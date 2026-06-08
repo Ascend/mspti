@@ -13,12 +13,12 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 // System headers
-#include <vector>
-#include <thread>
 #include <cstring>
+#include <thread>
+#include <vector>
 
 // Acl headers
 #include "acl/acl.h"
@@ -34,11 +34,13 @@
 
 static std::unordered_map<uint64_t, msptiActivity*> g_CorrelationMap;
 static std::unordered_map<uint64_t, msptiActivityApi*> g_ApiConnectionMap;
-namespace {
+namespace
+{
 int64_t GetShapeSize(const std::vector<int64_t>& shape)
 {
     int64_t shapeSize = 1;
-    for (auto i : shape) {
+    for (auto i : shape)
+    {
         shapeSize *= i;
     }
     return shapeSize;
@@ -53,7 +55,8 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
     ACL_CALL(aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE));
 
     std::vector<int64_t> strides(shape.size(), 1);
-    for (int64_t i = shape.size() - 2; i >= 0; i--) {
+    for (int64_t i = shape.size() - 2; i >= 0; i--)
+    {
         strides[i] = shape[i + 1] * strides[i + 1];
     }
 
@@ -97,7 +100,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     ACL_CALL(aclnnAddGetWorkspaceSize(self, other, alpha, out, &workspaceSize, &executor));
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         ACL_CALL(aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST));
     }
     ACL_CALL(aclnnAdd(workspaceAddr, workspaceSize, executor, stream));
@@ -107,7 +111,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     std::vector<float> resultData(size, 0);
     ACL_CALL(aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), outDeviceAddr,
                          size * sizeof(float), ACL_MEMCPY_DEVICE_TO_HOST));
-    for (int64_t i = 0; i < size; i++) {
+    for (int64_t i = 0; i < size; i++)
+    {
         LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
@@ -119,7 +124,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     aclrtFree(selfDeviceAddr);
     aclrtFree(otherDeviceAddr);
     aclrtFree(outDeviceAddr);
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         aclrtFree(workspaceAddr);
     }
     return 0;
@@ -128,10 +134,12 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
 void PrintCorrelationTrace()
 {
     LOG_PRINT("========== PrintCorrelation ============\n");
-    for (const auto& apiIter: g_ApiConnectionMap) {
+    for (const auto& apiIter : g_ApiConnectionMap)
+    {
         uint64_t correlationId = apiIter.second->correlationId;
         auto it = g_CorrelationMap.find(correlationId);
-        if (it == g_CorrelationMap.end()) {
+        if (it == g_CorrelationMap.end())
+        {
             break;
         }
         LOG_PRINT("API and Activity correlation: correlation: %lu\n", apiIter.second->correlationId);
@@ -143,17 +151,20 @@ void PrintCorrelationTrace()
 void HandleKernelRecord(msptiActivityKernel* record)
 {
     auto* copy = reinterpret_cast<msptiActivity*>(malloc(sizeof(msptiActivityKernel)));
-    if (copy == nullptr) {
+    if (copy == nullptr)
+    {
         LOG_PRINT("ERROR KernelRecord: malloc failed!\n");
         return;
     }
 
-    if (memset_s(copy, sizeof(msptiActivityKernel), 0, sizeof(msptiActivityKernel)) != EOK) {
+    if (memset_s(copy, sizeof(msptiActivityKernel), 0, sizeof(msptiActivityKernel)) != EOK)
+    {
         free(copy);
         LOG_PRINT("ERROR KernelRecord: memset failed!\n");
         return;
     }
-    if (memcpy_s(copy, sizeof(msptiActivityKernel), record, sizeof(msptiActivityKernel)) != EOK) {
+    if (memcpy_s(copy, sizeof(msptiActivityKernel), record, sizeof(msptiActivityKernel)) != EOK)
+    {
         free(copy);
         LOG_PRINT("ERROR KernelRecord: memcpy failed!\n");
         return;
@@ -164,17 +175,20 @@ void HandleKernelRecord(msptiActivityKernel* record)
 void HandleApiRecord(msptiActivityApi* record)
 {
     auto* copy = reinterpret_cast<msptiActivityApi*>(malloc(sizeof(msptiActivityApi)));
-    if (copy == nullptr) {
+    if (copy == nullptr)
+    {
         LOG_PRINT("ERROR ApiRecord: malloc failed!\n");
         return;
     }
 
-    if (memset_s(copy, sizeof(msptiActivityApi), 0, sizeof(msptiActivityApi)) != EOK) {
+    if (memset_s(copy, sizeof(msptiActivityApi), 0, sizeof(msptiActivityApi)) != EOK)
+    {
         free(copy);
         LOG_PRINT("ERROR ApiRecord: memset failed!\n");
         return;
     }
-    if (memcpy_s(copy, sizeof(msptiActivityApi), record, sizeof(msptiActivityApi)) != EOK) {
+    if (memcpy_s(copy, sizeof(msptiActivityApi), record, sizeof(msptiActivityApi)) != EOK)
+    {
         free(copy);
         LOG_PRINT("ERROR ApiRecord: memcpy failed!\n");
         return;
@@ -184,29 +198,35 @@ void HandleApiRecord(msptiActivityApi* record)
 
 void FreeMapData()
 {
-    for (const auto& it: g_CorrelationMap) {
+    for (const auto& it : g_CorrelationMap)
+    {
         free(it.second);
     }
 
-    for (const auto& it: g_ApiConnectionMap) {
+    for (const auto& it : g_ApiConnectionMap)
+    {
         free(it.second);
     }
 }
 
 // MSPTI
-void MsptiTrace(uint8_t *buffer, size_t size, size_t validSize)
+void MsptiTrace(uint8_t* buffer, size_t size, size_t validSize)
 {
-    if (validSize <= 0) {
+    if (validSize <= 0)
+    {
         LOG_PRINT("validSize is invalid");
         return;
     }
-    msptiActivity *pRecord = nullptr;
+    msptiActivity* pRecord = nullptr;
     msptiResult status = MSPTI_SUCCESS;
-    do {
+    do
+    {
         status = msptiActivityGetNextRecord(buffer, validSize, &pRecord);
-        if (status == MSPTI_SUCCESS) {
+        if (status == MSPTI_SUCCESS)
+        {
             msptiActivityKind kind = pRecord->kind;
-            switch (kind) {
+            switch (kind)
+            {
                 case MSPTI_ACTIVITY_KIND_KERNEL:
                     HandleKernelRecord(reinterpret_cast<msptiActivityKernel*>(pRecord));
                     break;
@@ -216,9 +236,13 @@ void MsptiTrace(uint8_t *buffer, size_t size, size_t validSize)
                 default:
                     break;
             }
-        } else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED) {
+        }
+        else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+        {
             break;
-        } else {
+        }
+        else
+        {
             LOG_PRINT("Consume data fail, error is %s", GetResultCodeString(status));
             break;
         }
@@ -237,7 +261,7 @@ void SetUpMspti(aclrtContext* context, aclrtStream* stream)
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_API);
 }
-}
+}  // namespace
 
 int main()
 {

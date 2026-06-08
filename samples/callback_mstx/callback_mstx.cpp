@@ -13,20 +13,20 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 // System headers
-#include <vector>
 #include <cstring>
+#include <vector>
 
 // ACL headers
 #include "acl/acl.h"
 #include "aclnnop/aclnn_add.h"
 
 // MSPTI headers
-#include "mspti.h"
 #include "common/helper_mspti.h"
 #include "common/util_acl.h"
+#include "mspti.h"
 
 // MSTX headers
 #include "mstx/ms_tools_ext.h"
@@ -34,7 +34,8 @@
 int64_t GetShapeSize(const std::vector<int64_t>& shape)
 {
     int64_t shapeSize = 1;
-    for (auto i : shape) {
+    for (auto i : shape)
+    {
         shapeSize *= i;
     }
     return shapeSize;
@@ -49,7 +50,8 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
     ACL_CALL(aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE));
 
     std::vector<int64_t> strides(shape.size(), 1);
-    for (int64_t i = shape.size() - 2; i >= 0; i--) {
+    for (int64_t i = shape.size() - 2; i >= 0; i--)
+    {
         strides[i] = shape[i + 1] * strides[i + 1];
     }
 
@@ -94,7 +96,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     ACL_CALL(aclnnAddGetWorkspaceSize(self, other, alpha, out, &workspaceSize, &executor));
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         ACL_CALL(aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST));
     }
     ACL_CALL(aclnnAdd(workspaceAddr, workspaceSize, executor, stream));
@@ -104,7 +107,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     std::vector<float> resultData(size, 0);
     ACL_CALL(aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), outDeviceAddr,
                          size * sizeof(float), ACL_MEMCPY_DEVICE_TO_HOST));
-    for (int64_t i = 0; i < size; i++) {
+    for (int64_t i = 0; i < size; i++)
+    {
         LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
@@ -116,35 +120,42 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     aclrtFree(selfDeviceAddr);
     aclrtFree(otherDeviceAddr);
     aclrtFree(outDeviceAddr);
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         aclrtFree(workspaceAddr);
     }
     return 0;
 }
 
-void MstxCallback(void *pUserData, msptiCallbackDomain domain, msptiCallbackId callbackId,
-                  const msptiCallbackData *pCallbackInfo)
+void MstxCallback(void* pUserData, msptiCallbackDomain domain, msptiCallbackId callbackId,
+                  const msptiCallbackData* pCallbackInfo)
 {
-    UserData *userData = (UserData*)pUserData;
-    if (domain != MSPTI_CB_DOMAIN_RUNTIME || userData == nullptr) {
+    UserData* userData = (UserData*)pUserData;
+    if (domain != MSPTI_CB_DOMAIN_RUNTIME || userData == nullptr)
+    {
         return;
     }
-    if (pCallbackInfo->callbackSite == MSPTI_API_ENTER) {
+    if (pCallbackInfo->callbackSite == MSPTI_API_ENTER)
+    {
         mstxMarkA(pCallbackInfo->functionName, *(userData->stream));
-    } else if (pCallbackInfo->callbackSite == MSPTI_API_EXIT) {
+    }
+    else if (pCallbackInfo->callbackSite == MSPTI_API_EXIT)
+    {
         mstxMarkA(pCallbackInfo->functionName, *(userData->stream));
     }
 }
 
 void SetUpMspti(aclrtContext* context, aclrtStream* stream)
 {
-    UserData *pUserData = (UserData *)malloc(sizeof(UserData));
-    if (pUserData == nullptr) {
+    UserData* pUserData = (UserData*)malloc(sizeof(UserData));
+    if (pUserData == nullptr)
+    {
         LOG_PRINT("ERROR malloc failed!\n");
         return;
     }
 
-    if (memset_s(pUserData, sizeof(UserData), 0, sizeof(UserData)) != EOK) {
+    if (memset_s(pUserData, sizeof(UserData), 0, sizeof(UserData)) != EOK)
+    {
         free(pUserData);
         LOG_PRINT("ERROR memset failed!\n");
         return;
@@ -153,7 +164,7 @@ void SetUpMspti(aclrtContext* context, aclrtStream* stream)
     pUserData->stream = stream;
 
     // 初始化订阅mspti
-    msptiSubscriberHandle* handle = InitMspti((void *)MstxCallback, pUserData);
+    msptiSubscriberHandle* handle = InitMspti((void*)MstxCallback, pUserData);
 
     // 开启mspti activity采集
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER);

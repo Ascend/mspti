@@ -13,13 +13,13 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 // System headers
-#include <vector>
-#include <thread>
 #include <cstring>
+#include <thread>
 #include <unordered_map>
+#include <vector>
 
 // Acl headers
 #include "acl/acl.h"
@@ -36,22 +36,26 @@
 static std::unordered_map<uint64_t, std::vector<uint64_t>> s_externalCorrelationMap;
 
 // Enum mapping the external id to the different phases in the vector addition it correlates to.
-enum class ExternalId {
+enum class ExternalId
+{
     INITIALIZATION_EXTERNAL_ID = 0,
     EXECUTION_EXTERNAL_ID = 1,
     CLEANUP_EXTERNAL_ID = 2
 };
-namespace {
+
+namespace
+{
 int64_t GetShapeSize(const std::vector<int64_t>& shape)
 {
     int64_t shapeSize = 1;
-    for (auto i : shape) {
+    for (auto i : shape)
+    {
         shapeSize *= i;
     }
     return shapeSize;
 }
 
-template<typename T>
+template <typename T>
 int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& shape, void** deviceAddr,
                     aclDataType dataType, aclTensor** tensor)
 {
@@ -60,7 +64,8 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
     ACL_CALL(aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE));
 
     std::vector<int64_t> strides(shape.size(), 1);
-    for (int64_t i = shape.size() - 2; i >= 0; i--) {
+    for (int64_t i = shape.size() - 2; i >= 0; i--)
+    {
         strides[i] = shape[i + 1] * strides[i + 1];
     }
 
@@ -112,7 +117,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     ACL_CALL(aclnnAddGetWorkspaceSize(self, other, alpha, out, &workspaceSize, &executor));
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         ACL_CALL(aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST));
     }
     ACL_CALL(aclnnAdd(workspaceAddr, workspaceSize, executor, stream));
@@ -123,7 +129,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     ACL_CALL(aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), outDeviceAddr,
                          size * sizeof(float), ACL_MEMCPY_DEVICE_TO_HOST));
     msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &id);
-    for (int64_t i = 0; i < size; i++) {
+    for (int64_t i = 0; i < size; i++)
+    {
         LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
@@ -137,7 +144,8 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     aclrtFree(selfDeviceAddr);
     aclrtFree(otherDeviceAddr);
     aclrtFree(outDeviceAddr);
-    if (workspaceSize > 0) {
+    if (workspaceSize > 0)
+    {
         aclrtFree(workspaceAddr);
     }
     msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &id);
@@ -147,10 +155,12 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
 void PrintExternalCorrelationTrace()
 {
     LOG_PRINT("========== PrintCorrelation ============\n");
-    for (auto externalIdIt : s_externalCorrelationMap) {
+    for (auto externalIdIt : s_externalCorrelationMap)
+    {
         LOG_PRINT("External id : %lu: ", externalIdIt.first);
         ExternalId id = ExternalId(externalIdIt.first);
-        switch (id) {
+        switch (id)
+        {
             case ExternalId::INITIALIZATION_EXTERNAL_ID:
                 LOG_PRINT("INITIALIZATION_EXTERNAL_ID \n");
                 break;
@@ -164,7 +174,8 @@ void PrintExternalCorrelationTrace()
                 break;
         }
         auto correlationIds = externalIdIt.second;
-        for (auto correlationId : correlationIds) {
+        for (auto correlationId : correlationIds)
+        {
             LOG_PRINT("%lu, ", correlationId);
         }
         LOG_PRINT("\n");
@@ -174,19 +185,24 @@ void PrintExternalCorrelationTrace()
 // MSPTI
 void MsptiTrace(uint8_t* buffer, size_t size, size_t validSize)
 {
-    if (validSize <= 0) {
+    if (validSize <= 0)
+    {
         LOG_PRINT("validSize is invalid");
         return;
     }
     msptiActivity* pRecord = nullptr;
     msptiResult status = MSPTI_SUCCESS;
-    do {
+    do
+    {
         status = msptiActivityGetNextRecord(buffer, validSize, &pRecord);
-        if (status == MSPTI_SUCCESS) {
+        if (status == MSPTI_SUCCESS)
+        {
             msptiActivityKind kind = pRecord->kind;
             PrintActivity(pRecord);
-            switch (kind) {
-                case MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION: {
+            switch (kind)
+            {
+                case MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION:
+                {
                     msptiActivityExternalCorrelation* pExternalCorrelationRecord =
                         reinterpret_cast<msptiActivityExternalCorrelation*>(pRecord);
                     uint64_t externalId = pExternalCorrelationRecord->externalId;
@@ -197,9 +213,13 @@ void MsptiTrace(uint8_t* buffer, size_t size, size_t validSize)
                 default:
                     break;
             }
-        } else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED) {
+        }
+        else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+        {
             break;
-        } else {
+        }
+        else
+        {
             LOG_PRINT("Consume data fail, error is %s", GetResultCodeString(status));
             break;
         }
@@ -219,7 +239,7 @@ void SetUpMspti(aclrtContext* context, aclrtStream* stream)
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_API);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION);
 }
-}
+}  // namespace
 
 int main()
 {

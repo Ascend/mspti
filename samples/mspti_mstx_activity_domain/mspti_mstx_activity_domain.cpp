@@ -13,13 +13,13 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 // System header
-#include <vector>
-#include <thread>
 #include <cstring>
 #include <string>
+#include <thread>
+#include <vector>
 
 // Acl header
 #include "acl/acl.h"
@@ -27,8 +27,8 @@
 #include "common/util_acl.h"
 
 // MSPTI header
-#include "mspti.h"
 #include "common/helper_mspti.h"
+#include "mspti.h"
 
 // MSTX header
 #include "mstx/ms_tools_ext.h"
@@ -41,7 +41,8 @@ std::string g_domainRangeName = "domainRange";
 static void TestMstx()
 {
     aclrtSetCurrentContext(context);
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++)
+    {
         // By default, mark activity are collected
         uint64_t id = mstxDomainRangeStartA(domainRange, "s.c_str()", stream);
         mstxDomainRangeEnd(domainRange, id);
@@ -57,15 +58,9 @@ static void TestMstx()
     }
 }
 
-void MstxDomainInit()
-{
-    domainRange = mstxDomainCreateA(g_domainRangeName.c_str());
-}
+void MstxDomainInit() { domainRange = mstxDomainCreateA(g_domainRangeName.c_str()); }
 
-void MstxDomainDeInit()
-{
-    mstxDomainDestroy(domainRange);
-}
+void MstxDomainDeInit() { mstxDomainDestroy(domainRange); }
 
 void SetUpMspti()
 {
@@ -75,7 +70,7 @@ void SetUpMspti()
 
 int main(int argc, const char **argv)
 {
-    int32_t deviceId = 6;
+    int32_t deviceId = 0;
     SetUpMspti();
     Init(deviceId, &context, &stream);
 
