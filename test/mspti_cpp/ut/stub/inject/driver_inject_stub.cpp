@@ -13,10 +13,10 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
-#include "csrc/common/inject/driver_inject.h"
 #include "csrc/activity/ascend/channel/channel_data.h"
+#include "csrc/common/inject/driver_inject.h"
 #include "securec.h"
 
 DrvError HalGetDeviceInfo(uint32_t deviceId, int32_t moduleType, int32_t infoType, int64_t* value)
@@ -33,15 +33,9 @@ DrvError halGetAPIVersion(int32_t* apiVersion)
     return DRV_ERROR_NONE;
 }
 
-int ProfDrvStart(unsigned int deviceId, unsigned int channelId, struct ProfStartPara* startPara)
-{
-    return 0;
-}
+int ProfDrvStart(unsigned int deviceId, unsigned int channelId, struct ProfStartPara* startPara) { return 0; }
 
-int ProfStop(unsigned int deviceId, unsigned int channelId)
-{
-    return 0;
-}
+int ProfStop(unsigned int deviceId, unsigned int channelId) { return 0; }
 
 DrvError DrvGetDevNum(uint32_t* count)
 {
@@ -49,31 +43,29 @@ DrvError DrvGetDevNum(uint32_t* count)
     return DRV_ERROR_NONE;
 }
 
-int ProfDrvGetChannels(unsigned int deviceId, ChannelListT* channelList)
-{
-    return 0;
-}
+int ProfDrvGetChannels(unsigned int deviceId, ChannelListT* channelList) { return 0; }
 
-int ProfChannelPoll(struct ProfPollInfo* outBuf, int num, int timeout)
-{
-    return 0;
-}
+int ProfChannelPoll(struct ProfPollInfo* outBuf, int num, int timeout) { return 0; }
 
-int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char *outBuf, unsigned int bufSize)
+int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char* outBuf, unsigned int bufSize)
 {
     constexpr unsigned int maxBufferSize = 1024 * 1024 * 2;
     constexpr unsigned int maxChannelId = 160;
-    if (channelId == maxChannelId) {
+    if (channelId == maxChannelId)
+    {
         return maxBufferSize;
     }
-    if (channelId == PROF_CHANNEL_TS_FW) {
+    if (channelId == PROF_CHANNEL_TS_FW)
+    {
         static bool reportFlag = true;
-        if (reportFlag) {
+        if (reportFlag)
+        {
             StepTrace stepTraceData;
             stepTraceData.tsTraceHead.rptType = RPT_TYPE_STEP_TRACE;
             stepTraceData.tagId = STEP_TRACE_TAG_MARKEX;
             auto ret = memcpy_s(outBuf, bufSize, (void*)&stepTraceData, sizeof(stepTraceData));
-            if (ret != EOK) {
+            if (ret != EOK)
+            {
                 return 0;
             }
             reportFlag = false;
@@ -81,12 +73,15 @@ int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char *outBuf,
         }
         return 0;
     }
-    if (channelId == PROF_CHANNEL_STARS_SOC_LOG) {
+    if (channelId == PROF_CHANNEL_STARS_SOC_LOG)
+    {
         static bool reportFlag = true;
-        if (reportFlag) {
+        if (reportFlag)
+        {
             StarsSocLog starsLogData;
             auto ret = memcpy_s(outBuf, bufSize, (void*)&starsLogData, sizeof(starsLogData));
-            if (ret != EOK) {
+            if (ret != EOK)
+            {
                 return 0;
             }
             reportFlag = false;
@@ -99,15 +94,17 @@ int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char *outBuf,
 
 DrvError DrvGetDevIDs(uint32_t* devices, uint32_t len)
 {
-    if (devices) {
+    if (devices)
+    {
         devices[0] = 0;
     }
     return DRV_ERROR_NONE;
 }
 
-int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int *data_len)
+int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int* data_len)
 {
-    if (data_len) {
+    if (data_len)
+    {
         *data_len = 256;
     }
     return 0;

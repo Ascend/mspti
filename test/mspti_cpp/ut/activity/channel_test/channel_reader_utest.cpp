@@ -13,27 +13,26 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
+#include <chrono>
 #include <memory>
 #include <thread>
-#include <chrono>
-#include "gtest/gtest.h"
 
-#include "mockcpp/mockcpp.hpp"
-#include "csrc/common/inject/inject_base.h"
 #include "csrc/activity/ascend/channel/channel_data.h"
-#include "csrc/common/inject/driver_inject.h"
-#include "csrc/activity/ascend/channel/channel_reader.h"
 #include "csrc/activity/ascend/channel/channel_pool.h"
+#include "csrc/activity/ascend/channel/channel_reader.h"
+#include "csrc/common/inject/driver_inject.h"
+#include "csrc/common/inject/inject_base.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
-namespace {
-class ChannelReaderUtest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
+namespace
+{
+class ChannelReaderUtest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { GlobalMockObject::verify(); }
     virtual void TearDown() {}
 };
 
@@ -181,15 +180,18 @@ TEST_F(ChannelReaderUtest, FlushDrvBuffShouldHandleFlushWithData)
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
 
     // Start a thread to trigger flush completion
-    std::thread flushThread([&reader]() {
-        // Give FlushDrvBuff time to start waiting
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        reader.SetChannelStopped();
-    });
+    std::thread flushThread(
+        [&reader]()
+        {
+            // Give FlushDrvBuff time to start waiting
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            reader.SetChannelStopped();
+        });
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.FlushDrvBuff());
 
-    if (flushThread.joinable()) {
+    if (flushThread.joinable())
+    {
         flushThread.join();
     }
 
@@ -217,14 +219,5 @@ TEST_F(ChannelReaderUtest, LifecycleShouldWorkCorrectly)
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
-}
-
-// Test ChannelPool AddReader and RemoveReader
-TEST_F(ChannelReaderUtest, ChannelPoolAddAndRemoveReaderShouldSucceed)
-{
-    std::unique_ptr<Mspti::Ascend::Channel::ChannelPool> drvChannelPoll_ =
-        std::make_unique<Mspti::Ascend::Channel::ChannelPool>(1);
-    EXPECT_EQ(MSPTI_SUCCESS, drvChannelPoll_->AddReader(1, PROF_CHANNEL_UNKNOWN));
-    EXPECT_EQ(MSPTI_SUCCESS, drvChannelPoll_->RemoveReader(1, PROF_CHANNEL_UNKNOWN));
 }
 }  // namespace

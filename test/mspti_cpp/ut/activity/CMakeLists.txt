@@ -1,7 +1,7 @@
 add_subdirectory(activity_manager_test)
 add_subdirectory(dostart_chain)
 add_subdirectory(channel_test)
-add_subdirectory(dev_prof_task_test)
+add_subdirectory(dev_task_test)
 add_subdirectory(mspti_activity_flush_all_test)
 add_subdirectory(parser_test)
 add_subdirectory(reporter_test)

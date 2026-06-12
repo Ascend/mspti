@@ -10,10 +10,11 @@ file(GLOB_RECURSE REMOVE_SOURCES
 
 list(REMOVE_ITEM SRC_FILE ${REMOVE_SOURCES})
 
-add_executable(dev_prof_task_utest 
+add_executable(dev_task_utest 
     ${SRC_FILE}
     main.cpp
     dev_prof_task_utest.cpp
+    dev_task_manager_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
     ${UT_TOP_DIR}/stub/inject/profapi_inject_stub.cpp
@@ -21,4 +22,4 @@ add_executable(dev_prof_task_utest
     ${UT_TOP_DIR}/stub/inject/acl_inject_stub.cpp
 )
 
-run_test(dev_prof_task_utest)
+run_test(dev_task_utest)

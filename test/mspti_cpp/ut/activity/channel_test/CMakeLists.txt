@@ -31,10 +31,12 @@ set(SRC_FILE
     ${TOP_DIR}/csrc/activity/ascend/channel/stars_common.cpp
 )
 
-add_executable(mspti_channel_utest 
+add_executable(mspti_channel_utest
     ${SRC_FILE}
     main.cpp
-    channel_utest.cpp
+    channel_reader_utest.cpp
+    channel_pool_utest.cpp
+    channel_pool_manager_utest.cpp
     convert_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
