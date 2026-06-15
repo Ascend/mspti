@@ -3,7 +3,7 @@
 建议按照“安装工具 > 配置环境 > 运行样例”的顺序完成快速体验：
 
 1. 完成工具安装。
-   请先参见 《[msPTI 工具安装指南](mspti_install_guide.md)》完成msPTI工具安装。
+   请先参见 《[msPTI 工具安装指南](../getting_started/mspti_install_guide.md)》完成msPTI工具安装。
 
 2. 配置CANN环境变量。
 
