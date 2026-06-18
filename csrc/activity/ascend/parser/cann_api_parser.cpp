@@ -13,25 +13,29 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/activity/ascend/parser/cann_api_parser.h"
 
 #include <mutex>
 #include <vector>
 
-#include "csrc/common/context_manager.h"
 #include "csrc/activity/activity_manager.h"
+#include "csrc/activity/ascend/parser/cann_hash_cache.h"
+#include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/thread_local.h"
-#include "csrc/activity/ascend/parser/cann_hash_cache.h"
 
-namespace Mspti {
-namespace Parser {
-namespace {
+namespace Mspti
+{
+namespace Parser
+{
+namespace
+{
 inline msptiActivityKind level2ApiKind(uint16_t level)
 {
-    switch (level) {
+    switch (level)
+    {
         case MSPROF_REPORT_ACL_LEVEL:
             return MSPTI_ACTIVITY_KIND_ACL_API;
         case MSPROF_REPORT_RUNTIME_LEVEL:
@@ -41,25 +45,27 @@ inline msptiActivityKind level2ApiKind(uint16_t level)
         default:
             return MSPTI_ACTIVITY_KIND_API;
     }
-    return MSPTI_ACTIVITY_KIND_API;
 }
-}
+}  // namespace
 
-class CannApiParser::CannApiParserImpl {
-public:
+class CannApiParser::CannApiParserImpl
+{
+   public:
     CannApiParserImpl() = default;
     ~CannApiParserImpl() = default;
-    msptiResult ReportRtApi(uint32_t agingFlag, const MsprofApi* data)
+    msptiResult ReportApi(uint32_t agingFlag, const MsprofApi* data)
     {
         UNUSED(agingFlag);
         auto kind = level2ApiKind(data->level);
-        if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(kind)) {
+        if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(kind))
+        {
             return MSPTI_SUCCESS;
         }
-        const auto& name = (data->level == MSPROF_REPORT_RUNTIME_LEVEL || data->level == MSPROF_REPORT_ACL_LEVEL) ?
-            CannHashCache::GetTypeHashInfo(data->level, data->type) :
-            CannHashCache::GetHashInfo(data->itemId);
-        if (name.empty()) {
+        const auto& name = (data->level == MSPROF_REPORT_RUNTIME_LEVEL || data->level == MSPROF_REPORT_ACL_LEVEL)
+                               ? CannHashCache::GetTypeHashInfo(data->level, data->type)
+                               : CannHashCache::GetHashInfo(data->itemId);
+        if (name.empty())
+        {
             MSPTI_LOGW("Get HashInfo failed. HashId: %lu", data->itemId);
             return MSPTI_SUCCESS;
         }
@@ -72,23 +78,24 @@ public:
         api.start = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(data->beginTime);
         api.end = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(data->endTime);
         api.correlationId = Mspti::Common::ContextManager::GetInstance()->GetCorrelationId(data->threadId);
-        if (Mspti::Activity::ActivityManager::GetInstance()->Record(
-            Common::ReinterpretConvert<msptiActivity*>(&api), sizeof(msptiActivityApi)) != MSPTI_SUCCESS) {
+        if (Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&api),
+                                                                    sizeof(msptiActivityApi)) != MSPTI_SUCCESS)
+        {
             return MSPTI_ERROR_INNER;
         }
         return MSPTI_SUCCESS;
     }
 };
 
-CannApiParser &CannApiParser::GetInstance()
+CannApiParser& CannApiParser::GetInstance()
 {
     static CannApiParser instance;
     return instance;
 }
 
-msptiResult CannApiParser::ReportRtApi(uint32_t agingFlag, const MsprofApi* data)
+msptiResult CannApiParser::ReportApi(uint32_t agingFlag, const MsprofApi* data)
 {
-    return pImpl->ReportRtApi(agingFlag, data);
+    return pImpl->ReportApi(agingFlag, data);
 }
 
 CannApiParser::CannApiParser() : pImpl(std::make_unique<CannApiParserImpl>()) {}

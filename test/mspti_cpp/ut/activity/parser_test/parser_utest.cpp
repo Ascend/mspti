@@ -48,6 +48,7 @@ TEST_F(ParserUtest, ShouldRetSuccessWhenReportApiSuccess)
     auto instance = Mspti::Parser::ParserManager::GetInstance();
     const std::string hashInfo = "aclnnAdd_AxpyAiCore_Axpy";
     auto hashId = Mspti::Parser::CannHashCache::GenHashId(hashInfo);
+    EXPECT_TRUE(Mspti::Parser::CannHashCache::GetHashInfo(0).empty());  // 0: invalid hash id to get hash info
     EXPECT_STREQ(hashInfo.c_str(), Mspti::Parser::CannHashCache::GetHashInfo(hashId).c_str());
     constexpr uint16_t level = 20000;
     constexpr uint32_t typeId = 1;
@@ -98,35 +99,6 @@ TEST_F(ParserUtest, ShouldRetSuccessWhenReportKernelInfo)
     EXPECT_EQ(MSPTI_SUCCESS, instance.ReportStarsSocLog(deviceId, socLogEnd));
 }
 
-TEST_F(ParserUtest, ShouldRetSuccessWhenReportMstxData)
-{
-    GlobalMockObject::verify();
-    MOCKER_CPP(Mspti::Common::ProfTrace).stubs().will(returnValue(static_cast<AclError>(MSPTI_SUCCESS)));
-    auto instance = Mspti::Parser::MstxParser::GetInstance();
-    const char* message = "UserMark";
-    AclrtStream stream = (void*)0x1234567;
-    const char* domain = "UserDomain";
-    EXPECT_EQ(MSPTI_SUCCESS, instance->ReportMark(message, stream, domain));
-    EXPECT_EQ(MSPTI_SUCCESS, instance->ReportMark(message, nullptr, domain));
-    uint64_t markId;
-    EXPECT_EQ(MSPTI_SUCCESS, instance->ReportRangeStartA(message, stream, markId, domain));
-    EXPECT_EQ(3UL, markId);
-    EXPECT_EQ(MSPTI_SUCCESS, instance->ReportRangeEnd(markId));
-}
-
-TEST_F(ParserUtest, ShouldRetErrorWhenTryCacheMarkmsgFailed)
-{
-    GlobalMockObject::verify();
-    const std::string* nullPtr = nullptr;
-    MOCKER_CPP(&Mspti::Parser::MstxParser::TryCacheMarkMsg).stubs().will(returnValue(nullPtr));
-    const char* message = "UserMark";
-    const char* domain = "UserDomain";
-    auto instance = Mspti::Parser::MstxParser::GetInstance();
-    EXPECT_EQ(MSPTI_ERROR_INNER, instance->ReportMark(message, nullptr, domain));
-    uint64_t markId;
-    EXPECT_EQ(MSPTI_ERROR_INNER, instance->ReportRangeStartA(message, nullptr, markId, domain));
-}
-
 TEST_F(ParserUtest, ShouldRecordKernelNameWhenReportRtTaskTrack)
 {
     auto& instance = Mspti::Parser::KernelParser::GetInstance();
@@ -145,52 +117,5 @@ TEST_F(ParserUtest, ShouldRecordKernelNameWhenReportRtTaskTrack)
     compactInfo.data.runtimeTrack.taskType = TS_TASK_TYPE_KERNEL_AIVEC;
     compactInfo.data.runtimeTrack.kernelName = kernelNameHash;
     EXPECT_EQ(MSPTI_SUCCESS, instance.ReportRtTaskTrack(1, &compactInfo));
-}
-
-TEST_F(ParserUtest, ShouldRetErrorWhenMarkFail)
-{
-    GlobalMockObject::verify();
-    std::shared_ptr<std::string> nullPtr{nullptr};
-    MOCKER_CPP(Mspti::Common::ProfTrace).stubs().will(returnValue(static_cast<AclError>(MSPTI_ERROR_INNER)));
-    uint64_t markId = 0;
-    AclrtStream stream = (void*)0x1234567;
-    auto instance = Mspti::Parser::MstxParser::GetInstance();
-    EXPECT_EQ(MSPTI_ERROR_INNER, instance->InnerDeviceStartA(stream, markId));
-    EXPECT_EQ(MSPTI_SUCCESS, instance->InnerDeviceEndA(markId));
-}
-
-TEST_F(ParserUtest, ShouldRetErrorWhenStreamNull)
-{
-    GlobalMockObject::verify();
-    std::shared_ptr<std::string> nullPtr{nullptr};
-    uint64_t markId = 0;
-    AclrtStream stream = (void*)0x1234567;
-    auto instance = Mspti::Parser::MstxParser::GetInstance();
-    EXPECT_EQ(MSPTI_SUCCESS, instance->InnerDeviceStartA(stream, markId));
-    MOCKER_CPP(Mspti::Common::ProfTrace).stubs().will(returnValue(static_cast<AclError>(MSPTI_ERROR_INNER)));
-    EXPECT_EQ(MSPTI_ERROR_INNER, instance->InnerDeviceEndA(markId));
-}
-
-TEST_F(ParserUtest, ShouldRetSuccessWhenInnerMark)
-{
-    GlobalMockObject::verify();
-    std::shared_ptr<std::string> nullPtr{nullptr};
-    MOCKER_CPP(Mspti::Common::ProfTrace).stubs().will(returnValue(static_cast<AclError>(MSPTI_SUCCESS)));
-    AclrtStream stream = (void*)0x1234567;
-    uint64_t markId = 0;
-    auto instance = Mspti::Parser::MstxParser::GetInstance();
-    EXPECT_EQ(MSPTI_SUCCESS, instance->InnerDeviceStartA(stream, markId));
-    EXPECT_EQ(MSPTI_SUCCESS, instance->InnerDeviceEndA(markId));
-    MOCKER_CPP(Mspti::Common::ProfTrace).stubs().will(returnValue(static_cast<AclError>(MSPTI_ERROR_INNER)));
-    uint64_t modelId = 0;
-    uint64_t timestamp = 100;
-    uint16_t streamId = 1;
-    StepTraceBasic* stepTrace = new StepTraceBasic();
-    stepTrace->timestamp = timestamp;
-    stepTrace->indexId = markId;
-    stepTrace->modelId = modelId;
-    stepTrace->streamId = streamId;
-    stepTrace->tagId = STEP_TRACE_TAG_MARKEX;
-    Mspti::Parser::ParserManager::GetInstance()->ReportStepTrace(0, stepTrace);
 }
 }  // namespace

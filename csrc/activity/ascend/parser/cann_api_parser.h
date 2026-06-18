@@ -13,30 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #ifndef RUNTIME_API_PARSER_H
-#define RUNTIME_API_PARSER_H 
+#define RUNTIME_API_PARSER_H
 
 #include <memory>
-#include "csrc/include/mspti_result.h"
-#include "csrc/include/mspti_activity.h"
-#include "csrc/common/inject/profapi_inject.h"
+
 #include "csrc/activity/ascend/channel/channel_data.h"
 #include "csrc/activity/ascend/entity/soclog.h"
+#include "csrc/common/inject/profapi_inject.h"
+#include "csrc/include/mspti_activity.h"
+#include "csrc/include/mspti_result.h"
 
-namespace Mspti {
-namespace Parser {
-class CannApiParser {
-public:
+namespace Mspti
+{
+namespace Parser
+{
+class CannApiParser
+{
+   public:
     static CannApiParser &GetInstance();
-    msptiResult ReportRtApi(uint32_t agingFlag, const MsprofApi *data);
-private:
+    msptiResult ReportApi(uint32_t agingFlag, const MsprofApi *data);
+
+   private:
     CannApiParser();
     ~CannApiParser();
     class CannApiParserImpl;
     std::unique_ptr<CannApiParserImpl> pImpl;
 };
-}
-}
+}  // namespace Parser
+}  // namespace Mspti
 
 #endif

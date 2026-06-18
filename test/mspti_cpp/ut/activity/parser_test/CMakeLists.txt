@@ -1,4 +1,4 @@
-add_executable(mspti_parser_utest 
+add_executable(mspti_parser_utest
     ${SRC_FILE}
     main.cpp
     parser_utest.cpp
@@ -6,10 +6,13 @@ add_executable(mspti_parser_utest
     hccl_reporter_utest.cpp
     device_task_calculator_utest.cpp
     communication_calculator_utest.cpp
+    cann_api_parser_utest.cpp
+    mstx_parser_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
     ${TOP_DIR}/csrc/activity/activity_manager.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/parser_manager.cpp
+    ${TOP_DIR}/csrc/activity/ascend/parser/cann_api_parser.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/cann_hash_cache.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/communication_calculator.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/cann_track_cache.cpp
