@@ -51,7 +51,7 @@ bash scripts/build.sh [{version}]
     ./mindstudio-profiler-tools-interface_{version}_{arch}.run --install
     ```
 
-    安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#51-参数说明)。
+    安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#61-参数说明)。
 
     执行安装命令时，会自动执行--check参数，校验软件包的一致性和完整性，出现如下回显信息，表示软件包校验成功。
 
@@ -65,7 +65,19 @@ bash scripts/build.sh [{version}]
     MindStudio-Profiler-Tools-Interface package install success.
     ```
 
-## 3. 卸载
+## 3. 验证安装
+
+安装完成后，执行以下命令验证工具是否安装成功：
+
+```bash
+pip show mspti
+```
+
+若输出不报错，且能显示工具信息，则表明安装成功。
+
+若 `pip show mspti` 提示命令不存在，请确认当前终端使用的是安装 `msPTI` 的 Python 环境。
+
+## 4. 卸载
 
 可通过如下步骤卸载：
 
@@ -94,13 +106,15 @@ bash scripts/build.sh [{version}]
    Successfully uninstalled 1 tool ({tools_name})
    ```
 
-## 4. 升级
+## 5. 升级
 
 升级即“先卸后装”。直接执行安装命令，工具将自动卸载旧版本，并引导您完成覆盖安装。
 
-## 5. 附录
+可通过`pip show mspti`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.0.0/release_notes.md)》。
 
-### 5.1 参数说明
+## 6. 附录
+
+### 6.1 参数说明
 
 msPTI工具run包的安装命令可配置如下参数：
 
