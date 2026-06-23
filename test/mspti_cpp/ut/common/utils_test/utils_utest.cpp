@@ -13,24 +13,28 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
-#include <fstream>
-#include <sys/syscall.h>
+ */
 #include <linux/limits.h>
-#include "gtest/gtest.h"
-#include "securec.h"
-#include "mockcpp/mockcpp.hpp"
-#include "csrc/common/utils.h"
-#include "csrc/common/runtime_utils.h"
+#include <sys/syscall.h>
 
-namespace {
-class UtilsUtest : public testing::Test {
-protected:
+#include <fstream>
+
+#include "csrc/common/runtime_utils.h"
+#include "csrc/common/utils.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
+#include "securec.h"
+
+namespace
+{
+class UtilsUtest : public testing::Test
+{
+   protected:
     virtual void SetUp() {}
     virtual void TearDown() {}
 };
 
-TEST_F(UtilsUtest, ShouldGetRealPathWhenInputRelativePath)
+TEST_F(UtilsUtest, RealPathShouldReturnRealPathWhenInputRelativePath)
 {
     std::string path = "./test";
     auto realPath = Mspti::Common::Utils::RealPath(path);
@@ -40,7 +44,15 @@ TEST_F(UtilsUtest, ShouldGetRealPathWhenInputRelativePath)
     EXPECT_STREQ(targetPath.c_str(), realPath.c_str());
 }
 
-TEST_F(UtilsUtest, ShouldGetRealPathWhenInputAbsolutePath)
+TEST_F(UtilsUtest, RealPathShouldReturnEmptyPathWhenInputInvalidPath)
+{
+    auto realPath = Mspti::Common::Utils::RealPath("");
+    EXPECT_TRUE(realPath.empty());
+    realPath = Mspti::Common::Utils::RealPath(std::string(PATH_MAX + 1, 'x'));
+    EXPECT_TRUE(realPath.empty());
+}
+
+TEST_F(UtilsUtest, RealPathShouldReturnRealPathWhenInputAbsolutePath)
 {
     char buf[PATH_MAX];
     getcwd(buf, PATH_MAX);
@@ -110,11 +122,14 @@ TEST_F(UtilsUtest, RelativeToAbsPathTest)
 {
     std::string stubPath = "test.txt";
     char pwdPath[PATH_MAX] = {0};
-    if (getcwd(pwdPath, PATH_MAX) != nullptr) {
+    if (getcwd(pwdPath, PATH_MAX) != nullptr)
+    {
         std::string targetPath = std::string(pwdPath) + "/" + stubPath;
         std::string path = Mspti::Common::Utils::RelativeToAbsPath(stubPath);
         EXPECT_STREQ(targetPath.c_str(), path.c_str());
-    } else {
+    }
+    else
+    {
         std::string targetPath = "";
         std::string path = Mspti::Common::Utils::RelativeToAbsPath(stubPath);
         EXPECT_STREQ(targetPath.c_str(), path.c_str());
@@ -138,7 +153,8 @@ TEST_F(UtilsUtest, ShouldGetTrueWhenFileExist)
 {
     std::string stubPath = "test.txt";
     std::ofstream f(stubPath);
-    if (f.is_open()) {
+    if (f.is_open())
+    {
         f.close();
     }
     EXPECT_EQ(true, Mspti::Common::Utils::FileExist(stubPath));
@@ -157,9 +173,26 @@ TEST_F(UtilsUtest, FileReadableShouldGetFalseWhenFileEmpty)
     EXPECT_EQ(false, Mspti::Common::Utils::FileReadable(path));
 }
 
-TEST_F(UtilsUtest, CheckCharValidShouldReturnFalseWhileMsgContainsSpecialCharacter)
+TEST_F(UtilsUtest, CheckCharValidShouldReturnFalseWhenMsgContainsSpecialCharacter)
 {
     const char *msg = "record&";
     EXPECT_FALSE(Mspti::Common::Utils::CheckCharValid(msg));
 }
+
+TEST_F(UtilsUtest, CheckCharValidShouldReturnTrueWhenMsgNotContainSpecialCharacter)
+{
+    const char *msg = "xxxx";
+    EXPECT_TRUE(Mspti::Common::Utils::CheckCharValid(msg));
 }
+
+TEST_F(UtilsUtest, StartsWithShouldReturnFalseWhenInputStrNotStartWithPrefix)
+{
+    EXPECT_FALSE(Mspti::Common::Utils::StartsWith("xx", "xxxxxx"));
+    EXPECT_FALSE(Mspti::Common::Utils::StartsWith("xx", "y"));
+}
+
+TEST_F(UtilsUtest, StartsWithShouldReturnTrueWhenInputStrStartWithPrefix)
+{
+    EXPECT_TRUE(Mspti::Common::Utils::StartsWith("xx", "x"));
+}
+}  // namespace

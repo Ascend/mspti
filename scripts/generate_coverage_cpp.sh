@@ -45,7 +45,7 @@ generate_coverage(){
 test_obj=(
     activity_utest
     mspti_channel_utest
-    dev_prof_task_utest
+    dev_task_utest
     mspti_parser_utest
     mspti_reporter_utest
     callback_utest
