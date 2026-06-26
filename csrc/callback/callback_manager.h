@@ -13,64 +13,72 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_CALLBACK_CALLBACK_MANAGER_H
 #define MSPTI_CALLBACK_CALLBACK_MANAGER_H
 
+#include <array>
 #include <atomic>
-#include <unordered_map>
-#include <unordered_set>
 #include <memory>
 #include <mutex>
-#include <array>
+#include <unordered_map>
+#include <unordered_set>
 
-#include "csrc/include/mspti_result.h"
-#include "csrc/include/mspti_callback.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/include/mspti_callback.h"
+#include "csrc/include/mspti_result.h"
 
-struct msptiSubscriber_st {
+struct msptiSubscriber_st
+{
     msptiCallbackFunc handle;
     void* userdata;
 };
 
-namespace Mspti {
-namespace Callback {
+namespace Mspti
+{
+namespace Callback
+{
 
 // Singleton
-class CallbackManager final {
-public:
+class CallbackManager final
+{
+   public:
     static CallbackManager* GetInstance();
-    msptiResult Init(msptiSubscriberHandle *subscriber, msptiCallbackFunc callback, void* userdata);
+    msptiResult Init(msptiSubscriberHandle* subscriber, msptiCallbackFunc callback, void* userdata);
     msptiResult UnInit(msptiSubscriberHandle subscriber);
-    msptiResult EnableCallback(uint32_t enable,
-        msptiSubscriberHandle subscriber, msptiCallbackDomain domain, msptiCallbackId cbid);
+    msptiResult EnableCallback(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
+                               msptiCallbackId cbid);
     msptiResult EnableDomain(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain);
-    void ExecuteCallback(msptiCallbackDomain domain,
-        msptiCallbackId cbid, msptiApiCallbackSite site, const char* funcName);
-public:
+    void ExecuteCallback(msptiCallbackDomain domain, msptiCallbackId cbid, msptiApiCallbackSite site,
+                         const char* funcName);
+
+   public:
     using BitMap = uint64_t;
     using AtomicBitMap = std::atomic<BitMap>;
-private:
+
+   private:
     CallbackManager() = default;
-    explicit CallbackManager(const CallbackManager &obj) = delete;
-    CallbackManager& operator=(const CallbackManager &obj) = delete;
-    explicit CallbackManager(CallbackManager &&obj) = delete;
-    CallbackManager& operator=(CallbackManager &&obj) = delete;
+    explicit CallbackManager(const CallbackManager& obj) = delete;
+    CallbackManager& operator=(const CallbackManager& obj) = delete;
+    explicit CallbackManager(CallbackManager&& obj) = delete;
+    CallbackManager& operator=(CallbackManager&& obj) = delete;
     msptiResult Register(msptiCallbackDomain domain, msptiCallbackId c);
     msptiResult UnRegister(msptiCallbackDomain domain, msptiCallbackId c);
     bool IsCallbackIdEnable(msptiCallbackDomain domain, msptiCallbackId cbid);
 
-private:
+   private:
     static std::unordered_map<msptiCallbackDomain, std::unordered_set<msptiCallbackId>> domain_cbid_map_;
     std::atomic<bool> init_{false};
-    std::unique_ptr<msptiSubscriber_st> subscriber_ptr_{nullptr};
+    std::mutex subscriber_mutex_;
+    std::shared_ptr<msptiSubscriber_st> subscriber_ptr_{nullptr};
     // 采用bitmap存储cbid开关情况，目前cbid均小于64，后续cbid超长之后采用拓展bitmap存储
     std::array<AtomicBitMap, MSPTI_CB_DOMAIN_SIZE> cbid_map_;
 };
 
-class CallbackScope {
-public:
+class CallbackScope
+{
+   public:
     CallbackScope(msptiCallbackDomain domain, msptiCallbackId cbid, const char* funcName)
         : domain_(domain), cbid_(cbid), func_name_(funcName)
     {
@@ -79,19 +87,24 @@ public:
 
     ~CallbackScope()
     {
-        try {
+        try
+        {
             CallbackManager::GetInstance()->ExecuteCallback(domain_, cbid_, MSPTI_API_EXIT, func_name_);
-        } catch(...) {
+        }
+        catch (...)
+        {
             // Exception occurred during destruction of CallbackScope
+            MSPTI_LOGW("Exception occurred during destruction of CallbackScope, domain: %u, cbid: %u, funcName: %s",
+                       domain_, cbid_, func_name_);
         }
     }
 
-private:
+   private:
     msptiCallbackDomain domain_;
     msptiCallbackId cbid_;
     const char* func_name_;
 };
-}  // Callback
-}  // Mspti
+}  // namespace Callback
+}  // namespace Mspti
 
-#endif
+#endif  // MSPTI_CALLBACK_CALLBACK_MANAGER_H
