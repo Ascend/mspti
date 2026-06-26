@@ -1,9 +1,9 @@
 # msptiActivity<a name="ZH-CN_TOPIC_0000002048904921"></a>
 
-**msptiActivity** is the basic struct of an activity record. The Activity API uses **msptiActivity** as the general representation of activity. The **kind** field determines the specific activity type. In this way, the **msptiActivity** object can be converted to a specific activity record type suitable for this type. The definition is as follows:
+msptiActivity is the base structure for an activity record. The Activity API uses msptiActivity as the general representation of an activity. The `kind` field is used to determine the specific activity type, allowing an msptiActivity object to be cast to the specific activity record type appropriate for that type. It is defined as follows:
 
 ```cpp
 typedef struct PACKED_ALIGNMENT {
-    msptiActivityKind kind; // Activity type.
+    msptiActivityKind kind;   // Activity types
 } msptiActivity;
 ```

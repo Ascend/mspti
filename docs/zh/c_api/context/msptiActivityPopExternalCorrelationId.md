@@ -31,6 +31,7 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 **表 1**  参数说明
 
 <a name="table827101275518"></a>
+
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>参数名</p>
 </th>
 <th class="cellrowborder" valign="top" width="13.661366136613662%" id="mcps1.2.4.1.2"><p id="p10230141454318"><a name="p10230141454318"></a><a name="p10230141454318"></a>输入/输出</p>
@@ -58,4 +59,4 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；外部关联类型无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。
+返回MSPTI\_SUCCESS表示成功；外部关联类型无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER和外部关联ID栈空时出栈返回MSPTI\_ERROR\_QUEUE\_EMPTY，表示失败。

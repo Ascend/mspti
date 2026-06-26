@@ -1,14 +1,14 @@
-# msptiResult<a name="ZH-CN_TOPIC_0000002119450416"></a>
+# MsptiResult<a name="ZH-CN_TOPIC_0000002119450416"></a>
 
-**msptiResult** enumerates the error and result codes returned by MSPTI. The definition is as follows:
+MsptiResult is the error and result codes returned by MSPTI, enumeration class. It is defined as follows:
 
 ```python
 class MsptiResult(Enum):
-    MSPTI_SUCCESS = 0 # The MSPTI is successfully executed and no error occurs.
-    MSPTI_ERROR_INVALID_PARAMETER = 1 # The MSPTI fails to be executed when the callback function is NULL.
-    MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED = 2 # The MSPTI fails to be executed when there is already an MSPTI user.
-    MSPTI_ERROR_MAX_LIMIT_REACHED = 3 # The MSPTI fails to be executed when the activity buffer does not have more record data.
-    MSPTI_ERROR_DEVICE_OFFLINE = 4 # The information on the device side cannot be obtained.
-    MSPTI_ERROR_INNER = 999 # The MSPTI fails to be executed when the MSPTI cannot be initialized.
+    MSPTI_SUCCESS = 0    # MSPTI executed successfully, no error
+    MSPTI_ERROR_INVALID_PARAMETER = 1    # Returned when the callback function is NULL, indicating MSPTI execution failure
+    MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED = 2    # Returned when an MSPTI user already exists, indicating MSPTI execution failure
+    MSPTI_ERROR_MAX_LIMIT_REACHED = 3    # Returned when the activity buffer has no more record data, indicating MSPTI execution failure
+    MSPTI_ERROR_DEVICE_OFFLINE = 4    # Unable to obtain device-side information
+    MSPTI_ERROR_INNER = 999    # Returned when MSPTI cannot be initialized, indicating MSPTI execution failure
     MSPTI_ERROR_FORCE_INT = 0x7fffffff
 ```

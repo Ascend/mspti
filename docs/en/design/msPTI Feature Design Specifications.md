@@ -1,13 +1,13 @@
-**MindStudio 26.0.0 Profiler Feature Design Specifications**
+# MindStudio 26.0.0 Profiler Feature Design Specifications
 
 <table>
     <tr>
         <td>SIG group:</td>
-        <td>xxx</td>
+        <td>mstt-sig</td>
     </tr>
     <tr>
         <td>Target Version:</td>
-        <td>xxx</td>
+        <td>MindStudio 26.0.0</td>
     </tr>
     <tr>
         <td>Designer:</td>
@@ -44,16 +44,15 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
     </tr>
 </table>
 
-
 **Contents**
 
-1. Feature Overview
+1\. Feature Overview
 
 1.1 Scope
 
 1.2 Feature Requirement List
 
-2. Requirement Scenario Analysis
+2\. Requirement Scenario Analysis
 
 2.1 Requirement Origin and Benefits
 
@@ -77,13 +76,13 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
 
 2.4 Analysis on Solutions of Similar Community or Commercial Software
 
-3. Feature/Function Implementation Principles (Decomposable into Multiple Use Cases)
+3\. Feature/Function Implementation Principles (Decomposable into Multiple Use Cases)
 
 3.1 Objectives
 
 3.2 Overall Solution
 
-4. Use Case 1 Implementation
+4\. Use Case 1 Implementation
 
 4.1 Design Rationale
 
@@ -115,9 +114,9 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
 
 4.8 Self-test Case Design
 
-5. Use Case 2 Implementation
+5\. Use Case 2 Implementation
 
-6. Reliability and Availability Design
+6\. Reliability and Availability Design
 
 6.1 Redundancy Design
 
@@ -131,7 +130,7 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
 
 6.6 Fault Prediction and Prevention Design
 
-7. Security Design
+7\. Security Design
 
 7.1 Low-Level Threat Analysis
 
@@ -161,7 +160,7 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
 
 7.3.2 Detailed Implementation
 
-8. Non-functional Quality Attribute Design
+8\. Non-functional Quality Attribute Design
 
 8.1 Testability
 
@@ -179,9 +178,7 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
 
 8.8 Documentation
 
-9. (Optional) Data Structure Design
-
-
+9\. (Optional) Data Structure Design
 
 # 1. Feature Overview
 
@@ -300,7 +297,7 @@ _Solution architecture_
 
 _Example:_
 
-![](1.png)
+![](image_1.png)
 
 Figure X: Overall implementation principle of the solution
 
@@ -606,7 +603,6 @@ _Refer to the following table to evaluate changes to various documentation relat
         <td>XXX</td>
     </tr>
 </table>
-
 
 # 8. (Optional) Data Structure Design
 

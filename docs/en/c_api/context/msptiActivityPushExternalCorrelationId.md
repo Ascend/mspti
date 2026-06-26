@@ -2,25 +2,26 @@
 
 ## Supported Products<a name="section8178181118225"></a>
 
->![](public_sys-resources/icon-note.gif) **Note:**
->For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> [!NOTE]
+> 
+> For details about Ascend product models, see [Ascend Product Overview](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
-| Product Type                                   | Supported|
+| Product Type                                    | Supported |
 | ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training series/Atlas A3 inference series|    √     |
-| Atlas A2 training series/Atlas A2 inference series|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference series                         |    ×     |
-| Atlas training series products                         |    ×     |
+| Atlas 350 accelerator cards                   |    √     |
+| Atlas A3 training products/Atlas A3 inference products |    √     |
+| Atlas A2 training products/Atlas A2 inference products |    √     |
+| Atlas 200I/500 A2 inference products                  |    √     |
+| Atlas inference products                          |    ×     |
+| Atlas training products                          |    ×     |
 
-## Description <a name="section20806203412478"></a>
+## Function<a name="section20806203412478"></a>
 
-This function creates a push-pop call stack for the current thread. If the [MSPTI\_ACTIVITY\_KIND\_EXTERNAL\_CORRELATION](msptiActivityKind.md) function is enabled, when [msptiActivityAPI](msptiActivityApi.md) is created in the push-pop stack, an [msptiActivityExternalCorrelation](msptiActivityExternalCorrelation.md) corresponding to the [msptiActivityAPI](msptiActivityApi.md) record is created for each [msptiExternalCorrelationKind](msptiExternalCorrelationKind.md).
+This function creates a push-pop call stack for the current thread. If the [MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION](msptiActivityKind.md) feature is enabled, when creating an [msptiActivityAPI](msptiActivityApi.md) within the push-pop stack, an [msptiActivityExternalCorrelation](msptiActivityExternalCorrelation.md) record corresponding to the [msptiActivityAPI](msptiActivityApi.md) record is created for each [msptiExternalCorrelationKind](msptiExternalCorrelationKind.md).
 
-## Function Prototype<a name="section1121883194711"></a>
+## Prototype<a name="section1121883194711"></a>
 
 ```cpp
 msptiResult msptiActivityPushExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t id)
@@ -28,34 +29,34 @@ msptiResult msptiActivityPushExternalCorrelationId(msptiExternalCorrelationKind 
 
 ## Parameter Description<a name="section11506138144714"></a>
 
-**Table 1** Command-line options
+**Table 1**  Parameter description
 
 <a name="table827101275518"></a>
-<table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a> Parameter Name</p>
+<table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>Parameter</p>
 </th>
-<th class="cellrowborder" valign="top" width="13.661366136613662%" id="mcps1.2.4.1.2"><p id="p10230141454318"><a name="p10230141454318"></a><a name="p10230141454318"></a> Input/Output</p>
+<th class="cellrowborder" valign="top" width="13.661366136613662%" id="mcps1.2.4.1.2"><p id="p10230141454318"><a name="p10230141454318"></a><a name="p10230141454318"></a>Input/Output</p>
 </th>
-<th class="cellrowborder" valign="top" width="57.68576857685769%" id="mcps1.2.4.1.3"><p id="p83121275519"><a name="p83121275519"></a><a name="p83121275519"></a> Description</p>
+<th class="cellrowborder" valign="top" width="57.68576857685769%" id="mcps1.2.4.1.3"><p id="p83121275519"><a name="p83121275519"></a><a name="p83121275519"></a>Description</p>
 </th>
 </tr>
 </thead>
 <tbody><tr id="row1131131265511"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p7669321185110"><a name="p7669321185110"></a><a name="p7669321185110"></a>kind</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p18311931172217"><a name="p18311931172217"></a><a name="p18311931172217"></a> Input </p>
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p18311931172217"><a name="p18311931172217"></a><a name="p18311931172217"></a>Input</p>
 </td>
-Type of the external API activity associated with the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p712111021"><a name="p712111021"></a><a name="p712111021"></a>. Currently, the valid value is xxx_CUSTOM0. Invoke the enumeration class <a href="msptiExternalCorrelationKind.md">msptiExternalCorrelationKind</a>.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p712111021"><a name="p712111021"></a><a name="p712111021"></a>Associated external API activity type. The currently valid kind is xxx_CUSTOM0. Calls the enumeration class <a href="msptiExternalCorrelationKind.md">msptiExternalCorrelationKind</a>.</p>
 </td>
 </tr>
 <tr id="row12929154417467"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p10930104415467"><a name="p10930104415467"></a><a name="p10930104415467"></a>id</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p493014448469"><a name="p493014448469"></a><a name="p493014448469"></a> Input </p>
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p493014448469"><a name="p493014448469"></a><a name="p493014448469"></a>Input</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p119301744204613"><a name="p119301744204613"></a><a name="p119301744204613"></a> is the correlation ID generated by an external component, which is used to push data to the stack specified by the MSPTI.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p119301744204613"><a name="p119301744204613"></a><a name="p119301744204613"></a>Correlation ID generated by an external component, used to push onto the stack specified by MSPTI.</p>
 </td>
 </tr>
 </tbody>
 </table>
 
-## Return Values<a name="section16621124213476"></a>
+## Returns<a name="section16621124213476"></a>
 
-MSPTI_SUCCESS indicates that the operation is successful. If the external correlation type is invalid, MSPTI_ERROR_INVALID_PARAMETER is returned. If the external correlation ID stack is empty, MSPTI_ERROR_QUEUE_EMPTY is returned, indicating that the operation fails.
+Returns `MSPTI_SUCCESS` on success.

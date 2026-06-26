@@ -1,10 +1,10 @@
 <h1 align="center">MindStudio Profiler Tools Interface</h1>
 
 <div align="center">
-  <p><b>Ascend Profiling Tool Interfaces</b></p>
+  <p><b>Ascend Profiling Tools Interface</b></p>
 
-[📖 User Guide](./docs/en/README.md) |
-[🛠️ Installation Guide](./docs/en/mspti_install_guide.md) |
+[📖 User Guide](./docs/en/getting_started/samples_guide.md) |
+[🛠️ Installation Guide](./docs/en/getting_started/mspti_install_guide.md) |
 [📚 API Reference](./docs/en/c_api/README.md) |
 [🌐 Software Download](https://gitcode.com/Ascend/mspti/releases)
 
@@ -14,103 +14,83 @@
 
 ## 📢 What's New
 
-* [2026.02.06]: Added the : Added the `26.0.0-alpha.1` release notes and compatibility with CANN `> 8.5.0`. For details, see [Release Notes](./docs/en/release_notes.md).
+* [2026.02.06]: Added `26.0.0-alpha.1` release record to Release Notes, compatible with CANN `> 8.5.0`. For details, see [Release Notes](./docs/en/release_notes.md).
 
-## 📌 Overview
+## 📌 Introduction
 
-MindStudio Profiler Tools Interface (msPTI) is a collection of profiling APIs for Ascend devices. It helps developers build performance profiling and analysis tools for NPU applications, and is applicable to inference and training scenarios.
+msPTI (MindStudio Profiler Tools Interface) is a collection of profiling APIs for Ascend devices, helping developers build performance profiling and analysis tools for NPU applications, suitable for both inference and training.
 
 msPTI provides the following capabilities:
 
-- `Tracing`: collects timestamps and additional information about CANN APIs, kernels, memory copy, communication, and dotting, to locate performance bottlenecks in the execution link.
-- `Profiling`: collects the NPU performance metrics of one or a group of kernels separately, to support computing and communication analysis.
+- `Tracing`: Collects timestamps and additional information for CANN APIs, kernels, memory copies, communication, and markers to identify performance bottlenecks in the execution pipeline.
+- `Profiling`: Collects NPU performance metrics for a single kernel or a group of kernels to support computation and communication analysis.
 
 ## 🔍 Directory Structure
 
 ```text
 ├─docs
-│ └─en # English documents, installation guide, release notes, security statement, and API reference
-├─csrc # C/C++ core implementation
-│ ├─activity # Activity data collection and parsing
-│ ├─callback # Callback subscription and callback management
-│ ├─common # Common basic capabilities
-│ └─include # msPTI C API header files
-├─mspti # Python encapsulation
+│  └─en                  # Documentation, installation guide, release notes, security statement, API Reference
+├─csrc                   # C/C++ core implementation
+│  ├─activity            # Activity Data Collection and Parsing
+│  ├─callback            # Callback Subscription and Callback Management
+│  ├─common              # Common Basic Capabilities
+│  └─include             # msPTI C API Header Files
+├─mspti                  # Python Wrapper
 │  ├─monitor             # Kernel / HCCL / MSTX Monitor
-│ └─csrc # Implementation of Python extension binding
-├─samples # C++/Python samples
-├─scripts # Scripts for building, packaging, installation, and testing
-├─test # UT/ST test code
-├─CMakeLists.txt # C++ build entry
-└─README.md # Repository overview
+│  └─csrc                # Python Extension Binding Implementation
+├─samples                # C++ / Python Samples
+├─scripts                # Build, Package, Install, and Test Scripts
+├─test                   # UT / ST Test Code
+├─CMakeLists.txt         # C++ Build Entry
+└─README.md              # Repository Overview
 ```
 
-## 📖 Functions
+## 📖 Features
 
-| Module| Description| Documentation Entry|
+| Module | Feature | Documentation |
 | --- | --- | --- |
-| `Activity API` | Collects activity data of APIs, kernels, memory, HCCL, markers, and external correlations, which is used to build tracing and profiling tools.| [C API Reference](./docs/en/c_api/README.md)|
-| `Callback API` | Subscribes to Runtime/HCCL callbacks and executes custom logic or collects associated data before and after API calls.| [C API Reference](./docs/en/c_api/README.md)|
-| `Python API` | Provides APIs such as `KernelMonitor`, `HcclMonitor` and `MstxMonitor` to quickly access the Python scenario analysis capability.| [Python API Reference](./docs/en/python_api/README.md)|
-| `Sample Set`| It covers typical scenarios such as callback, activity, correlation, HCCL, and Python monitor, facilitating quick start.| [Sample Description](./samples/README.md) / [User Guide](./docs/zh/README.md)|
+| `Activity API` | Collects activity data such as API, kernel, memory, hccl, marker, and external correlation for building tracing and profiling tools. | [C API Reference](./docs/en/c_api/README.md) |
+| `Callback API` | Subscribes to runtime and HCCL callbacks to execute custom logic or correlate profile data before and after API calls. | [C API Reference](./docs/en/c_api/README.md) |
+| `Python API` | Provides APIs such as `KernelMonitor`, `HcclMonitor`, and `MstxMonitor` for quick integration into Python analysis. | [Python API Reference](./docs/en/python_api/README.md) |
+| `Samples` | Covers typical scenarios such as callback, activity, correlation, HCCL, and Python monitor for quick onboarding. | [User Guide](./docs/en/getting_started/samples_guide.md) |
 
 ## 🛠️ Installation Guide
 
-The msPTI running depends on the CANN environment of the matching version. Before installing msPTI, prepare the following environment:
+msPTI depends on a matching version of CANN. Before installing msPTI, set up the environment:
 
-- For hardware environment requirements, see [Ascend Product Models](<>).
-- For details about the software environment, see [CANN Software Installation Guide](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/softwareinst/instg/instg_quick.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit) to install the CANN Toolkit and ops operator package of the matching version.
+- Hardware environment: See the [Ascend Product Overview](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+- Software environment: Refer to the [CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/83RC1/softwareinst/instg/instg_quick.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit) to install the mapped CANN Toolkit and the ops package.
 
-After the preceding preparations are complete, you can install msPTI in either of the following ways:
+After setting up the environment, you can install msPTI in either of the following two ways:
 
-- Method 1: Download the pre-built `run` package from the [releases page](https://gitcode.com/Ascend/mspti/releases), perform MD5 verification, and install the package.
-- Method 2: Run the `bash scripts/build.sh [<version>]` command in the source code repository to build the `run` package and then install the package.
+- Method 1: Download the pre-built `run` package from the [releases page](https://gitcode.com/Ascend/mspti/releases), perform MD5 verification, and then install it.
+- Method 2: From the source repository, run `bash scripts/build.sh [<version>]` to build the `run` package first, and then install it.
 
-For details about the environment preparation, two installation methods, installation parameters, and example commands, see [msPTI Installation Guide](./docs/zh/mspti_install_guide.md).
+For complete environment preparation, detailed steps of both installation methods, installation parameters, and example commands, see [msPTI Tool Installation Guide](./docs/en/getting_started/mspti_install_guide.md).
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-You are advised to complete the quick experience in the following sequence: Installing the tool > Configuring the environment > Running the sample.
+For details about how to use msPTI tools, see [msPTI Quick Start](./docs/en/getting_started/quick_start.md).
 
-1. Install the tool.
+## 📝 Important Notes
 
-   You have installed the msPTI tool by downloading the `run` package or building the `run` package from source code. For details, see the msPTI Installation Guide (./docs/zh/mspti_install_guide.md).
-
-2. Configure the CANN environment variables.
-
-   ```bash
-   source ${install_path}/set_env.sh
-   ```
-
-3. Go to the sample directory and run the script.
-
-   ```bash
-   cd ${install_path}/tools/mspti/samples/callback_domain
-   bash sample_run.sh
-   ```
-
-Replace `${install_path}` with the CANN installation path, for example, `/usr/local/Ascend/cann`.
-
-For details about the application scenarios, capabilities, and supplementary information of each sample in the `samples` directory, see the Samples Description (./samples/README.md).
-
-## 📝 Additional Information
-
-- [Release Notes](./docs/zh/release_notes.md)
-- [C API Reference](./docs/zh/c_api/README.md)
-- [Python API Reference](./docs/zh/python_api/README.md)
 - [Security Statement](./docs/en/security_statement.md)
 - [LICENSE](./LICENSE)
 - [Third_Party_Open_Source_Software_Notice](./Third_Party_Open_Source_Software_Notice)
-- You are welcome to contribute to the community via [Issues](https://gitcode.com/Ascend/mspti/issues) and Pull Requests. Before submitting, please complete local tests and ensure that the new capabilities are accompanied by necessary tests.
+- Contributions are welcome via [Issues](https://gitcode.com/Ascend/mspti/issues) and Pull Requests. Before submitting a PR, please complete local testing and ensure that new features include necessary tests.
 
-## 💬 Suggestions and Feedback
+## 💬 Suggestions and Communication
 
-You are welcome to contribute to the community. If you have any questions or suggestions, please submit a [Issues](https://gitcode.com/Ascend/mspti/issues). We will reply as soon as possible. Thank you for your support.
+You are welcome to contribute to the community. If you have any questions or suggestions, please submit an [Issue](https://gitcode.com/Ascend/mspti/issues), and we will respond as soon as possible. Thank you for your support.
+
+|                                      📱 Follow the MindStudio Official Account                                       | 💬 More Communication and Support                                                                                                                                                                                                                                                                                                                                                                                                                     |
+|:-----------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| <img src="https://raw.gitcode.com/Ascend/msot/files/master/docs/zh/figures/readme/officialAccount.png" width="120"><br><sub>*Scan the QR code for the latest updates*</sub> | 💡 **Join the WeChat Group**:<br>Follow the official account and reply "communication group" to get the group QR code.<br><br>🛠️ **Other Channels**:<br>👉 Ascend Assistant: [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://gitcode.com/Ascend/msot/blob/master/docs/zh/figures/readme/xiaozhushou.png)<br>👉 Ascend Forum: [![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/) |
 
 ## 🤝 Acknowledgments
 
-msPTI is contributed by Huawei Ascend Computing MindStudio Development Dept. Thank you for every PR from the community. We welcome your continuous participation in co-building.
+msPTI is contributed by Huawei Ascend Computing MindStudio Development Dept. We appreciate every PR from the community and welcome your continued participation in co-building.
 
 ## About the MindStudio Team
 
-The MindStudio team continuously builds toolchain capabilities such as training, inference, and performance analysis based on the Ascend development scenario. For more information, visit the Ascend Community (https://www.hiascend.com/developer/software/mindstudio) and Ascend Forum (https://www.hiascend.com/forum/).
+The MindStudio team continuously builds toolchain capabilities such as training, inference, and performance analysis around Ascend development scenarios. For more information, visit the [Ascend Community](https://www.hiascend.com/developer/software/mindstudio) and the [Ascend Forum](https://www.hiascend.com/forum/).

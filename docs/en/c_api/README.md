@@ -1,90 +1,90 @@
-# General Description <a name="ZH-CN_TOPIC_0000001977973392"></a>
+# C API Overview<a name="ZH-CN_TOPIC_0000001977973392"></a>
 
-## Interface Overview<a name="section883612815318"></a>
+## API Introduction<a name="section883612815318"></a>
 
-The Profiling module provides the msPTI C interface to collect performance data of each module.
+The Profiling module provides msPTI C APIs for profiling performance data of each module.
 
-For details about the functions and usage examples of the msPTI API, see [msPTI Tool](../README.md).
+For details about the functions and usage examples of msPTI APIs, see [msPTI Tool](../getting_started/samples_guide.md).
 
-Header file path: $\{INSTALL\_DIR\}/include/mspti.
+Header file path: `$\{INSTALL\_DIR\}/include/mspti`
 
-Library file path: $\{INSTALL\_DIR\}/lib64/libmspti.so.
+Library file path: `${INSTALL_DIR}/lib64/libmspti.so`
 
-Replace $\{INSTALL\_DIR\} with the path for storing the files after the CANN Toolkit is installed. For example, if the installation is performed by the `root` user, the path is `/usr/local/Ascend/cann`.
+Replace `${INSTALL_DIR}` with the file storage path after the CANN Toolkit development suite package is installed. For example, if installed as root, the file storage path after installation is: `/usr/local/Ascend/cann`.
 
-## Interface List<a name="section2321145165316"></a>
+## API List<a name="section2321145165316"></a>
 
-APIs are listed below.
+Specific APIs are listed as follows:
 
-**Table 1** Activity APIs
+**Table 1** Activity API
 
-|Interface|Description|
+|API|Description|
 |--|--|
-|**Function type**|**Function Description**|
-|[msptiActivityRegisterCallbacks](./context/msptiActivityRegisterCallbacks.md)|Registers callback functions with MSPTI for activity buffer processing.|
-|[msptiActivityEnable](./context/msptiActivityEnable.md)|Profiles data of a specified activity type.|
-|[msptiActivityDisable](./context/msptiActivityDisable.md)|Stops profiling activity records of a specified type.|
-|[msptiActivityGetNextRecord](./context/msptiActivityGetNextRecord.md)|Obtains the activity record data from the activity buffer in sequence.|
-|[msptiActivityFlushAll](./context/msptiActivityFlushAll.md)|Subscribers manually flush the data recorded in the activity buffer.|
-|[msptiActivityFlushPeriod](./context/msptiActivityFlushPeriod.md)|Sets the execution period of flushing.|
+|**Function**|**Description**|
+|[msptiActivityRegisterCallbacks](./context/msptiActivityRegisterCallbacks.md)|Registers callback functions with MSPTI for Activity Buffer processing.|
+|[msptiActivityEnable](./context/msptiActivityEnable.md)|Enables the collection of data for a specified activity type.|
+|[msptiActivityDisable](./context/msptiActivityDisable.md)|Stops collecting a specific type of Activity Record.|
+|[msptiActivityGetNextRecord](./context/msptiActivityGetNextRecord.md)|Retrieves Activity Record data from the Activity Buffer sequentially.|
+|[msptiActivityFlushAll](./context/msptiActivityFlushAll.md)|Allows the subscriber to manually flush the data recorded in the Activity Buffer.|
+|[msptiActivityFlushPeriod](./context/msptiActivityFlushPeriod.md)|Sets the execution period for flushing.|
 |[msptiActivityPushExternalCorrelationId](./context/msptiActivityPushExternalCorrelationId.md)|Pushes an external correlation ID for the calling thread.|
-|[msptiActivityPopExternalCorrelationId](./context/msptiActivityPopExternalCorrelationId.md)|Pops the external correlation ID for the calling thread.|
-|[msptiActivityEnableMarkerDomain](./context/msptiActivityEnableMarkerDomain.md)|Enables the profiling for a specific domain.|
-|[msptiActivityDisableMarkerDomain](./context/msptiActivityDisableMarkerDomain.md)|Disables the profiling for a specific domain.|
-|**Typedef type**|**Description**|
-|[msptiBuffersCallbackRequestFunc](./context/msptiBuffersCallbackRequestFunc.md)|Registers the callback function with MSPTI to allocate the storage space of the activity buffer.|
-|[msptiBuffersCallbackCompleteFunc](./context/msptiBuffersCallbackCompleteFunc.md)|Registers the callback function with MSPTI to release the data in the activity buffer.|
-|**Enumeration type**|**Enumeration description**|
+|[msptiActivityPopExternalCorrelationId](./context/msptiActivityPopExternalCorrelationId.md)|Pops an external correlation ID for the calling thread.|
+|[msptiActivityEnableMarkerDomain](./context/msptiActivityEnableMarkerDomain.md)|Enables the collection of markers for the corresponding domain.|
+|[msptiActivityDisableMarkerDomain](./context/msptiActivityDisableMarkerDomain.md)|Disables the collection of markers for the corresponding domain.|
+|**Typedef**|**Description**|
+|[msptiBuffersCallbackRequestFunc](./context/msptiBuffersCallbackRequestFunc.md)|Registers a callback function with MSPTI to request storage space for the Activity Buffer.|
+|[msptiBuffersCallbackCompleteFunc](./context/msptiBuffersCallbackCompleteFunc.md)|Registers a callback function with MSPTI to release data in the Activity Buffer.|
+|**Enumeration**|**Description**|
 |[msptiActivityKind](./context/msptiActivityKind.md)|All activity types supported by MSPTI.|
-|[msptiActivityFlag](./context/msptiActivityFlag.md)|Activity record flag.|
-|[msptiActivitySourceKind](./context/msptiActivitySourceKind.md)|Activity data source.|
-|[msptiActivityMemoryOperationType](./context/msptiActivityMemoryOperationType.md)|Enumeration of memory operation types.|
-|[msptiActivityMemoryKind](./context/msptiActivityMemoryKind.md)|Enumeration of memory types.|
-|[msptiActivityMemcpyKind](./context/msptiActivityMemcpyKind.md)|Enumeration of memory copy types.|
-|[msptiExternalCorrelationKind](./context/msptiExternalCorrelationKind.md)|Supported types of external APIs that can be correlated.|
-|[msptiCommunicationDataType](./context/msptiCommunicationDataType.md)|Data type of the communication operator.|
-|**Data structure type**|**Data Structure Description**|
-|[msptiActivity](./context/msptiActivity.md)|Basic struct of an activity record.|
-|[msptiActivityApi](./context/msptiActivityApi.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_API.|
-|[msptiActivityHccl](./context/msptiActivityHccl.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_HCCL.|
-|[msptiActivityKernel](./context/msptiActivityKernel.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_KERNEL.|
-|[msptiActivityMarker](./context/msptiActivityMarker.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_MARKER.|
-|[msptiActivityMemory](./context/msptiActivityMemory.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_MEMORY.|
-|[msptiActivityMemset](./context/msptiActivityMemset.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_MEMSET.|
-|[msptiActivityMemcpy](./context/msptiActivityMemcpy.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_MEMCPY.|
-|[msptiActivityExternalCorrelation](./context/msptiActivityExternalCorrelation.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION.|
-|[msptiActivityCommunication](./context/msptiActivityCommunication.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_COMMUNICATION.|
-|**Union type**|**Union Description**|
-|[msptiObjectId](./context/msptiObjectId.md)|Identifies the process ID, thread ID, device ID, and stream ID of the marker.|
+|[msptiActivityFlag](./context/msptiActivityFlag.md)|Activity flags for an Activity Record.|
+|[msptiActivitySourceKind](./context/msptiActivitySourceKind.md)|Marks the source of activity data.|
+|[msptiActivityMemoryOperationType](./context/msptiActivityMemoryOperationType.md)|Enumeration class for memory operation types.|
+|[msptiActivityMemoryKind](./context/msptiActivityMemoryKind.md)|Enumeration class for memory types.|
+|[msptiActivityMemcpyKind](./context/msptiActivityMemcpyKind.md)|Enumeration class for memory copy types.|
+|[msptiExternalCorrelationKind](./context/msptiExternalCorrelationKind.md)|Types of external APIs supported for correlation.|
+|[msptiCommunicationDataType](./context/msptiCommunicationDataType.md)|Records the data type of communication operators.|
+|**Data Structure**|**Description**|
+|[msptiActivity](./context/msptiActivity.md)|Base structure for an Activity Record.|
+|[msptiActivityApi](./context/msptiActivityApi.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_API.|
+|[msptiActivityHccl](./context/msptiActivityHccl.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_HCCL.|
+|[msptiActivityKernel](./context/msptiActivityKernel.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_KERNEL.|
+|[msptiActivityMarker](./context/msptiActivityMarker.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_MARKER.|
+|[msptiActivityMemory](./context/msptiActivityMemory.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_MEMORY.|
+|[msptiActivityMemset](./context/msptiActivityMemset.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_MEMSET.|
+|[msptiActivityMemcpy](./context/msptiActivityMemcpy.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_MEMCPY.|
+|[msptiActivityExternalCorrelation](./context/msptiActivityExternalCorrelation.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION.|
+|[msptiActivityCommunication](./context/msptiActivityCommunication.md)|Structure corresponding to the Activity Record type MSPTI_ACTIVITY_KIND_COMMUNICATION.|
+|**Union**|**Description**|
+|[msptiObjectId](./context/msptiObjectId.md)|Used to identify the process ID, thread ID, device ID, and stream ID of a marker.|
 
-Activity record: NPU profiling record, which is represented by a struct, such as **msptiActivityApi** or **msptiActivityMarker**.
+Activity record: A profiling record of the NPU, represented by structures such as msptiActivityApi and msptiActivityMarker.
 
-Activity buffer: Buffers activity record data and transfers one or more activity records from MSPTI to the client. You need to provide an empty activity buffer based on service requirements to ensure that no activity record is missing.
+Activity buffer: Used to cache activity record data and transfer one or more Activity Records from MSPTI to the client. Users provide empty Activity Buffer buffers based on service requirements to ensure that no activity records are missed.
 
-**Table 2** Callback APIs
+**Table 2**  Callback API
 
 |API|Description|
 |--|--|
-|**Function type**|**Function Description**|
-|[msptiSubscribe](./context/msptiSubscribe.md)|Registers callback functions with MSPTI.|
-|[msptiUnsubscribe](./context/msptiUnsubscribe.md)|Deregisters the current subscriber from MSPTI.|
-|[msptiEnableCallback](./context/msptiEnableCallback.md)|Enables or disables callbacks for subscribers of specific **domain** and **CallbackId**.|
-|[msptiEnableDomain](./context/msptiEnableDomain.md)|Enables or disables all callbacks for subscribers of specific **domain**.|
-|**Typedef type**|**Description**|
+|**Function**|**Description**|
+|[msptiSubscribe](./context/msptiSubscribe.md)|Registers a callback function with MSPTI through this API.|
+|[msptiUnsubscribe](./context/msptiUnsubscribe.md)|Unsubscribes the current subscriber from MSPTI.|
+|[msptiEnableCallback](./context/msptiEnableCallback.md)|Enables or disables a callback for a subscriber of a specific **domain** and **CallbackId**.|
+|[msptiEnableDomain](./context/msptiEnableDomain.md)|Enables or disables all callbacks for a subscriber of a specific **domain**.|
+|**Typedef**|**Description**|
 |[msptiCallbackFunc](./context/msptiCallbackFunc.md)|Callback function type.|
-|[msptiCallbackId](./context/msptiCallbackId.md)|ID of the callback tracing function.|
-|[msptiSubscriberHandle](./context/msptiSubscriberHandle.md)|Handle to the subscriber.|
-|**Enumeration type**|**Enumeration description**|
-|[msptiCallbackDomain](./context/msptiCallbackDomain.md)|Callback point of an API function or CANN driver activity.|
-|[msptiApiCallbackSite](./context/msptiApiCallbackSite.md)|Callback point in an API call, for example, the start and end of the callback.|
-|[msptiCallbackIdRuntime](./context/msptiCallbackIdRuntime.md)|Index definition of the runtime API function.|
-|[msptiCallbackIdHccl](./context/msptiCallbackIdHccl.md)|Brief definition of the communication API function index.|
-|**Data structure type**|**Data Structure Description**|
-|[msptiCallbackData](./context/msptiCallbackData.md)|Data to be passed to the callback function.|
+|[msptiCallbackId](./context/msptiCallbackId.md)|ID that identifies a callback trace function.|
+|[msptiSubscriberHandle](./context/msptiSubscriberHandle.md)|Handle of the subscriber.|
+|**Enumeration**|**Description**|
+|[msptiCallbackDomain](./context/msptiCallbackDomain.md)|Callback points for related API functions or CANN driver activities.|
+|[msptiApiCallbackSite](./context/msptiApiCallbackSite.md)|Specifies the point in an API call where a callback is issued, such as the start and end of the callback.|
+|[msptiCallbackIdRuntime](./context/msptiCallbackIdRuntime.md)|Index definitions for Runtime API functions.|
+|[msptiCallbackIdHccl](./context/msptiCallbackIdHccl.md)|Brief index definitions for communication API functions.|
+|**Data Structure**|**Description**|
+|[msptiCallbackData](./context/msptiCallbackData.md)|Used to specify the data passed to the callback function.|
 
-**Table 3** Result codes
+**Table 3** Result Codes
 
 |API|Description|
 |--|--|
-|**Enumeration type**|**Enumeration description**|
-|[msptiResult](./context/msptiResult.md)|Error and result code returned by MSPTI.|
+|**Enumeration**|**Description**|
+|[msptiResult](./context/msptiResult.md)|Error and result codes returned by MSPTI.|
