@@ -18,12 +18,26 @@
 
 #include "csrc/callback/callback_manager.h"
 #include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "mspti.h"
+
+int32_t gCallbackEnterCount = 0;
+int32_t gCallbackExitCount = 0;
 
 class CallbackUtest : public testing::Test
 {
    protected:
-    virtual void SetUp() { setenv("LD_PRELOAD", "libmspti.so", 1); }
+    static void SetUpTestCase()
+    {
+        GlobalMockObject::verify();
+        setenv("LD_PRELOAD", "libmspti.so", 1);
+    }
+    virtual void SetUp()
+    {
+        GlobalMockObject::verify();
+        gCallbackEnterCount = 0;
+        gCallbackExitCount = 0;
+    }
     virtual void TearDown() {}
 };
 
@@ -33,10 +47,12 @@ static void UserCallback(void *pUserData, msptiCallbackDomain domain, msptiCallb
     if (pCallbackInfo->callbackSite == MSPTI_API_ENTER)
     {
         printf("Enter: %s\n", pCallbackInfo->functionName);
+        gCallbackEnterCount++;
     }
     else if (pCallbackInfo->callbackSite == MSPTI_API_EXIT)
     {
         printf("Exit: %s\n", pCallbackInfo->functionName);
+        gCallbackExitCount++;
     }
     if (domain == MSPTI_CB_DOMAIN_RUNTIME && callbackId == MSPTI_CBID_RUNTIME_CONTEXT_CREATED_EX)
     {
@@ -150,6 +166,8 @@ TEST_F(CallbackUtest, ExecuteCallbackBeforeInitDoesNotInvokeCallback)
                                                                      MSPTI_API_ENTER, "rtLaunch");
     Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH,
                                                                      MSPTI_API_EXIT, "rtLaunch");
+    EXPECT_EQ(0, gCallbackEnterCount);
+    EXPECT_EQ(0, gCallbackExitCount);
 }
 
 TEST_F(CallbackUtest, ExecuteCallbackWithInvalidDomainOrCbidIsNoop)
@@ -159,10 +177,13 @@ TEST_F(CallbackUtest, ExecuteCallbackWithInvalidDomainOrCbidIsNoop)
     EXPECT_EQ(MSPTI_SUCCESS, msptiEnableCallback(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
     Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_INVALID, MSPTI_CBID_RUNTIME_LAUNCH,
                                                                      MSPTI_API_ENTER, "noop");
+    EXPECT_EQ(0, gCallbackEnterCount);
     Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_RUNTIME, 1024, MSPTI_API_ENTER,
                                                                      "noop");
+    EXPECT_EQ(0, gCallbackEnterCount);
     Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_SIZE, MSPTI_CBID_RUNTIME_LAUNCH,
                                                                      MSPTI_API_ENTER, "noop");
+    EXPECT_EQ(0, gCallbackEnterCount);
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
 }
 
@@ -172,8 +193,10 @@ TEST_F(CallbackUtest, ExecuteCallbackWithDisabledCbidDoesNotInvokeCallback)
     EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
     Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH,
                                                                      MSPTI_API_ENTER, "rtLaunch");
+    EXPECT_EQ(0, gCallbackEnterCount);
     Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH,
                                                                      MSPTI_API_EXIT, "rtLaunch");
+    EXPECT_EQ(0, gCallbackExitCount);
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
 }
 
@@ -185,6 +208,8 @@ TEST_F(CallbackUtest, CallbackScopeInvokesEnterAndExit)
     {
         Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH, "rtLaunch");
     }
+    EXPECT_EQ(1, gCallbackEnterCount);
+    EXPECT_EQ(1, gCallbackExitCount);
     EXPECT_EQ(MSPTI_SUCCESS, msptiEnableCallback(0, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
 }
@@ -248,6 +273,8 @@ TEST_F(CallbackUtest, SubscribeUnsubscribeSubscribeRepeatedLifecycle)
             MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_MALLOC, MSPTI_API_ENTER, "rtMalloc");
         Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(
             MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_MALLOC, MSPTI_API_EXIT, "rtMalloc");
+        EXPECT_EQ(i + 1, gCallbackEnterCount);
+        EXPECT_EQ(i + 1, gCallbackExitCount);
         EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(0, subscriber, MSPTI_CB_DOMAIN_RUNTIME));
         EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
         subscriber = nullptr;

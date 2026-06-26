@@ -21,11 +21,11 @@
 #include <array>
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "csrc/common/plog_manager.h"
-#include "csrc/common/utils.h"
 #include "csrc/include/mspti_callback.h"
 #include "csrc/include/mspti_result.h"
 
@@ -70,6 +70,7 @@ class CallbackManager final
    private:
     static std::unordered_map<msptiCallbackDomain, std::unordered_set<msptiCallbackId>> domain_cbid_map_;
     std::atomic<bool> init_{false};
+    std::mutex subscriber_mutex_;
     std::shared_ptr<msptiSubscriber_st> subscriber_ptr_{nullptr};
     // 采用bitmap存储cbid开关情况，目前cbid均小于64，后续cbid超长之后采用拓展bitmap存储
     std::array<AtomicBitMap, MSPTI_CB_DOMAIN_SIZE> cbid_map_;
@@ -93,6 +94,8 @@ class CallbackScope
         catch (...)
         {
             // Exception occurred during destruction of CallbackScope
+            MSPTI_LOGW("Exception occurred during destruction of CallbackScope, domain: %u, cbid: %u, funcName: %s",
+                       domain_, cbid_, func_name_);
         }
     }
 

@@ -21,12 +21,12 @@
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/mstx_inject.h"
+#include "csrc/common/utils.h"
 
 namespace Mspti
 {
 namespace Callback
 {
-
 namespace
 {
 inline bool IsValidCBDomain(msptiCallbackDomain domain)
@@ -104,13 +104,15 @@ msptiResult CallbackManager::Init(msptiSubscriberHandle* subscriber, msptiCallba
         MSPTI_LOGE("subscriber cannot be nullptr.");
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
+    std::lock_guard<std::mutex> lock(subscriber_mutex_);
     if (init_.load())
     {
         MSPTI_LOGE("subscriber cannot be register repeat.");
         return MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED;
     }
-    Mspti::Common::MsptiMakeSharedPtr(subscriber_ptr_);
-    if (!subscriber_ptr_)
+    std::shared_ptr<msptiSubscriber_st> new_ptr;
+    Mspti::Common::MsptiMakeSharedPtr(new_ptr);
+    if (UNLIKELY(!new_ptr))
     {
         MSPTI_LOGE("Failed to init subscriber.");
         return MSPTI_ERROR_INNER;
@@ -119,9 +121,10 @@ msptiResult CallbackManager::Init(msptiSubscriberHandle* subscriber, msptiCallba
     {
         bitmap.store(0, std::memory_order_relaxed);
     }
-    subscriber_ptr_->handle = callback;
-    subscriber_ptr_->userdata = userdata;
-    *subscriber = subscriber_ptr_.get();
+    new_ptr->handle = callback;
+    new_ptr->userdata = userdata;
+    *subscriber = new_ptr.get();
+    std::atomic_store(&subscriber_ptr_, new_ptr);
     init_.store(true);
     Mspti::Ascend::DevTaskManager::GetInstance()->RegisterReportCallback();
     Mspti::Common::ContextManager::GetInstance()->StartSyncTime();
@@ -133,22 +136,18 @@ msptiResult CallbackManager::Init(msptiSubscriberHandle* subscriber, msptiCallba
 
 msptiResult CallbackManager::UnInit(msptiSubscriberHandle subscriber)
 {
+    std::lock_guard<std::mutex> lock(subscriber_mutex_);
     if (!init_.load())
     {
         MSPTI_LOGW("CallbackManager is not init, no need to UnInit.");
         return MSPTI_SUCCESS;
     }
-    init_.store(false);
-    if (subscriber_ptr_.get() != subscriber)
+    if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
     {
         MSPTI_LOGE("CallbackManager UnInit subscriber was not subscribe.");
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
-    auto original_ptr = std::atomic_exchange(&subscriber_ptr_, std::shared_ptr<msptiSubscriber_st>(nullptr));
-    if (original_ptr)
-    {
-        original_ptr.reset();
-    }
+    std::atomic_exchange(&subscriber_ptr_, std::shared_ptr<msptiSubscriber_st>(nullptr));
     for (auto& bitmap : cbid_map_)
     {
         bitmap.store(0, std::memory_order_relaxed);
@@ -157,6 +156,7 @@ msptiResult CallbackManager::UnInit(msptiSubscriberHandle subscriber)
     Mspti::Common::ContextManager::GetInstance()->StopSyncTime();
     Mspti::Ascend::DevTaskManager::GetInstance()->UnRegisterReportCallback();
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+    init_.store(false);
     MSPTI_LOGI("CallbackManager UnInit success.");
     return MSPTI_SUCCESS;
 }
@@ -199,7 +199,7 @@ msptiResult CallbackManager::EnableCallback(uint32_t enable, msptiSubscriberHand
         MSPTI_LOGW("CallbackManager was not init.");
         return MSPTI_SUCCESS;
     }
-    if (subscriber != subscriber_ptr_.get())
+    if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
     {
         MSPTI_LOGE("subscriber was not subscribe.");
         return MSPTI_ERROR_INVALID_PARAMETER;
@@ -223,7 +223,7 @@ msptiResult CallbackManager::EnableDomain(uint32_t enable, msptiSubscriberHandle
         MSPTI_LOGW("CallbackManager was not init.");
         return MSPTI_SUCCESS;
     }
-    if (subscriber != subscriber_ptr_.get())
+    if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
     {
         MSPTI_LOGE("subscriber was not subscribe.");
         return MSPTI_ERROR_INVALID_PARAMETER;
