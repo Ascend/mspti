@@ -2,7 +2,7 @@
 
 ## Supported Products<a name="section8178181118225"></a>
 
->![](public_sys-resources/icon-note.gif) **Note:**
+>**Note:**
 >For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
@@ -58,4 +58,4 @@ Type of the external API activity associated with the <td class="cellrowborder" 
 
 ## Return Values<a name="section16621124213476"></a>
 
-MSPTI_SUCCESS indicates that the operation is successful. If the external correlation type is invalid, MSPTI_ERROR_INVALID_PARAMETER is returned. If the external correlation ID stack is empty, MSPTI_ERROR_QUEUE_EMPTY is returned, indicating that the operation fails.
+MSPTI_SUCCESS indicates that the operation is successful.

@@ -58,4 +58,4 @@ msptiResult msptiActivityPushExternalCorrelationId(msptiExternalCorrelationKind 
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；外部关联类型无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER和外部关联ID栈空时出栈返回MSPTI\_ERROR\_QUEUE\_EMPTY，表示失败。
+返回MSPTI\_SUCCESS表示成功。
