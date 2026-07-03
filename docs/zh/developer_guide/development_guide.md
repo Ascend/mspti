@@ -269,12 +269,12 @@ bash sample_run.sh
 
 | 改动类型 | 需同步更新的文档 |
 | --- | --- |
-| 安装、打包、卸载 | 《[msPTI工具安装指南](../getting_started/mspti_install_guide.md)》 |
-| 工具介绍 | 《[msPTI工具样例指南](../getting_started/samples_guide.md)》|
-| C API 变更 | 《[C API总体说明](../c_api/README.md)》及其子文档 |
-| Python API 变更 | 《[Python API总体说明](../python_api/README.md)》及其子文档 |
+| 安装、打包、卸载 | 《[msPTI工具安装指南](../install_guide/mspti_install_guide.md)》 |
+| 工具介绍 | 《[msPTI工具样例指南](../user_guide/samples_guide.md)》|
+| C API 变更 | 《[C API总体说明](../api_reference/c_api/README.md)》及其子文档 |
+| Python API 变更 | 《[Python API总体说明](../api_reference/python_api/README.md)》及其子文档 |
 | 样例更新 | 《[msPTI样例说明](../../../samples/README.md)》 |
-| 版本发布信息 | 《[版本说明](../release_notes.md)》 |
+| 版本发布信息 | 《[版本说明](../release_notes/release_notes.md)》 |
 
 ## 7. 提交流程建议
 
