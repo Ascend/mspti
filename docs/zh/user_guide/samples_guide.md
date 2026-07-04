@@ -1,10 +1,10 @@
 # msPTI工具样例指南
 
-## 简介
+## 1. 简介
 
 本文通过提供msPTI样例集的方式，供用户理解使用msPTI工具。
 
-## 产品支持情况
+## 2. 产品支持情况
 
 >![](../figures/icon-note.gif) **说明：**
 >昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
@@ -18,7 +18,7 @@
 | Atlas 推理系列产品  |    ×     |
 | Atlas 训练系列产品   |    ×     |
 
-## 使用前准备
+## 3. 使用前准备
 
 **环境准备**
 
@@ -31,7 +31,7 @@
 
 msPTI工具不可与任何其他性能数据采集工具同时使用，否则会导致采集的数据丢失。
 
-## msPTI样例集
+## 4. msPTI样例集
 
 本节提供msPTI各种接口的使用样例，供用户理解使用msPTI接口。
 
