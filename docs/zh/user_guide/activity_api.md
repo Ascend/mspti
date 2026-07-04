@@ -4,14 +4,14 @@
 
 Activity API 是 msPTI 的核心数据采集接口。它通过异步缓冲区机制采集 CANN 应用运行过程中的各类活动（Activity）记录，包括 Kernel 执行、API 调用、内存操作、通信数据、用户自定义打点等。
 
-### 核心概念
+### 1.1 核心概念
 
 - **Activity Record**：NPU 活动的性能记录，每种活动类型对应一个 C 结构体。
 - **Activity Buffer**：用于缓存 Activity Record 的内存缓冲区，由用户提供，msPTI 填充。
 - **Activity Kind**：活动类型枚举，通过 `msptiActivityKind` 标识。
 - **Buffer Callback**：用户注册的缓冲区请求与完成回调，msPTI 通过回调与用户交互。
 
-### 工作流程
+### 1.2 工作流程
 
 ```text
 用户注册回调 → msPTI通过RequestFunc申请空缓冲区 → 数据采集填充缓冲区
@@ -42,7 +42,7 @@ Activity API 是 msPTI 的核心数据采集接口。它通过异步缓冲区机
 
 ## 3. 核心数据结构
 
-### Activity Kernel（Kernel 执行记录）
+### 3.1 Activity Kernel（Kernel 执行记录）
 
 ```c
 typedef struct {
@@ -56,7 +56,7 @@ typedef struct {
 } msptiActivityKernel;
 ```
 
-### Activity API（API 调用记录）
+### 3.2 Activity API（API 调用记录）
 
 ```c
 typedef struct {
@@ -69,7 +69,7 @@ typedef struct {
 } msptiActivityApi;
 ```
 
-### Activity Memory（内存操作记录）
+### 3.3 Activity Memory（内存操作记录）
 
 ```c
 typedef struct {
@@ -87,7 +87,7 @@ typedef struct {
 } msptiActivityMemory;
 ```
 
-### Activity Memcpy（内存拷贝记录）
+### 3.4 Activity Memcpy（内存拷贝记录）
 
 ```c
 typedef struct {
@@ -103,7 +103,7 @@ typedef struct {
 } msptiActivityMemcpy;
 ```
 
-### Activity Memset（内存设置记录）
+### 3.5 Activity Memset（内存设置记录）
 
 ```c
 typedef struct {
@@ -119,7 +119,7 @@ typedef struct {
 } msptiActivityMemset;
 ```
 
-### Activity HCCL（通信操作记录）
+### 3.6 Activity HCCL（通信操作记录）
 
 ```c
 typedef struct {
@@ -133,7 +133,7 @@ typedef struct {
 } msptiActivityHccl;
 ```
 
-### Activity Communication（通信算子记录）
+### 3.7 Activity Communication（通信算子记录）
 
 ```c
 typedef struct {
@@ -150,7 +150,7 @@ typedef struct {
 } msptiActivityCommunication;
 ```
 
-### Activity Marker（用户打点记录）
+### 3.8 Activity Marker（用户打点记录）
 
 ```c
 typedef struct {
@@ -165,7 +165,7 @@ typedef struct {
 } msptiActivityMarker;
 ```
 
-### Activity External Correlation（外部关联记录）
+### 3.9 Activity External Correlation（外部关联记录）
 
 ```c
 typedef struct {
@@ -182,7 +182,7 @@ typedef struct {
 
 ### 4.1 生命周期函数
 
-#### msptiActivityRegisterCallbacks
+#### 4.1.1 msptiActivityRegisterCallbacks
 
 注册 Activity Buffer 的回调函数。必须在使能任何 Activity Kind 之前调用。
 
@@ -212,7 +212,7 @@ typedef void(*msptiBuffersCallbackCompleteFunc)(
     size_t validSize);   // [in] 有效数据字节数
 ```
 
-#### msptiActivityEnable / msptiActivityDisable
+#### 4.1.2 msptiActivityEnable / msptiActivityDisable
 
 使能或禁用指定类型的 Activity 数据采集。可多次调用使能多种类型。默认所有类型均为关闭状态。
 
@@ -221,7 +221,7 @@ msptiResult msptiActivityEnable(msptiActivityKind kind);
 msptiResult msptiActivityDisable(msptiActivityKind kind);
 ```
 
-#### msptiActivityIsEnabled
+#### 4.1.3 msptiActivityIsEnabled
 
 查询指定类型的 Activity 采集是否已使能。
 
@@ -231,7 +231,7 @@ bool msptiActivityIsEnabled(msptiActivityKind kind);
 
 ### 4.2 数据读取函数
 
-#### msptiActivityGetNextRecord
+#### 4.2.1 msptiActivityGetNextRecord
 
 遍历缓冲区中的 Activity Record。首次调用时 `record` 传入 NULL，之后传入上一次返回的指针。
 
@@ -248,7 +248,7 @@ msptiResult msptiActivityGetNextRecord(
 
 ### 4.3 缓冲刷新函数
 
-#### msptiActivityFlushAll
+#### 4.3.1 msptiActivityFlushAll
 
 强制刷新所有 Activity 缓冲区，通过 CompleteFunc 回调返回数据。即使缓冲区未满也会返回。
 
@@ -256,7 +256,7 @@ msptiResult msptiActivityGetNextRecord(
 msptiResult msptiActivityFlushAll(uint32_t flag);  // flag 保留参数
 ```
 
-#### msptiActivityFlushPeriod
+#### 4.3.2 msptiActivityFlushPeriod
 
 设置周期性 Flush 的时间间隔（毫秒）。设置为 0 可关闭周期刷新。
 
@@ -266,7 +266,7 @@ msptiResult msptiActivityFlushPeriod(uint32_t time);  // time 单位为 ms
 
 ### 4.4 域标记控制函数
 
-#### msptiActivityEnableMarkerDomain / msptiActivityDisableMarkerDomain
+#### 4.4.1 msptiActivityEnableMarkerDomain / msptiActivityDisableMarkerDomain
 
 按名称动态启停指定域的 Marker 打点采集。默认所有域均为开启状态。
 
@@ -277,7 +277,7 @@ msptiResult msptiActivityDisableMarkerDomain(const char* name);
 
 ### 4.5 外部关联函数
 
-#### msptiActivityPushExternalCorrelationId
+#### 4.5.1 msptiActivityPushExternalCorrelationId
 
 为调用线程推送一个外部关联 ID，标记进入外部 API 区域。该区域内生成的 API Activity Record 会先产生一条 `EXTERNAL_CORRELATION` 记录。
 
@@ -287,7 +287,7 @@ msptiResult msptiActivityPushExternalCorrelationId(
     uint64_t id);                       // 外部关联 ID
 ```
 
-#### msptiActivityPopExternalCorrelationId
+#### 4.5.2 msptiActivityPopExternalCorrelationId
 
 为调用线程弹出外部关联 ID，标记离开外部 API 区域。
 

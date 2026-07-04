@@ -4,7 +4,7 @@
 
 msPTI Python API 提供了高层封装，使 Python 开发者能够快速接入 NPU 性能数据采集能力。Python API 围绕 **Monitor** 模式设计，每个 Monitor 负责一种类型的数据采集。
 
-### Monitor 设计模式
+### 1.1 Monitor 设计模式
 
 每个 Monitor 遵循统一的生命周期：
 
@@ -17,7 +17,7 @@ msPTI Python API 提供了高层封装，使 Python 开发者能够快速接入 
 - `set_buffer_size(size)`：设置内部缓冲区大小（最大 256 MB）。
 - `flush_all()`：手动刷新缓冲区。
 
-### 可用 Monitor
+### 1.2 可用 Monitor
 
 | Monitor | 数据类 | 采集内容 |
 | --- | --- | --- |
@@ -126,7 +126,7 @@ class MsptiObjectId:
 
 ## 3. KernelMonitor 使用指南
 
-### 基本用法
+### 3.1 基本用法
 
 ```python
 from mspti import KernelMonitor, KernelData
@@ -144,7 +144,7 @@ monitor.start(on_kernel)
 monitor.stop()
 ```
 
-### 完整示例（单卡）
+### 3.2 完整示例（单卡）
 
 ```python
 import torch
@@ -219,7 +219,7 @@ monitor.stop()
 
 采集用户自定义的打点数据，支持瞬时标记和范围标记两种模式。
 
-### 基本用法
+### 6.1 基本用法
 
 ```python
 from mspti import MstxMonitor, MarkerData, RangeMarkerData
@@ -240,7 +240,7 @@ monitor.start(on_marker, on_range)
 monitor.stop()
 ```
 
-### 与 PyTorch MSTX 集成的完整示例
+### 6.2 与 PyTorch MSTX 集成的完整示例
 
 ```python
 import os
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     test()
 ```
 
-### 域控制
+### 6.3 域控制
 
 MstxMonitor 支持按域动态启停打点采集：
 
@@ -391,7 +391,7 @@ monitor.start(callback)
 
 ## 8. 运行方式
 
-### 环境要求
+### 8.1 环境要求
 
 - Python 3.8+
 - CANN 软件（含 msPTI Python 包）
@@ -402,14 +402,14 @@ monitor.start(callback)
 export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 ```
 
-### 单卡运行
+### 8.2 单卡运行
 
 ```bash
 export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 python your_script.py
 ```
 
-### 多卡分布式运行
+### 8.3 多卡分布式运行
 
 ```bash
 export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
