@@ -17,13 +17,13 @@
 
 #include "csrc/activity/ascend/parser/kernel_parser.h"
 
-#include <list>
 #include <mutex>
 #include <queue>
 #include <tuple>
 #include <unordered_map>
 
 #include "csrc/activity/activity_manager.h"
+#include "csrc/activity/ascend/channel/channel_data.h"
 #include "csrc/activity/ascend/channel/stars_common.h"
 #include "csrc/activity/ascend/entity/device_task.h"
 #include "csrc/activity/ascend/parser/cann_hash_cache.h"
@@ -50,19 +50,16 @@ inline const char* GetValidKernelTypeName(uint32_t taskType)
 
 class KernelParser::KernelParserImpl
 {
-    // <deviceId, streamId, taskId>
-    using DstType = std::tuple<uint16_t, uint16_t, uint32_t>;
     using msptiActivityKernelPtr = Common::SimpleObjectPool<msptiActivityKernel>::Ptr;
     using DeviceTaskPtr = Common::SimpleObjectPool<DeviceTask>::Ptr;
 
    public:
     KernelParserImpl()
-        : hostTasks_(0),
+        : activityPool(DEFAULT_POOL_SIZE),
+          deviceTaskPool(DEFAULT_POOL_SIZE),
           kernel_map_(DEFAULT_POOL_SIZE),
           unaging_kernel_map_(DEFAULT_POOL_SIZE),
-          device_kernel_map_(DEFAULT_POOL_SIZE),
-          activityPool(DEFAULT_POOL_SIZE),
-          deviceTaskPool(DEFAULT_POOL_SIZE)
+          device_kernel_map_(DEFAULT_POOL_SIZE)
     {
         hostTasks_.reserve(DEFAULT_POOL_SIZE);
     };
@@ -71,8 +68,9 @@ class KernelParser::KernelParserImpl
         for (auto& item : kernel_map_)
         {
             auto& kernelList = item.second;
-            MSPTI_LOGW("Release kernel: deviceId:%u, streamId:%u, taskId:%u, kernelCount:%lu", std::get<0>(item.first),
-                       std::get<1>(item.first), std::get<2>(item.first), kernelList.size());
+            const auto& dstKey = Common::ContextManager::DecodeDstKey(item.first);
+            MSPTI_LOGW("Release kernel: deviceId:%u, streamId:%u, taskId:%u, kernelCount:%lu", std::get<0>(dstKey),
+                       std::get<1>(dstKey), std::get<2>(dstKey), kernelList.size());
         }
     }
     msptiResult ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data);
@@ -83,7 +81,7 @@ class KernelParser::KernelParserImpl
     msptiResult DealUnAgingRtTaskTrack(const DeviceTask& task);
     msptiResult DealAgingRtTaskTrack(const DeviceTask& task);
     bool ParseDeviceTask(uint32_t deviceId, const SocLog& socLog, DeviceTaskPtr& task);
-    bool IsGraphTask(DstType dstType);
+    bool IsGraphTask(uint64_t dstKey);
     msptiResult DealCacheHostTask();
 
    private:
@@ -94,9 +92,9 @@ class KernelParser::KernelParserImpl
     Common::SimpleObjectPool<msptiActivityKernel> activityPool;
     Common::SimpleObjectPool<DeviceTask> deviceTaskPool;
 
-    std::unordered_map<DstType, std::queue<msptiActivityKernelPtr>, Common::TupleHash> kernel_map_{};
-    std::unordered_map<DstType, msptiActivityKernelPtr, Common::TupleHash> unaging_kernel_map_{};
-    std::unordered_map<DstType, DeviceTaskPtr, Common::TupleHash> device_kernel_map_{};
+    std::unordered_map<uint64_t, std::queue<msptiActivityKernelPtr>> kernel_map_{};
+    std::unordered_map<uint64_t, msptiActivityKernelPtr> unaging_kernel_map_{};
+    std::unordered_map<uint64_t, DeviceTaskPtr> device_kernel_map_{};
 };
 
 msptiResult KernelParser::KernelParserImpl::ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data)
@@ -133,7 +131,8 @@ msptiResult KernelParser::KernelParserImpl::ReportSocLog(uint32_t deviceId, cons
         {
             return MSPTI_SUCCESS;
         }
-        auto dstKey = std::make_tuple(task->deviceId, task->streamId, task->taskId);
+        auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task->deviceId),
+                                                           static_cast<uint16_t>(task->streamId), task->taskId);
         if (IsGraphTask(dstKey))
         {
             return DealUnAgingRtTaskTrack(*task);
@@ -160,10 +159,10 @@ msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
     for (const auto& hostTask : dealHostTasks_)
     {
         // GetKernelBasicInfo
+        uint16_t deviceId = hostTask.deviceId;
         uint16_t streamId =
             Convert::StarsCommon::GetStreamId(hostTask.streamId, static_cast<uint16_t>(hostTask.taskInfo));
-        uint32_t taskId = Convert::StarsCommon::GetHostTaskId(hostTask.streamId, hostTask.taskInfo, hostTask.deviceId);
-        uint16_t deviceId = hostTask.deviceId;
+        uint32_t taskId = Convert::StarsCommon::GetHostTaskId(hostTask.streamId, hostTask.taskInfo, deviceId);
         bool agingFlag = hostTask.agingFlag;
         const char* kernelTypeName = GetValidKernelTypeName(static_cast<uint32_t>(hostTask.taskType));
         auto kernel = activityPool.acquire();
@@ -173,12 +172,7 @@ msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
         kernel->name = CannHashCache::GetHashInfo(hostTask.kernelHash).c_str();
         kernel->type = kernelTypeName;
         kernel->correlationId = hostTask.corrleationId;
-        DstType dstKey = std::make_tuple(deviceId, streamId, taskId);
-        if (Common::ContextManager::GetInstance()->GetChipType(deviceId) == Common::PlatformType::CHIP_V6)
-        {
-            // 唯一id
-            std::get<1>(dstKey) = 0;
-        }
+        uint64_t dstKey = Common::ContextManager::EncodeDstKey(deviceId, streamId, taskId);
         // judgeGraph
         if (agingFlag)
         {
@@ -195,7 +189,8 @@ msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
 
 msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTask& task)
 {
-    auto dstKey = std::make_tuple(task.deviceId, task.streamId, task.taskId);
+    auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task.deviceId),
+                                                       static_cast<uint16_t>(task.streamId), task.taskId);
     auto it = kernel_map_.find(dstKey);
     if (it == kernel_map_.end())
     {
@@ -211,19 +206,20 @@ msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTas
     auto& kernel = kernelList.front();
     kernel->start = task.start;
     kernel->end = task.end;
-    auto recordAns = Mspti::Activity::ActivityManager::GetInstance()->Record(
+    auto result = Activity::ActivityManager::GetInstance()->Record(
         Common::ReinterpretConvert<msptiActivity*>(kernel.get()), sizeof(msptiActivityKernel));
     kernelList.pop();
     if (kernelList.empty())
     {
         kernel_map_.erase(it);
     }
-    return recordAns;
+    return result;
 }
 
 msptiResult KernelParser::KernelParserImpl::DealUnAgingRtTaskTrack(const DeviceTask& task)
 {
-    auto dstKey = std::make_tuple(task.deviceId, task.streamId, task.taskId);
+    auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task.deviceId),
+                                                       static_cast<uint16_t>(task.streamId), task.taskId);
     auto it = unaging_kernel_map_.find(dstKey);
     if (it == unaging_kernel_map_.end())
     {
@@ -234,15 +230,16 @@ msptiResult KernelParser::KernelParserImpl::DealUnAgingRtTaskTrack(const DeviceT
     kernel->ds.streamId = task.streamId;
     kernel->start = task.start;
     kernel->end = task.end;
-    return Mspti::Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity*>(kernel.get()), sizeof(msptiActivityKernel));
+    return Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(kernel.get()),
+                                                            sizeof(msptiActivityKernel));
 }
 
 bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const SocLog& socLog, DeviceTaskPtr& task)
 {
     uint16_t streamId = socLog.streamId;
     uint32_t taskId = socLog.taskId;
-    auto dstKey = std::make_tuple(static_cast<uint16_t>(deviceId), streamId, taskId);
+    auto dstKey =
+        Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(deviceId), static_cast<uint16_t>(streamId), taskId);
     if (!kernel_map_.count(dstKey) && !unaging_kernel_map_.count(dstKey))
     {
         return false;
@@ -276,7 +273,10 @@ bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const So
     return false;
 }
 
-inline bool KernelParser::KernelParserImpl::IsGraphTask(DstType dstType) { return unaging_kernel_map_.count(dstType); }
+inline bool KernelParser::KernelParserImpl::IsGraphTask(uint64_t dstKey)
+{
+    return unaging_kernel_map_.find(dstKey) != unaging_kernel_map_.end();
+}
 
 // KernelParser
 KernelParser& KernelParser::GetInstance()

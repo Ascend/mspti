@@ -13,23 +13,29 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H
 #define MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
+#include "csrc/common/inject/inject_base.h"
 #include "csrc/common/task.h"
 #include "csrc/include/mspti_result.h"
-#include "csrc/common/inject/inject_base.h"
 
-namespace Mspti {
-namespace Ascend {
-namespace Channel {
-class ChannelReader : public Mspti::Common::Task {
-public:
+namespace Mspti
+{
+namespace Ascend
+{
+namespace Channel
+{
+constexpr size_t MAX_BUFFER_SIZE = 1024 * 1024 * 2;
+
+class ChannelReader : public Mspti::Common::Task
+{
+   public:
     ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId);
     virtual ~ChannelReader() = default;
     virtual msptiResult Execute();
@@ -42,20 +48,22 @@ public:
     bool GetSchedulingStatus() const;
     void SetSchedulingStatus(bool isScheduling);
 
-private:
+   private:
     static size_t TransDataToActivityBuffer(char buffer[], size_t valid_size, uint32_t deviceId,
-        AI_DRV_CHANNEL channelId);
+                                            AI_DRV_CHANNEL channelId);
     static size_t TransTsFwData(char buffer[], size_t valid_size, uint32_t deviceId);
     static size_t TransStarsLog(char buffer[], size_t valid_size, uint32_t deviceId);
     void CheckIfSendFlush(int currLen);
     void SendFlushFinished();
 
-private:
+   private:
     // basic info
     uint32_t deviceId_;
     AI_DRV_CHANNEL channelId_;
     size_t hashId_{0};
     uint64_t totalSize_{0};
+    size_t curPos_{0};
+    char buffer_[MAX_BUFFER_SIZE] = {0};
 
     // status info
     volatile bool isInited_{false};
@@ -72,4 +80,5 @@ private:
 }  // namespace Channel
 }  // namespace Ascend
 }  // namespace Mspti
-#endif // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H
+
+#endif  // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_READER_H

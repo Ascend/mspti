@@ -13,32 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PARSER_KERNEL_PARSER_H
 #define MSPTI_PARSER_KERNEL_PARSER_H
 
 #include <memory>
-#include "csrc/include/mspti_result.h"
-#include "csrc/include/mspti_activity.h"
-#include "csrc/common/inject/profapi_inject.h"
-#include "csrc/activity/ascend/channel/channel_data.h"
-#include "csrc/activity/ascend/entity/soclog.h"
 
-namespace Mspti {
-namespace Parser {
-class KernelParser {
-public:
+#include "csrc/activity/ascend/entity/soclog.h"
+#include "csrc/common/inject/profapi_inject.h"
+#include "csrc/include/mspti_result.h"
+
+namespace Mspti
+{
+namespace Parser
+{
+class KernelParser
+{
+   public:
     static KernelParser &GetInstance();
     msptiResult ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo *data);
-    msptiResult ReportStarsSocLog(uint32_t deviceId, const HalLogData& originData);
-private:
+    msptiResult ReportStarsSocLog(uint32_t deviceId, const HalLogData &originData);
+
+   private:
     KernelParser();
     ~KernelParser();
     class KernelParserImpl;
     std::unique_ptr<KernelParserImpl> pImpl;
 };
-}
-}
+}  // namespace Parser
+}  // namespace Mspti
 
-#endif // MSPTI_PARSER_KERNEL_PARSER_H
+#endif  // MSPTI_PARSER_KERNEL_PARSER_H

@@ -23,36 +23,42 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
 #include "csrc/common/concurrent_map.h"
 #include "csrc/include/mspti_result.h"
 
-namespace Mspti {
-namespace Common {
-
-struct DevTimeInfo {
+namespace Mspti
+{
+namespace Common
+{
+struct DevTimeInfo
+{
     uint64_t freq{0};
     uint64_t startRealTime{0};
     uint64_t startSysCnt{0};
     uint64_t startMonotonicRawNs{0};
 };
 
-enum class PlatformType {
+enum class PlatformType
+{
     CHIP_910B = 5,
     CHIP_310B = 7,
     CHIP_V6 = 15,
     END_TYPE
 };
 
-struct ContextInfo {
+struct ContextInfo
+{
     PlatformType platformType;
     std::once_flag flag;
 };
 
-class ContextManager final {
-public:
+class ContextManager final
+{
+   public:
     static ContextManager* GetInstance();
     void InitDevTimeInfo(uint32_t deviceId);
     void InitHostTimeInfo();
@@ -76,7 +82,10 @@ public:
     msptiResult StartSyncTime();
     msptiResult StopSyncTime();
 
-private:
+    static uint64_t EncodeDstKey(uint16_t deviceId, uint16_t streamId, uint32_t taskId);
+    static std::tuple<uint16_t, uint16_t, uint32_t> DecodeDstKey(uint64_t key);
+
+   private:
     ContextManager() = default;
     ~ContextManager();
     explicit ContextManager(const ContextManager& obj) = delete;
@@ -86,7 +95,7 @@ private:
 
     void Run();
 
-private:
+   private:
     std::unordered_map<uint32_t, std::unique_ptr<DevTimeInfo>> devTimeInfo_;
     std::mutex devTimeMtx_;
 
@@ -106,4 +115,5 @@ private:
 };
 }  // namespace Common
 }  // namespace Mspti
-#endif
+
+#endif  // MSPTI_COMMON_CONTEXT_MANAGER_H

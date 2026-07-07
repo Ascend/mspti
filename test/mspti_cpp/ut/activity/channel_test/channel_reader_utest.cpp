@@ -220,4 +220,57 @@ TEST_F(ChannelReaderUtest, LifecycleShouldWorkCorrectly)
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
 }
+
+// Test multiple Init/Uinit cycles (guards buffer reallocation and curPos_ reset)
+TEST_F(ChannelReaderUtest, MultipleLifecycleCyclesShouldWork)
+{
+    uint32_t deviceId = 0;
+    AI_DRV_CHANNEL channelId = PROF_CHANNEL_TS_FW;
+    Mspti::Ascend::Channel::ChannelReader reader(deviceId, channelId);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+}
+
+// Test Init/Execute/Uinit followed by re-Init/Execute/Uinit
+// (guards curPos_ reset and buffer reallocation across lifecycle boundaries)
+TEST_F(ChannelReaderUtest, ExecuteAfterReInitShouldSucceed)
+{
+    uint32_t deviceId = 0;
+    AI_DRV_CHANNEL channelId = PROF_CHANNEL_TS_FW;
+    Mspti::Ascend::Channel::ChannelReader reader(deviceId, channelId);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    reader.SetChannelStopped();
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+}
+
+// Test that Execute can process multiple channels in sequence
+// (guards curPos_ member variable independent behavior per-instance)
+TEST_F(ChannelReaderUtest, MultipleReadersExecuteShouldWorkIndependently)
+{
+    uint32_t deviceId = 0;
+    Mspti::Ascend::Channel::ChannelReader reader1(deviceId, PROF_CHANNEL_TS_FW);
+    Mspti::Ascend::Channel::ChannelReader reader2(deviceId, PROF_CHANNEL_STARS_SOC_LOG);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader1.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader2.Init());
+
+    reader1.SetChannelStopped();
+    reader2.SetChannelStopped();
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader1.Execute());
+    EXPECT_EQ(MSPTI_SUCCESS, reader2.Execute());
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader1.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader2.Uinit());
+}
 }  // namespace

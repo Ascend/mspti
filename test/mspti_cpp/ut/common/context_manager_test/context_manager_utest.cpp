@@ -15,15 +15,17 @@
  * -------------------------------------------------------------------------
  */
 
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 
-namespace {
+namespace
+{
 using namespace Mspti::Common;
-class ContextManagerUtest : public testing::Test {
-protected:
+class ContextManagerUtest : public testing::Test
+{
+   protected:
     virtual void SetUp()
     {
         GlobalMockObject::verify();
@@ -60,7 +62,8 @@ TEST_F(ContextManagerUtest, GetRealTimeFromSysCntVector)
 
     std::vector<uint64_t> results = contextManager->GetRealTimeFromSysCnt(deviceId, sysCnts);
     EXPECT_EQ(results.size(), sysCnts.size());
-    for (const auto& result : results) {
+    for (const auto& result : results)
+    {
         EXPECT_GT(result, 0ULL);
     }
 }
@@ -195,5 +198,150 @@ TEST_F(ContextManagerUtest, StartStopSyncTime)
     EXPECT_EQ(startResult, MSPTI_SUCCESS);
     msptiResult stopResult = contextManager->StopSyncTime();
     EXPECT_EQ(stopResult, MSPTI_SUCCESS);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyWithAllZerosProducesZeroKey)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    uint64_t key = ContextManager::EncodeDstKey(0, 0, 0);
+    EXPECT_EQ(key, 0ULL);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyWithMaxKeyProducesAllMax)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    uint64_t key = ContextManager::EncodeDstKey(UINT16_MAX, UINT16_MAX, UINT32_MAX);
+    EXPECT_EQ(key, UINT64_MAX);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyWithNonZeroStreamPreservesValueOnNonV6Chip)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    const uint16_t deviceId = 0xABCD;
+    const uint16_t streamId = 0x1234;
+    const uint32_t taskId = 0x56789ABC;
+    uint64_t key = ContextManager::EncodeDstKey(deviceId, streamId, taskId);
+    uint64_t expected = (static_cast<uint64_t>(deviceId) << 48) | (static_cast<uint64_t>(streamId) << 32) |
+                        static_cast<uint64_t>(taskId);
+    EXPECT_EQ(key, expected);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyClearsStreamIdOnChipV6)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_V6));
+
+    const uint16_t deviceId = 0xABCD;
+    const uint16_t streamId = 0x1234;
+    const uint32_t taskId = 0x56789ABC;
+    uint64_t key = ContextManager::EncodeDstKey(deviceId, streamId, taskId);
+
+    uint64_t expected = (static_cast<uint64_t>(deviceId) << 48) | static_cast<uint64_t>(taskId);
+    EXPECT_EQ(key, expected);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyWithMaxValuesPreservesStreamOnNonV6Chip)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    uint64_t key = ContextManager::EncodeDstKey(UINT16_MAX, UINT16_MAX, UINT32_MAX);
+    EXPECT_EQ(key, UINT64_MAX);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyOnChipV6WithMaxValuesProducesZeroStreamBits)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_V6));
+
+    uint64_t key = ContextManager::EncodeDstKey(UINT16_MAX, UINT16_MAX, UINT32_MAX);
+    uint64_t expected = (static_cast<uint64_t>(UINT16_MAX) << 48) | UINT32_MAX;
+    EXPECT_EQ(key, expected);
+}
+
+TEST_F(ContextManagerUtest, EncodeDstKeyOnChipV6DifferentStreamIdsProduceSameKey)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_V6));
+
+    const uint16_t deviceId = 1;
+    const uint32_t taskId = 42;
+    uint64_t keyA = ContextManager::EncodeDstKey(deviceId, 0, taskId);
+    uint64_t keyB = ContextManager::EncodeDstKey(deviceId, 0xFF, taskId);
+    uint64_t keyC = ContextManager::EncodeDstKey(deviceId, UINT16_MAX, taskId);
+
+    EXPECT_EQ(keyA, keyB);
+    EXPECT_EQ(keyB, keyC);
+}
+
+TEST_F(ContextManagerUtest, DecodeDstKeyWithZeroKeyReturnsAllZeros)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    auto decodedRes = ContextManager::DecodeDstKey(0ULL);
+    EXPECT_EQ(std::get<0>(decodedRes), 0);
+    EXPECT_EQ(std::get<1>(decodedRes), 0);
+    EXPECT_EQ(std::get<2>(decodedRes), 0U);
+}
+
+TEST_F(ContextManagerUtest, DecodeDstKeyWithMaxKeyReturnsAllMax)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    auto decodedRes = ContextManager::DecodeDstKey(UINT64_MAX);
+    EXPECT_EQ(std::get<0>(decodedRes), UINT16_MAX);
+    EXPECT_EQ(std::get<1>(decodedRes), UINT16_MAX);
+    EXPECT_EQ(std::get<2>(decodedRes), UINT32_MAX);
+}
+
+TEST_F(ContextManagerUtest, EncodeThenDecodeDstKeyRoundTripPreservesFieldsOnNonV6Chip)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_910B));
+
+    struct TestCase
+    {
+        uint16_t deviceId;
+        uint16_t streamId;
+        uint32_t taskId;
+    };
+    const TestCase cases[] = {
+        {1, 2, 3},
+        {0xABCD, 0xFFFF, 0x56789ABC},
+        {UINT16_MAX, UINT16_MAX, UINT32_MAX},
+        {0x1234, 0x5678, 0x9ABCDEF0},
+    };
+    for (const auto& c : cases)
+    {
+        uint64_t key = ContextManager::EncodeDstKey(c.deviceId, c.streamId, c.taskId);
+        auto decodedRes = ContextManager::DecodeDstKey(key);
+        EXPECT_EQ(std::get<0>(decodedRes), c.deviceId);
+        EXPECT_EQ(std::get<1>(decodedRes), c.streamId);
+        EXPECT_EQ(std::get<2>(decodedRes), c.taskId);
+    }
+}
+
+TEST_F(ContextManagerUtest, EncodeThenDecodeDstKeyRoundTripClearsStreamIdOnChipV6)
+{
+    MOCKER_CPP(&ContextManager::GetChipType).stubs().will(returnValue(PlatformType::CHIP_V6));
+
+    struct TestCase
+    {
+        uint16_t deviceId;
+        uint16_t streamId;
+        uint32_t taskId;
+    };
+    const TestCase cases[] = {
+        {1, 2, 3},
+        {0xABCD, 0xFFFF, 0x56789ABC},
+        {UINT16_MAX, UINT16_MAX, UINT32_MAX},
+        {0x1234, 0x5678, 0x9ABCDEF0},
+    };
+    for (const auto& c : cases)
+    {
+        uint64_t key = ContextManager::EncodeDstKey(c.deviceId, c.streamId, c.taskId);
+        auto decodedRes = ContextManager::DecodeDstKey(key);
+        EXPECT_EQ(std::get<0>(decodedRes), c.deviceId);
+        EXPECT_EQ(std::get<1>(decodedRes), 0);
+        EXPECT_EQ(std::get<2>(decodedRes), c.taskId);
+    }
 }
 }  // namespace
