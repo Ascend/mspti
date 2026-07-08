@@ -25,7 +25,7 @@ This document provides msPTI samples to help users understand and use the msPTI 
 - Hardware environment: See [Ascend Product Overview](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 - Software environment: Refer to the [CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/83RC1/softwareinst/instg/instg_quick.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit) to install the mapped CANN Toolkit and the ops package, and configure the CANN environment variables.
-- The samples in the msPTI Python API section depend on the PyTorch framework and the torch_npu plugin. Ensure that they are installed. For details, see "Installing PyTorch" in [Ascend Extension for PyTorch](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installing_PyTorch.md).
+- The samples in the msPTI Python API section depend on the PyTorch framework and the torch_npu plugin. Ensure that they are installed. For details, see "Installing PyTorch" in [Ascend Extension for PyTorch](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/en/installation_guide/installing_PyTorch.md).
 
 **Constraints**
 
