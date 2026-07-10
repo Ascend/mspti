@@ -21,11 +21,11 @@ LEVEL_INFO="INFO"
 CUR_DIR=$(dirname $(readlink -f $0))
 TOP_DIR=$(readlink -f "${CUR_DIR}/..")
 MSPTI_SMOKE="MSPTI_SMOKE"
-cann_path=""
+cann_path="/usr/local/Ascend"
 conda_path=""
 conda_env=""
 smoke_level="l0"
-output=""
+output="${TOP_DIR}/mspti_st_result_dir"
 model_path=""
 success_list=()
 failed_list=()
@@ -41,7 +41,7 @@ Description:
   Used for executing smoke testing, supporting specification of CANN path, conda environment, smoke test type, etc.
 
 Options:
-  --cann-path=<path>        Specify the installation path of CANN
+  --cann-path=<path>        Specify the installation path of CANN (default: /usr/local/Ascend)
   --conda-path=<path>       Specify the installation path of conda
   --conda-env=<env-name>    Specify the name of the conda environment to activate
   --model-path=<path>       Specify the path of the model to be tested (required except l0)
@@ -49,12 +49,12 @@ Options:
                               all - Execute all scripts containing "test"
                               l1 - Execute scripts containing "l1_test"
                               l0 - Execute scripts containing "l0_test"
-  --output=<path>           Specify the output path for test data
   --case=<case1,case2>      Specify the name of the test case to execute
   --help | -h               Show this help message
 
 Examples:
-  bash smoke.sh --cann-path=/usr/local/Ascend --conda-path=/home/presmoke/miniconda3 --conda-env=smoke_profiler --smoke-level=l0 --output=/home/presmoke/mspti_result_dir
+  bash smoke.sh
+  bash smoke.sh --cann-path=/usr/local/Ascend
 EOF
 }
 
@@ -90,11 +90,6 @@ function parse_script_args() {
             ;;
         --conda-env=*)
             conda_env=${1#--conda-env=}
-            shift
-            continue
-            ;;
-        --output=*)
-            output=${1#--output=}
             shift
             continue
             ;;
@@ -184,32 +179,22 @@ function run_smoke() {
 }
 
 function init_env() {
-    if [ -z "${cann_path}" ]; then
-        print $LEVEL_ERROR "Please specify the installation path of CANN"
-        exit 1
-    fi
-    if [ -z "${conda_path}" ]; then
-        print $LEVEL_ERROR "Please specify the installation path of conda"
-        exit 1
-    fi
-    if [ -z "${conda_env}" ]; then
-        print $LEVEL_ERROR "Please specify the name of the conda environment to activate"
-        exit 1
-    fi
     if [[ "$smoke_level" != "l0" && -z "${model_path}" ]]; then
         print $LEVEL_ERROR "Please specify the path of the model to be tested"
         exit 1
     fi
-    if [ -z "${output}" ]; then
-        print $LEVEL_ERROR "Please specify the output path for test data"
-        exit 1
-    fi
-    if ! source "${conda_path}/bin/activate"; then
-        print $LEVEL_ERROR "Failed to source conda activate script"
-    fi
+    if [ -n "${conda_path}" ] && [ -n "${conda_env}" ]; then
+        if ! source "${conda_path}/bin/activate"; then
+            print $LEVEL_ERROR "Failed to source conda activate script"
+            exit 1
+        fi
 
-    if ! conda activate "${conda_env}"; then
-        print $LEVEL_ERROR "Failed to activate conda environment '${conda_env}'"
+        if ! conda activate "${conda_env}"; then
+            print $LEVEL_ERROR "Failed to activate conda environment '${conda_env}'"
+            exit 1
+        fi
+    elif [ -n "${conda_path}" ] || [ -n "${conda_env}" ]; then
+        print $LEVEL_WARN "Both --conda-path and --conda-env must be specified together, skipping conda environment activation"
     fi
 }
 
