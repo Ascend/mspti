@@ -24,9 +24,7 @@ OPENSOURCE_DIR=${TOP_DIR}/opensource
 PLATFORM_DIR=${TOP_DIR}/platform
 LLT_DIR=${TOP_DIR}/test/opensource
 
-THIRDPARTY_LIST="${OPENSOURCE_DIR}/json        \\
-                 ${OPENSOURCE_DIR}/makeself    \\
-                 ${OPENSOURCE_DIR}/rapidjson    \\
+THIRDPARTY_LIST="${OPENSOURCE_DIR}/makeself    \\
                  ${PLATFORM_DIR}/securec       \\
                  ${LLT_DIR}/googletest         \\
                  ${LLT_DIR}/mockcpp"
@@ -55,8 +53,6 @@ function patch_makeself() {
 }
 
 mkdir -p ${OPENSOURCE_DIR} && cd ${OPENSOURCE_DIR}
-[ ! -d "json" ] && git clone https://gitcode.com/GitHub_Trending/js/json.git -b v3.11.3
-[ ! -d "rapidjson" ] && git clone https://gitcode.com/GitHub_Trending/ra/rapidjson.git
 [ ! -d "makeself" ] && patch_makeself
 
 mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
