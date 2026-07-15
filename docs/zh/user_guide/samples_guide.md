@@ -6,8 +6,9 @@
 
 ## 2. 产品支持情况
 
->![](../figures/icon-note.gif) **说明：**
->昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+> [!NOTE]
+>
+> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 | 产品类型 | 是否支持 |
 | ------------ | :------: |
@@ -25,7 +26,7 @@
 - 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 - 软件环境请参见《[CANN快速安装](https://www.hiascend.com/cann/download)》安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量。
-- msPTI Python API部分的样例依赖于PyTorch框架和torch_npu插件，请确保安装。参见《Ascend Extension for PyTorch》中的“[安装PyTorch](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/installation_guide/installation_via_binary_package.md)”。
+- msPTI Python API部分的样例依赖于PyTorch框架和TorchNPU插件，请确保安装，具体请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/installation_description.md)》。
 
 **约束**
 

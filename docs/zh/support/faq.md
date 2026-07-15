@@ -4,7 +4,7 @@
 
 ### Q1: msPTI 是什么？
 
-msPTI（MindStudio Profiler Tools Interface）是华为昇腾 MindStudio 提供的一套性能剖析 API 集合。您可以使用 msPTI 构建面向 NPU 应用的性能分析工具，应用于推理和训练场景。详细信息请参见《[msPTI 快速入门](../quick_start/quick_start.md)》。
+msPTI（MindStudio Profiler Tools Interface）是华为昇腾 MindStudio 提供的一套性能剖析 API 集合。您可以使用 msPTI 构建面向 NPU 应用的性能分析工具，应用于推理和训练场景。详细信息请参见《[msPTI 快速入门](../quick_start/mspti_quick_start.md)》。
 
 ### Q2: msPTI 提供哪些核心能力？
 
@@ -59,7 +59,7 @@ pip show mspti
 执行以下步骤：
 
 ```bash
-curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.0.0/ms_install.py
+curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.1.0/ms_install.py
 python ms_install.py uninstall {tools_name}
 ```
 
@@ -67,7 +67,7 @@ python ms_install.py uninstall {tools_name}
 
 ### Q9: 如何升级 msPTI？
 
-升级即"先卸后装"。直接执行新版本的安装命令，工具将自动卸载旧版本并引导完成覆盖安装。升级前请通过 `pip show mspti` 查看当前版本，并关注版本配套关系，参见《[版本说明](../release_notes/release_notes.md)》。
+升级即"先卸后装"。直接执行新版本的安装命令，工具将自动卸载旧版本并引导完成覆盖安装。升级前请通过 `pip show mspti` 查看当前版本，并关注版本配套关系，参见《[版本说明](https://gitcode.com/Ascend/mspti/releases)》。
 
 ### Q10: 安装 run 包时支持哪些参数？
 
@@ -108,7 +108,7 @@ python ms_install.py uninstall {tools_name}
 2. 进入样例目录：`cd ${install_path}/tools/mspti/samples/mspti_activity`
 3. 执行样例脚本：`bash sample_run.sh`
 
-详细说明请参见《[msPTI 快速入门](../quick_start/quick_start.md)》。
+详细说明请参见《[msPTI 快速入门](../quick_start/mspti_quick_start.md)》。
 
 ### Q15: msPTI 提供哪些 API？
 
@@ -138,7 +138,7 @@ msPTI 提供两类 API：
 
 ### Q17: Python 样例需要额外安装什么？
 
-Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 `torch_npu` 插件。请参见《[Ascend Extension for PyTorch 安装指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-7.3.0/docs/zh/installation_guide/installation_via_binary_package.md)》。
+Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU 软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/installation_description.md)》。
 
 ### Q18: 什么是 Activity Buffer？如何管理？
 

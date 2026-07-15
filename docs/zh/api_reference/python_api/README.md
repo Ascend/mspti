@@ -4,7 +4,7 @@
 
 Profiling模块提供msPTI Python接口，用于采集各模块性能数据。
 
-msPTI API的功能介绍和使用示例请参见[msPTI工具](../../user_guide//samples_guide.md)。
+msPTI API的功能介绍和使用示例请参见[msPTI工具](../../user_guide/samples_guide.md)。
 
 ## 接口列表<a name="section18403103610813"></a>
 

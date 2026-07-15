@@ -2,8 +2,9 @@
 
 ## 产品支持情况<a name="zh-cn_topic_0000002111094444_section5889102116569"></a>
 
->![](public_sys-resources/icon-note.gif) **说明：**
->昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+> [!NOTE]
+> 
+> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="zh-cn_topic_0000002143882701_table38301303189"></a>
 
@@ -32,4 +33,4 @@ def flush_all(cls) -> MsptiResult:
 
 ## 返回值说明<a name="section776014535188"></a>
 
-无
+返回MSPTI\_SUCCESS表示成功。

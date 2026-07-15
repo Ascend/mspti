@@ -596,17 +596,3 @@ mstxDomainRangeEnd(domainBackward, id2);
 | Push 后忘记 Pop | 外部关联栈错乱 | 确保 Push/Pop 成对出现 |
 | Python 回调中做重量级处理 | 阻塞 Monitor 内部线程 | 使用消费者线程异步处理 |
 | 多进程共用 Monitor 实例 | 数据错乱或崩溃 | 每个进程独立创建 Monitor |
-
----
-
-## 八、参考文档
-
-| 文档 | 说明 |
-| --- | --- |
-| 《[Activity API 使用指南](../user_guide/activity_api.md)》 | Activity API 详细用法与数据结构 |
-| 《[Callback API 使用指南](../user_guide/callback_api.md)》 | Callback API 详细用法与场景 |
-| 《[Python API 使用指南](../user_guide/python_api.md)》 | Python Monitor 详细用法 |
-| 《[msPTI 快速入门](../quick_start/quick_start.md)》 | 环境搭建与快速体验 |
-| 《[msPTI 样例说明](../../../samples/README.md)》 | 所有样例的详细说明 |
-| 《[C API 参考](../api_reference/c_api/README.md)》 | C 接口完整参考 |
-| 《[Python API 参考](../api_reference/python_api/README.md)》 | Python 接口完整参考 |

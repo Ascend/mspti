@@ -274,7 +274,7 @@ bash sample_run.sh
 | C API 变更 | 《[C API总体说明](../api_reference/c_api/README.md)》及其子文档 |
 | Python API 变更 | 《[Python API总体说明](../api_reference/python_api/README.md)》及其子文档 |
 | 样例更新 | 《[msPTI样例说明](../../../samples/README.md)》 |
-| 版本发布信息 | 《[版本说明](../release_notes/release_notes.md)》 |
+| 版本发布信息 | 《[版本说明](https://gitcode.com/Ascend/mspti/releases)》 |
 
 ## 7. 提交流程建议
 
