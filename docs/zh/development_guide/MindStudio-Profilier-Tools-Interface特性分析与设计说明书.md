@@ -7,7 +7,7 @@
     </tr>
     <tr>
         <td>落入版本:</td>
-        <td>MindStudio 26.0.0</td>
+        <td>MindStudio 26.1.0</td>
     </tr>
     <tr>
         <td>设计人员:</td>
@@ -43,89 +43,6 @@ CC BY-SA 4.0的完整协议内容您可以访问如下网址获取：<https://cr
         <td></td>
     </tr>
 </table>
-
-<!-- TOC -->
-- [msPTI特性设计说明书](#mspti特性设计说明书)
-- [1.特性概述](#1特性概述)
-  - [1.1范围](#11范围)
-  - [1.2特性需求列表](#12特性需求列表)
-- [2.需求场景分析](#2需求场景分析)
-  - [2.1特性需求来源与价值概述](#21特性需求来源与价值概述)
-  - [2.2特性场景分析](#22特性场景分析)
-    - [场景一：训练性能调优](#场景一训练性能调优)
-    - [场景二：推理延迟分析](#场景二推理延迟分析)
-    - [场景三：通信效率分析](#场景三通信效率分析)
-    - [场景四：自定义打点监控](#场景四自定义打点监控)
-  - [2.3特性影响分析](#23特性影响分析)
-    - [2.3.1硬件限制](#231硬件限制)
-    - [2.3.2技术限制](#232技术限制)
-    - [2.3.3性能影响](#233性能影响)
-- [3.特性/功能实现原理](#3特性功能实现原理)
-  - [3.1目标](#31目标)
-  - [3.2总体方案](#32总体方案)
-    - [架构分层](#架构分层)
-    - [核心模块说明](#核心模块说明)
-    - [数据流](#数据流)
-- [4. Activity API 详细设计](#4-activity-api-详细设计)
-  - [4.1设计思路](#41设计思路)
-    - [核心工作机制](#核心工作机制)
-    - [Enable/Disable机制](#enabledisable机制)
-  - [4.2约束条件](#42约束条件)
-  - [4.3详细实现](#43详细实现)
-    - [4.3.1 Activity Buffer生命周期](#431-activity-buffer生命周期)
-    - [4.3.2 记录生成流程](#432-记录生成流程)
-    - [4.3.3 Correlation机制](#433-correlation机制)
-    - [4.3.4 外部关联机制](#434-外部关联机制)
-  - [4.4子系统间接口](#44子系统间接口)
-    - [4.4.1 Activity API 函数接口](#441-activity-api-函数接口)
-    - [4.4.2 Callback API 函数接口](#442-callback-api-函数接口)
-    - [4.4.3 Python API 接口](#443-python-api-接口)
-    - [4.4.4 Activity Kind 枚举](#444-activity-kind-枚举)
-    - [4.4.5 Callback Domain 枚举](#445-callback-domain-枚举)
-  - [4.5子系统详细设计](#45子系统详细设计)
-    - [4.5.1 C/C++核心层](#451-cc核心层)
-    - [4.5.2 Python扩展绑定层](#452-python扩展绑定层)
-    - [4.5.3 MSTX集成](#453-mstx集成)
-  - [4.6DFX属性设计](#46dfx属性设计)
-    - [4.6.1性能设计](#461性能设计)
-    - [4.6.2升级与扩容设计](#462升级与扩容设计)
-    - [4.6.3异常处理设计](#463异常处理设计)
-    - [4.6.4资源管理相关设计](#464资源管理相关设计)
-    - [4.6.5小型化设计](#465小型化设计)
-    - [4.6.6 可测试性设计](#466-可测试性设计)
-    - [4.6.7 安全设计](#467-安全设计)
-      - [4.6.7.1 安全设计确认](#4671-安全设计确认)
-      - [4.6.7.2 敏感数据分析](#4672-敏感数据分析)
-        - [1. 敏感数据清单](#1-敏感数据清单)
-        - [2. 敏感操作检查](#2-敏感操作检查)
-      - [4.6.7.3 设计实现](#4673-设计实现)
-  - [4.7系统外部接口](#47系统外部接口)
-    - [4.7.1 C API依赖](#471-c-api依赖)
-    - [4.7.2 Python API依赖](#472-python-api依赖)
-    - [4.7.3 集成方式](#473-集成方式)
-- [5.数据结构设计](#5数据结构设计)
-  - [5.1 Activity Record 结构体](#51-activity-record-结构体)
-    - [5.1.1 基础结构](#511-基础结构)
-    - [5.1.2 ActivityKernel（Kernel执行记录）](#512-activitykernelkernel执行记录)
-    - [5.1.3 ActivityApi（API调用记录）](#513-activityapiapi调用记录)
-    - [5.1.4 ActivityMemory（内存操作记录）](#514-activitymemory内存操作记录)
-    - [5.1.5 ActivityMemcpy（内存拷贝记录）](#515-activitymemcpy内存拷贝记录)
-    - [5.1.6 ActivityMemset（内存设置记录）](#516-activitymemset内存设置记录)
-    - [5.1.7 ActivityMarker（用户打点记录）](#517-activitymarker用户打点记录)
-    - [5.1.8 ActivityHccl（HCCL通信记录）](#518-activityhcclhccl通信记录)
-    - [5.1.9 ActivityCommunication（通信算子记录）](#519-activitycommunication通信算子记录)
-    - [5.1.10 ActivityExternalCorrelation（外部关联记录）](#5110-activityexternalcorrelation外部关联记录)
-  - [5.2 Callback 数据结构](#52-callback-数据结构)
-    - [5.2.1 msptiCallbackData](#521-mspticallbackdata)
-    - [5.2.2 msptiObjectId](#522-msptiobjectid)
-  - [5.3 枚举定义汇总](#53-枚举定义汇总)
-    - [msptiResult（错误码）](#msptiresult错误码)
-    - [Callback ID](#callback-id)
-    - [Activity Flag](#activity-flag)
-    - [Communication Data Type](#communication-data-type)
-  - [5.4 Python数据类型映射](#54-python数据类型映射)
-<!-- TOC -->
-
 # 1.特性概述
 
 msPTI工具（MindStudio Profiling Tools Interface）是MindStudio针对Ascend设备提出的一套Profiling API，用户可以通过msPTI构建针对NPU应用程序的工具，用于分析应用程序的性能。
@@ -642,7 +559,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 **版本升级**：
 
 - msPTI以run包形式发布，升级时自动卸载旧版本并安装新版本。
-- 版本号与CANN版本配套，需关注版本兼容性（参见《[版本说明](../release_notes/release_notes.md)》）。
+- 版本号与CANN版本配套，需关注版本兼容性（参见《[版本说明](https://gitcode.com/Ascend/mspti/releases)》）。
 - API保持向后兼容，新增Activity Kind通过枚举扩展实现，不影响已有接口。
 
 **扩容设计**：
@@ -724,7 +641,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 | 访问通道控制 | 是否新增进程或组件间通信 | 新增进程或组件间通信刷新通信矩阵 | 否 | |
 | 访问通道控制 | 是否新增认证方式 | 新增认证方式需刷新通信矩阵及产品文档 | 否 | |
 | 权限控制 | 是否涉及创建文件或目录 | 创建文件或目录须显式指定文件或目录的访问权限 | 否 | |
-| 权限控制 | 账号权限是否满足"权限最小化原则" | 系统中各账号应赋予最小权限 | 否 | |
+| 权限控制 | 账号权限是否满足“权限最小化原则” | 系统中各账号应赋予最小权限 | 否 | |
 | 权限控制 | 是否存在用户权限提升 | 禁止出现用户非法权限提升 | 否 | |
 | 未公开接口 | 是否新增GUC参数 | 新增GUC参数需刷新产品文档 | 否 | |
 | 未公开接口 | 是否新增或修改函数、视图、系统表 | 新增或修改函数、视图、系统表需刷新产品文档，考虑权限控制 | 否 | |

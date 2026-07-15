@@ -2,8 +2,9 @@
 
 ## 产品支持情况<a name="section8178181118225"></a>
 
->![](public_sys-resources/icon-note.gif) **说明：**
->昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+> [!NOTE]
+> 
+> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
@@ -51,4 +52,4 @@ msptiResult msptiUnsubscribe(msptiSubscriberHandle subscriber)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；用户为空或未初始化时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。
+返回MSPTI\_SUCCESS表示成功；订阅者句柄为空或未初始化时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。

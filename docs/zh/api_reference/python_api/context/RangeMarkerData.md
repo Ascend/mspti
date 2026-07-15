@@ -1,6 +1,6 @@
 # RangeMarkerData<a name="ZH-CN_TOPIC_0000002279641170"></a>
 
-展示msTX接口的Range打点数据，msTX接口详细介绍请参见《[msTX接口参考](https://gitcode.com/Ascend/mstx/blob/master/docs/zh/api_reference/README.md)》。
+展示msTX接口的Range打点数据，msTX接口详细介绍请参见《[msTX接口参考](https://gitcode.com/Ascend/mstx/blob/26.1.0/docs/zh/api_reference/README.md)》。
 
 RangeMarkerData为[MstxMonitor.start](MstxMonitor-start.md)调用的结构体，定义如下：
 
@@ -12,8 +12,8 @@ class RangeMarkerData:
     self.object_id: MsptiObjectId   # 识别Marker的进程ID、线程ID、Device ID、Stream ID
     self.name   # 标记的名称，结束标记时值为空
     self.domain   # 标记所属domain域的名称，默认域为default
-    self.start   # Range打点的开始时间，mark打点值为0
-    self.end   # Range打点的结束时间，mark打点值为0
+    self.start   # Range打点的开始时间
+    self.end   # Range打点的结束时间
 class MsptiObjectId:
     PROCESS_ID = "processId"   # 进程ID：如果为device侧数据，则对应值固定为-1
     THREAD_ID = "threadId"   # 线程ID：如果为device侧数据，则对应值固定为-1
