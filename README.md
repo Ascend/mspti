@@ -2,6 +2,7 @@
 
 <div align="center">
   <p><b>昇腾 Profiling 工具接口</b></p>
+
  [![QuickStart](https://badgen.net/badge/快速入门/QuickStart/blue)](./docs/zh/quick_start/mspti_quick_start.md)
  [![Ask DeepWiki](https://badgen.net/badge/AI问答/DeepWiki/blue)](https://deepwiki.com/mindstudio-docs/master)
  [![Ask ZRead](https://badgen.net/badge/AI问答/ZRead/blue)](https://zread.ai/mindstudio-docs/master)
