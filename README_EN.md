@@ -59,7 +59,7 @@ msPTI provides the following capabilities:
 msPTI depends on a matching version of CANN. Before installing msPTI, set up the environment:
 
 - Hardware environment: See the [Ascend Product Overview](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
-- Software environment: Refer to the [CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/83RC1/softwareinst/instg/instg_quick.html?Mode=PmIns&InstallType=local&OS=openEuler&Software=cannToolKit) to install the mapped CANN Toolkit and the ops package.
+- Software environment: Refer to the [CANN Installation](https://www.hiascend.com/en/cann/download) to install the mapped CANN Toolkit and the ops package.
 
 After setting up the environment, you can install msPTI in either of the following two ways:
 

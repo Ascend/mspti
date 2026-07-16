@@ -2,7 +2,7 @@
 
 | Release | Date | Release Tag | Compatibility |
 | -------------- | ---------- | ----------------------------- |----------------------------------------------------------------------|
-| 26.0.0-alpha.1 | 2026/02/06 | tag_MindStudio_26.0.0-alpha.1 | Later than CANN 8.5.0. Refer to the [CANN Installation Guide](https://www.hiascend.com/cann) to obtain the CANN installation package. |
+| 26.0.0-alpha.1 | 2026/02/06 | tag_MindStudio_26.0.0-alpha.1 | Later than CANN 8.5.0. Refer to the [CANN Installation Guide](https://www.hiascend.com/en/cann/download) to obtain the CANN installation package. |
 
 ## Installation Package MD5 Checksum
 
