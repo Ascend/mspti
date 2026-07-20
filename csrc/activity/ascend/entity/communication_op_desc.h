@@ -13,32 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PARSER_COMMUNICATION_OP_DESC_H
 #define MSPTI_PARSER_COMMUNICATION_OP_DESC_H
 
 #include <cstdint>
 #include <vector>
-#include "csrc/common/inject/hccl_inject.h"
-#include "csrc/common/config.h"
 
+#include "csrc/common/config.h"
+#include "csrc/common/inject/hccl_inject.h"
 #include "csrc/common/inject/profapi_inject.h"
 
-namespace Mspti {
-namespace Parser {
-struct CommunicationTask {
+namespace Mspti
+{
+namespace Parser
+{
+struct CommunicationTask
+{
     uint64_t start;
     uint64_t end;
     uint64_t hostStartTime;
     uint64_t hostEndTime;
     uint16_t streamId;
-    uint16_t taskId;
+    uint32_t taskId;
     uint16_t deviceId;
     bool agingFlag = true;
     CommunicationTask() = default;
     CommunicationTask(uint64_t start, uint64_t end, uint64_t hostStartTime, uint64_t hostEndTime, uint16_t streamId,
-        uint16_t taskId, uint16_t deviceId, bool agingFlag = true)
+                      uint32_t taskId, uint16_t deviceId, bool agingFlag = true)
         : start(start),
           end(end),
           hostStartTime(hostStartTime),
@@ -47,10 +50,12 @@ struct CommunicationTask {
           taskId(taskId),
           deviceId(deviceId),
           agingFlag(agingFlag)
-    {}
+    {
+    }
 };
 
-struct CommunicationOpDesc {
+struct CommunicationOpDesc
+{
     bool agingFlag = true;
     uint64_t threadId;
     uint64_t hostStartTime;
@@ -68,8 +73,7 @@ struct CommunicationOpDesc {
     std::vector<std::unique_ptr<CommunicationTask>> tasks;
     CommunicationOpDesc() = default;
 };
-}
-}
+}  // namespace Parser
+}  // namespace Mspti
 
-
-#endif // MSPTI_PARSER_COMMUNICATION_OP_DESC_H
+#endif  // MSPTI_PARSER_COMMUNICATION_OP_DESC_H

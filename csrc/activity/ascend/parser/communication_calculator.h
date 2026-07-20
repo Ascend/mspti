@@ -13,42 +13,48 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PARSER_COMMUNICATION_CALCULATOR_H
 #define MSPTI_PARSER_COMMUNICATION_CALCULATOR_H
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
-#include "csrc/common/inject/profapi_inject.h"
-#include "csrc/common/bound_queue.h"
+
+#include "csrc/activity/ascend/entity/communication_op_desc.h"
 #include "csrc/activity/ascend/parser/cann_track_cache.h"
 #include "csrc/activity/ascend/parser/device_task_calculator.h"
+#include "csrc/common/bound_queue.h"
+#include "csrc/common/inject/profapi_inject.h"
 #include "csrc/include/mspti_activity.h"
-#include "csrc/activity/ascend/entity/communication_op_desc.h"
 
-namespace Mspti {
-namespace Parser {
-class CommunicationCalculator {
+namespace Mspti
+{
+namespace Parser
+{
+class CommunicationCalculator
+{
     // <deviceId, streamId, taskId>
-    using DstType = std::tuple<uint16_t, uint16_t, uint16_t>;
-public:
-    msptiResult AppendCompactInfo(bool agingFlag, const MsprofCompactInfo *data);
+    using DstType = std::tuple<uint16_t, uint16_t, uint32_t>;
+
+   public:
+    msptiResult AppendCompactInfo(bool agingFlag, const MsprofCompactInfo* data);
 
     msptiResult AppendApi2TaskInfo(const ApiEvent& api2TaskInfo);
 
-    static CommunicationCalculator &GetInstance();
+    static CommunicationCalculator& GetInstance();
 
     void AppendCommunicationTask(ApiEvent& apiEvent);
 
-private:
+   private:
     msptiResult ReportCommunication(const DstType& dstKey, const std::unique_ptr<CommunicationOpDesc>& hcclOp);
 
     msptiResult Record(const DeviceTask& taskTime);
 
     CommunicationCalculator() = default;
 
-private:
+   private:
     std::mutex hcclTaskMutex_;
 
     // 通过eventId找communication算子
@@ -62,7 +68,7 @@ private:
         communicationOpInfoQueue_;
     std::unordered_map<DstType, std::unique_ptr<CommunicationOpDesc>, Common::TupleHash> taskId2AdditionInfo;
 };
-}
-}
+}  // namespace Parser
+}  // namespace Mspti
 
-#endif // MSPTI_PARSER_COMMUNICATION_CALCULATOR_H
+#endif  // MSPTI_PARSER_COMMUNICATION_CALCULATOR_H
