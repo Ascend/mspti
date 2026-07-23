@@ -30,8 +30,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from _cfg import *
 
-logging.basicConfig(level=logging.INFO,
-                    format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s'
+)
 
 
 class TestProfiling(unittest.TestCase):
@@ -44,6 +45,7 @@ class TestProfiling(unittest.TestCase):
         self.logger = logging
         self.cfg_path = ConfigPaths()
         self.start_time = 0
+        self.duration_time = 0
         self.line = "-" * 30
         super(TestProfiling, self).__init__("execute")
 
@@ -67,6 +69,10 @@ class TestProfiling(unittest.TestCase):
         seconds = int(cost_time % 60)
         duration_str = f"{minutes}min, {seconds}s"
         self.logger.info(self.line + f" End execute case {self.id} ({duration_str}) " + self.line)
+        if not os.path.isdir(self.cfg_path.result_path):
+            os.makedirs(self.cfg_path.result_path)
+        with open(os.path.join(self.cfg_path.result_path, 'result.txt'), 'a+') as f:
+            f.write('%s %s %s\n' % (self.id, self.__result, self.duration_time))
 
     def execute(self):
         self.initTest()
@@ -108,8 +114,10 @@ class TestProfiling(unittest.TestCase):
     def view_error_msg(self, argv_path, log_type):
         self.logger.info("start view {} log ...".format(log_type))
         if log_type == "plog":
-            cmd = r"grep -rn 'ERROR\] PROFILING' {0}; grep -rn '\[ERROR\] \[MSVP\]' {0}; " \
-                  r"grep -rn 'ERROR\] Failed' {0}".format(argv_path)
+            cmd = (
+                r"grep -rn 'ERROR\] PROFILING' {0}; grep -rn '\[ERROR\] \[MSVP\]' {0}; "
+                r"grep -rn 'ERROR\] Failed' {0}".format(argv_path)
+            )
         else:
             cmd = r"grep -rn 'ERROR\]' {0}".format(argv_path)
         res = self.subprocess_cmd(cmd)
@@ -124,8 +132,10 @@ class TestProfiling(unittest.TestCase):
         os.makedirs(self.res_dir)
 
     def executeCmd(self):
+        start_time = time.time()
         output = self.subprocess_cmd(self.msprofbin_cmd)
         if output:
             self.logger.info(output)
+        self.duration_time = int(time.time() - start_time)
         self.view_error_msg(self.plog_path, "plog")
         self.view_error_msg(self.slog_stdout, "screen")

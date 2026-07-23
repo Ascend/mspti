@@ -115,6 +115,7 @@ function parse_script_args() {
 
 function run_smoke() {
     cd $TOP_DIR/test/mspti_cpp/st/testcase
+    rm -f "${output}/result.txt"
     if [ ${#test_list[@]} -eq 0 ]; then
         if [ "${smoke_level}" = "all" ]; then
             mapfile -t test_list < <(ls | grep "\.sh$" | grep -E "test")
