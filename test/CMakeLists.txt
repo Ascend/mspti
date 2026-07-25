@@ -8,7 +8,7 @@ if (CMAKE_INSTALL_PREFIX STREQUAL /usr/local)
     set(CMAKE_INSTALL_PREFIX ${TOP_DIR}/test/output CACHE STRING "path for install()" FORCE)
     message(STATUS "No install prefix selected, default to ${CMAKE_INSTALL_PREFIX}.")
 endif()
- 
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/opensource/googletest.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/opensource/mockcpp.cmake)
 
@@ -18,6 +18,8 @@ ExternalProject_Add(mspti_llt
                 -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                 -DPACKAGE=${PACKAGE}
                 -DFULL_COVERAGE=true
+                -DPython_ROOT_DIR=${Python_ROOT_DIR}
+                -DPython_EXECUTABLE=${Python_EXECUTABLE}
                 -DCOVERAGE_RC_CONFIG=true
                 <SOURCE_DIR>
     BUILD_COMMAND $(MAKE)

@@ -13,7 +13,7 @@ include(${TOP_DIR}/test/cmake/depend.cmake)
 find_package(gtest)
 find_package(mockcpp)
 
-set(CMAKE_CXX_FLAGS " -Wno-unused")
+set(CMAKE_CXX_FLAGS " -Wno-unused -I${TOP_DIR}/test/opensource/boost")
 
 # common include
 include_directories(

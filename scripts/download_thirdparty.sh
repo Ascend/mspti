@@ -52,9 +52,28 @@ function patch_makeself() {
     mv makeself-release-2.5.0 makeself
 }
 
+function download_boost() {
+    local boost_url="https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/boost_1_81_0.tar.bz2"
+    local boost_archive="boost_1_81_0.tar.bz2"
+    local boost_sha256="71feeed900fbccca04a3b4f2f84a7c217186f28a940ed8b7ed4725986baf99fa"
+
+    mkdir -p ${LLT_DIR}
+    cd ${LLT_DIR}
+    [ -d "boost" ] && return 0
+
+    curl -Lfk --retry 5 --retry-delay 2 -o "${boost_archive}" "${boost_url}"
+    echo "${boost_sha256}  ${boost_archive}" | sha256sum -c -
+    tar -xjf "${boost_archive}"
+    mv boost_1_81_0 boost
+    rm -f "${boost_archive}"
+}
+
+
 mkdir -p ${OPENSOURCE_DIR} && cd ${OPENSOURCE_DIR}
 [ ! -d "makeself" ] && patch_makeself
 
+
+download_boost
 mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
 [ ! -d "googletest" ] && git clone https://gitcode.com/GitHub_Trending/go/googletest.git -b release-1.12.1
 [ ! -d "mockcpp" ] && git clone https://gitcode.com/hhz0/mockcpp.git -b msprof

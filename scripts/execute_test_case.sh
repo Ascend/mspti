@@ -40,5 +40,8 @@ mkdir -p ${TOP_DIR}/test/build_llt
 cd ${TOP_DIR}/test/build_llt
 change_file_to_unix_format  # change file from dos to unix format, so that gcov exclude comment can be added
 add_gcov_excl_line  # add gcov exclude comment for macro definition code lines to raise branch coverage
-cmake ../ -DPACKAGE=ut
+PYTHON_ROOT=$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("prefix"))')
+PYTHON_EXEC=$(which python3)
+
+cmake ../ -DPACKAGE=ut -DBOOST_INCLUDE_DIRS=${TOP_DIR}/test/opensource/boost -DPython_ROOT_DIR=${PYTHON_ROOT} -DPython_EXECUTABLE=${PYTHON_EXEC}
 make -j$(nproc)
