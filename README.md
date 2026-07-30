@@ -40,17 +40,7 @@ msPTI 主要提供以下能力：
 
 ## 📦 安装指南
 
-msPTI 运行依赖配套版本的 CANN 环境。安装 msPTI 前，请先完成以下环境准备：
-
-- 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
-- 软件环境请参见[CANN快速安装](https://www.hiascend.com/cann/download)安装配套版本的 CANN Toolkit 开发套件包和 ops 算子包。
-
-完成上述准备后，可通过以下两种方式安装 msPTI：
-
-- 方式一：从 [releases 页面](https://gitcode.com/Ascend/mspti/releases) 下载预构建的 `run` 包，执行 MD5 校验后安装。
-- 方式二：从源码仓执行 `bash scripts/build.sh [<version>]` 先构建 `run` 包，再安装。
-
-完整环境准备、两种安装方式的详细步骤、安装参数与示例命令请参见 《[msPTI 工具安装指南](./docs/zh/install_guide/mspti_install_guide.md)》。
+介绍工具的环境依赖与安装方法，请参见 《[msPTI 工具安装指南](./docs/zh/install_guide/mspti_install_guide.md)》。
 
 ## 📘 使用指南
 

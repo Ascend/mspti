@@ -1,4 +1,6 @@
-# msPTI工具安装指南
+# msPTI 安装指南
+
+<br>
 
 ## 1. 安装说明
 
@@ -20,62 +22,84 @@
 
 ### 2.3 源码安装
 
-如需使用最新代码的功能，可下载本仓库代码，自行编译run包并完成安装。
+如需使用最新代码的功能，或对源码进行修改以增强功能，可下载本仓库代码，自行编译、打包工具并完成安装。
 
-#### 2.3.1 执行编译打包
+#### 2.3.1 环境准备
 
-执行如下命令编译run包：
+源码编译统一使用 MindStudio 标准构建环境。
+
+- 日常开发或使用已发布镜像，请参考《[MindStudio工具开发环境安装指导](https://gitcode.com/Ascend/msot/blob/master/docs/zh/common/dev_env_setup.md)》。
+- 需要从基础操作系统复现环境、执行源码构建验证或单元测试验证时，必须参考《[MindStudio统一构建镜像制作指南](https://gitcode.com/Ascend/msot/blob/master/docs/zh/common/docker_image_build_guide.md)》，从openEuler基础镜像现场构建环境镜像。
+
+本文档后续的源码编译和单元测试命令，均在上述指定镜像容器或现场构建的环境镜像的容器中执行，CANN 软件包版本、GCC 版本和 Python 版本以统一镜像制作指南为准，本仓库不重复维护。
+
+镜像构建完成后，必须使用统一镜像制作指南第 7 章给出的 `ctr_in.py` 命令，在交互式终端中启动并进入容器。不得使用普通 `docker run` 创建容器，也不得使用 `docker exec <容器名> bash -c '<命令>'` 替代交互式环境；否则可能跳过 Python、GCC 和 CANN 环境初始化。
+
+进入 `ctr_in.py` 打开的交互式容器 Shell 后，执行如下命令克隆本仓库：
 
 ```bash
+cd ~
 git clone https://gitcode.com/Ascend/mspti.git
-cd mspti
-bash scripts/build.sh [{version}]
 ```
 
-- 支持通过环境变量指定版本号（优先级最高）：`BUILD_VERSION`用于设置run包版本，`WHL_VERSION`用于设置whl包版本。
-- 支持通过命令行参数指定版本号（优先级低于环境变量），默认版本号为`version.info`中的`Version`字段。
-- run包中的arch表示系统架构，根据实际运行系统自动适配。
-- 编译完成后，会在mspti/output目录下生成msPTI工具的run包，run包名称格式为`mindstudio-profiler-tools-interface_{version}_{arch}.run`。
+#### 2.3.2 执行编译
 
-#### 2.3.2 安装run包
+保持在 `ctr_in.py` 打开的同一个交互式容器 Shell 中，在仓库根目录执行以下命令，自动完成依赖下载与构建：
 
-1. 增加对run包的可执行权限。
+```bash
+cd ~/mspti
+python3 build.py
+```
 
-    ```shell
-    chmod +x mindstudio-profiler-tools-interface_{version}_{arch}.run
-    ```
+构建成功后，安装包将生成在 `artifacts/` 目录下。
 
-2. 安装run包。
+#### 2.3.3 执行单元测试（可选）
 
-    ```shell
-    ./mindstudio-profiler-tools-interface_{version}_{arch}.run --install
-    ```
+此步骤非安装必需。如需验证代码基本功能，可执行单元测试：
 
-    安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#61-参数说明)。
+```bash
+cd ~/mspti
+python3 build.py test
+```
 
-    执行安装命令时，会自动执行--check参数，校验软件包的一致性和完整性，出现如下回显信息，表示软件包校验成功。
+命令返回码为 0，且测试用例均无失败，表示单元测试通过。
 
-    ```text
-    Verifying archive integrity...  100%   SHA256 checksums are OK. All good.
-    ```
+#### 2.3.4 安装
 
-    安装完成后，若显示如下信息，则说明软件安装成功：
+##### 2.3.4.1 安装包
 
-    ```text
-    MindStudio-Profiler-Tools-Interface package install success.
-    ```
+将 run 包拷贝到运行环境中（本机安装无需拷贝），执行如下安装操作：
+
+```bash
+chmod +x mindstudio-profiler-tools-interface_{version}_{arch}.run
+./mindstudio-profiler-tools-interface_{version}_{arch}.run --install
+```
+
+安装命令支持`--install-path=<path>`等参数，具体使用方式请参见[参数说明](#61-参数说明)。
+
+执行安装命令时，会自动执行--check参数，校验软件包的一致性和完整性，出现如下回显信息，表示软件包校验成功。
+
+```text
+Verifying archive integrity...  100%   SHA256 checksums are OK. All good.
+```
+
+安装完成后，若显示如下信息，则说明软件安装成功：
+
+```text
+MindStudio-Profiler-Tools-Interface package install success.
+```
 
 ## 3. 验证安装
 
 安装完成后，执行以下命令验证工具是否安装成功：
 
 ```bash
-pip show mspti
+python3 -c "import mspti; print('All is OK')"
 ```
 
-若输出不报错，且能显示工具信息，则表明安装成功。
+若输出不报错，且能显示'All is OK'，则表明安装成功。
 
-若 `pip show mspti` 提示命令不存在，请确认当前终端使用的是安装 `msPTI` 的 Python 环境。
+若提示模块不存在，请确认当前终端使用的是安装 `msPTI` 的 Python 环境。
 
 ## 4. 卸载
 
@@ -89,7 +113,7 @@ pip show mspti
 
    > [!NOTE]
    >
-   > - 需要联网环境才能下载，若环境不允许联网或离线，请先在可联网的环境下载该脚本后拷贝到目标设备。
+   > - 需要联网环境才能下载，若环境不允许联网或处于离线状态，请先在可联网的环境下载该脚本后拷贝到目标设备。
    > - 若执行命令无响应或出现连接失败、SSL证书错误等问题，请参见[FAQ](https://www.hiascend.com/developer/blog/details/02176213671719317003)。
 
 2. 执行卸载。
@@ -102,7 +126,7 @@ pip show mspti
 
    卸载成功打印如下信息：
 
-   ```ColdFusion
+   ```text
    Successfully uninstalled 1 tool ({tools_name})
    ```
 
@@ -122,7 +146,7 @@ msPTI工具run包的安装命令可配置如下参数：
 | --------| -------  |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | --install | 可选 | 安装软件包。可配置--install-path参数指定软件的安装路径；不配置--install-path参数时，则直接安装到默认路径下。                                                                                                             |
 | --uninstall | 可选 | 卸载软件包。可配置--install-path参数指定软件安装时的路径；不配置--install-path参数时，则直接卸载默认路径下的mspti。|
-| --install-path | 可选 | 安装路径，必须指定到CANN层目录，比如/usr/local/Ascend/cann-9.0.0。如果用户未指定安装路径，则软件会安装到默认路径下，默认安装路径如下：<br>&#8226; root用户：“/usr/local/Ascend/cann”。<br>&#8226; 非root用户：“${HOME}/Ascend/cann”，${HOME}为当前用户的家目录。 |
+| --install-path | 可选 | 安装路径，必须指定到CANN层目录，比如/usr/local/Ascend/cann-9.0.0。如果用户未指定安装路径，则软件会安装到默认路径下，默认安装路径如下：<br>&#8226; root用户：“/usr/local/Ascend/cann”。<br>&#8226; 非root用户：“${HOME}/Ascend/cann”，${HOME}为当前用户的家目录。 |
 | --install-for-all | 可选 | 安装时，允许其他用户具有安装用户组的权限。当安装携带该参数时，支持其他用户使用msPTI运行业务，但该参数存在安全风险，请谨慎使用。                                                                                                               |
 
 安装run包还可指定其他参数，具体可通过./xxx.run --help命令查看。
