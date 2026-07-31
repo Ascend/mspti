@@ -21,7 +21,7 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |接口|说明|
 |--|--|
 |**Function类型**|**Function说明**|
-|[msptiActivityRegisterCallbacks](./context/msptiActivityRegisterCallbacks.md)|向MSPTI注册回调函数，用于Activity Buffer处理。|
+|[msptiActivityRegisterCallbacks](./context/msptiActivityRegisterCallbacks.md)|向msPTI注册回调函数，用于Activity Buffer处理。|
 |[msptiActivityEnable](./context/msptiActivityEnable.md)|用于使能指定类型Activity Kind数据的采集。|
 |[msptiActivityDisable](./context/msptiActivityDisable.md)|停止采集指定类型Activity Kind的数据。|
 |[msptiActivityIsEnabled](./context/msptiActivityIsEnabled.md)|查询指定类型Activity Kind的采集是否使能。|
@@ -33,10 +33,10 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |[msptiActivityEnableMarkerDomain](./context/msptiActivityEnableMarkerDomain.md)|开启对应域打点的采集。|
 |[msptiActivityDisableMarkerDomain](./context/msptiActivityDisableMarkerDomain.md)|关闭对应域打点的采集。|
 |**Typedef类型**|**Typedef说明**|
-|[msptiBuffersCallbackRequestFunc](./context/msptiBuffersCallbackRequestFunc.md)|向MSPTI注册回调函数，申请Activity Buffer的存储空间。|
-|[msptiBuffersCallbackCompleteFunc](./context/msptiBuffersCallbackCompleteFunc.md)|向MSPTI注册回调函数，释放Activity Buffer中的数据。|
+|[msptiBuffersCallbackRequestFunc](./context/msptiBuffersCallbackRequestFunc.md)|向msPTI注册回调函数，申请Activity Buffer的存储空间。|
+|[msptiBuffersCallbackCompleteFunc](./context/msptiBuffersCallbackCompleteFunc.md)|向msPTI注册回调函数，释放Activity Buffer中的数据。|
 |**Enumeration类型**|**Enumeration说明**|
-|[msptiActivityKind](./context/msptiActivityKind.md)|MSPTI支持的所有Activity类型。|
+|[msptiActivityKind](./context/msptiActivityKind.md)|msPTI支持的所有Activity类型。|
 |[msptiActivityFlag](./context/msptiActivityFlag.md)|Activity Record的活动标记。|
 |[msptiActivitySourceKind](./context/msptiActivitySourceKind.md)|标记Activity数据来源。|
 |[msptiActivityMemoryOperationType](./context/msptiActivityMemoryOperationType.md)|内存操作类型的枚举类。|
@@ -60,15 +60,15 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 
 Activity Record：NPU的Profiling记录，使用结构体表示，如msptiActivityApi、msptiActivityMarker等。
 
-Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activity Record从MSPTI传输到客户端。用户根据业务需要提供空的Activity Buffer缓冲区，以确保Activity Record不会被遗漏。
+Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activity Record从msPTI传输到客户端。用户根据业务需要提供空的Activity Buffer缓冲区，以确保Activity Record不会被遗漏。
 
 **表 2**  Callback API
 
 |接口|说明|
 |--|--|
 |**Function类型**|**Function说明**|
-|[msptiSubscribe](./context/msptiSubscribe.md)|通过该接口向MSPTI注册回调函数。|
-|[msptiUnsubscribe](./context/msptiUnsubscribe.md)|向MSPTI注销当前订阅者。|
+|[msptiSubscribe](./context/msptiSubscribe.md)|通过该接口向msPTI注册回调函数。|
+|[msptiUnsubscribe](./context/msptiUnsubscribe.md)|向msPTI注销当前订阅者。|
 |[msptiEnableCallback](./context/msptiEnableCallback.md)|为特定**domain**和**CallbackId**的订阅者开启或关闭回调。|
 |[msptiEnableDomain](./context/msptiEnableDomain.md)|为特定**domain**的订阅者开启或关闭所有回调。|
 |**Typedef类型**|**Typedef说明**|
@@ -88,4 +88,4 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 |接口|说明|
 |--|--|
 |**Enumeration类型**|**Enumeration说明**|
-|[msptiResult](./context/msptiResult.md)|MSPTI返回的错误和结果代码。|
+|[msptiResult](./context/msptiResult.md)|msPTI返回的错误和结果代码。|

@@ -3,7 +3,7 @@
 ## 产品支持情况<a name="section8178181118225"></a>
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
@@ -21,7 +21,7 @@
 
 为特定domain和CallbackId的订阅者开启或关闭回调。
 
-当这个CallbackId所在位置触发时，MSPTI会主动调用msptiSubscribe接口注册的回调函数。
+当这个CallbackId所在位置触发时，msPTI会主动调用msptiSubscribe接口注册的回调函数。
 
 ## 函数原型<a name="section1121883194711"></a>
 

@@ -3,7 +3,7 @@
 ## 产品支持情况<a name="section8178181118225"></a>
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
@@ -51,7 +51,7 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p493014448469"><a name="p493014448469"></a><a name="p493014448469"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p119301744204613"><a name="p119301744204613"></a><a name="p119301744204613"></a>MSPTI会pop出Stack里面的ID，并写到lastId里。</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p119301744204613"><a name="p119301744204613"></a><a name="p119301744204613"></a>msPTI会pop出Stack里面的ID，并写到lastId里。</p>
 </td>
 </tr>
 </tbody>

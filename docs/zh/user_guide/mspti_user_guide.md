@@ -67,7 +67,7 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 | `MSPTI_ERROR_DEVICE_OFFLINE` | 4 | 设备离线 | 无法获取 Device 侧信息 |
 | `MSPTI_ERROR_QUEUE_EMPTY` | 5 | 队列为空 | External Correlation ID 匹配失败 |
 | `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置 LD_PRELOAD | `libmspti.so` 未预加载 |
-| `MSPTI_ERROR_INNER` | 999 | 内部错误 | MSPTI 初始化失败或内部异常 |
+| `MSPTI_ERROR_INNER` | 999 | 内部错误 | msPTI 初始化失败或内部异常 |
 
 > [!NOTE] Note
 > 详细错误处理请参见各 API 参考文档中的"返回值说明"章节。

@@ -3,7 +3,7 @@
 ## 产品支持情况<a name="section8178181118225"></a>
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
@@ -19,9 +19,9 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-使能MSPTI采集指定Kind的Activity数据。
+使能msPTI采集指定Kind的Activity数据。
 
-使能指定类型Activity Kind的数据采集。支持该接口的多次调用，并分别设置不同的msptiActivityKind，MSPTI可以采集不同类型的Activity数据。
+使能指定类型Activity Kind的数据采集。支持该接口的多次调用，并分别设置不同的msptiActivityKind，msPTI可以采集不同类型的Activity数据。
 
 ## 函数原型<a name="section1121883194711"></a>
 

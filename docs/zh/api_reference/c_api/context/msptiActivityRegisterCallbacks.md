@@ -3,7 +3,7 @@
 ## 产品支持情况<a name="section8178181118225"></a>
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="table38301303189"></a>
@@ -19,7 +19,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-向MSPTI注册回调函数，用于Activity Buffer处理。当Activity Buffer空间不足时会调用funcBufferRequested函数申请内存；Activity Buffer空间占满时调用funcBufferCompleted函数通知用户消费Activity数据，并释放Activity Buffer空间。
+向msPTI注册回调函数，用于Activity Buffer处理。当Activity Buffer空间不足时会调用funcBufferRequested函数申请内存；Activity Buffer空间占满时调用funcBufferCompleted函数通知用户消费Activity数据，并释放Activity Buffer空间。
 
 ## 函数原型<a name="section1121883194711"></a>
 

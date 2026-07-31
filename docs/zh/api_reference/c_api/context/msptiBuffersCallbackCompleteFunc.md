@@ -3,7 +3,7 @@
 ## 产品支持情况<a name="section8178181118225"></a>
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
@@ -19,7 +19,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-向MSPTI注册回调函数，释放Activity Buffer中的数据。用户（订阅者）在使用Activity API时，需要自定义该函数并在MSPTI注册，当活动缓冲区的存储空间被占满时，MSPTI会调用该函数通知用户消费Activity Buffer中数据，并释放内存空间。
+向msPTI注册回调函数，释放Activity Buffer中的数据。用户（订阅者）在使用Activity API时，需要自定义该函数并在msPTI注册，当活动缓冲区的存储空间被占满时，msPTI会调用该函数通知用户消费Activity Buffer中数据，并释放内存空间。
 
 ## 函数原型<a name="section1121883194711"></a>
 

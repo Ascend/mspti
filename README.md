@@ -5,7 +5,7 @@
 
  [![QuickStart](https://badgen.net/badge/快速入门/QuickStart/blue)](./docs/zh/quick_start/mspti_quick_start.md)
  [![Ask DeepWiki](https://badgen.net/badge/AI问答/DeepWiki/blue)](https://deepwiki.com/mindstudio-docs/master)
- [![Ask ZRead](https://badgen.net/badge/AI问答/ZRead/blue)](https://zread.ai/mindstudio-docs/master)
+ [![Ask ZRead](https://badgen.net/badge/AI问答/ZRead/blue)](https://zread.ai/Ascend/mspti)
  [![ReadTheDocs](https://badgen.net/badge/精确搜索/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io)
  [![Community](https://badgen.net/badge/昇腾社区/Community/blue)](https://www.hiascend.com/cn/developer/software/mindstudio)
  [![Issues](https://badgen.net/badge/报告问题/Issues/blue)](https://gitcode.com/Ascend/mspti/issues)
@@ -59,7 +59,7 @@ msPTI 主要提供以下能力：
 为提升文档查阅效率，我们提供多种高效检索方式：
 
 🔹 [AI 问答（DeepWiki）](https://deepwiki.com/mindstudio-docs/master)：自然语言问答，快速把握项目架构与模块关系。<br>
-🔹 [AI 问答（ZRead）](https://zread.ai/mindstudio-docs/master)：中文问答体验更优，精准定位功能用法与细节。<br>
+🔹 [AI 问答（ZRead）](https://zread.ai/Ascend/mspti)：中文问答体验更优，精准定位功能用法与细节。<br>
 🔹 [精确搜索（ReadTheDocs）](https://mindstudio-docs-master.readthedocs.io)：关键词全文检索，直达接口、参数与报错等信息。<br>
 
 ## 🛠️ 贡献指南
