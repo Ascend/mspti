@@ -84,7 +84,7 @@ uint64_t Utils::GetHostSysCnt()
 
 uint32_t Utils::GetPid()
 {
-    static thread_local uint32_t pid = static_cast<uint32_t>(getpid());
+    static uint32_t pid = static_cast<uint32_t>(getpid());
     return pid;
 }
 
@@ -170,6 +170,28 @@ bool Utils::StartsWith(const std::string& str, const std::string& prefix)
         return false;
     }
     return str.compare(0, prefix.size(), prefix) == 0;
+}
+
+bool Utils::StrToI32(int32_t& dest, const std::string& numStr)
+{
+    if (numStr.empty())
+    {
+        return false;
+    }
+    size_t pos = 0;
+    try
+    {
+        dest = std::stoi(numStr, &pos);
+    }
+    catch (...)
+    {
+        return false;
+    }
+    if (pos != numStr.size())
+    {
+        return false;
+    }
+    return true;
 }
 }  // namespace Common
 }  // namespace Mspti

@@ -195,4 +195,61 @@ TEST_F(UtilsUtest, StartsWithShouldReturnTrueWhenInputStrStartWithPrefix)
 {
     EXPECT_TRUE(Mspti::Common::Utils::StartsWith("xx", "x"));
 }
+
+TEST_F(UtilsUtest, StrToI32ShouldReturnTrueWhenConvertValidNumber)
+{
+    int32_t dest = 0;
+    EXPECT_TRUE(Mspti::Common::Utils::StrToI32(dest, "123"));
+    EXPECT_EQ(dest, 123);
+    EXPECT_TRUE(Mspti::Common::Utils::StrToI32(dest, "-456"));
+    EXPECT_EQ(dest, -456);
+    EXPECT_TRUE(Mspti::Common::Utils::StrToI32(dest, "0"));
+    EXPECT_EQ(dest, 0);
+}
+
+TEST_F(UtilsUtest, StrToI32ShouldReturnTrueWhenConvertMaxMin)
+{
+    int32_t dest = 0;
+    EXPECT_TRUE(Mspti::Common::Utils::StrToI32(dest, "2147483647"));
+    EXPECT_EQ(dest, 2147483647);
+    EXPECT_TRUE(Mspti::Common::Utils::StrToI32(dest, "-2147483648"));
+    EXPECT_EQ(dest, -2147483648);
+}
+
+TEST_F(UtilsUtest, StrToI32ShouldReturnFalseWhenConvertEmptyString)
+{
+    int32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, ""));
+}
+
+TEST_F(UtilsUtest, StrToI32ShouldReturnFalseWhenConvertNonNumericString)
+{
+    int32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, "abc"));
+    EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, "12a34"));
+}
+
+TEST_F(UtilsUtest, StrToI32ShouldReturnFalseWhenConvertOutOfRange)
+{
+    int32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, "999999999999"));
+    EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, "-999999999999"));
+}
+
+TEST_F(UtilsUtest, GetCANNModuleVersionShouldReturnEmptyWhenVersionNotFound)
+{
+    auto version = Mspti::Common::GetCANNModuleVersion("unknown_module");
+    EXPECT_TRUE(version.empty());
+}
+
+TEST_F(UtilsUtest, GetCANNModuleVersionShouldReturnVersionWhenFound)
+{
+    auto version = Mspti::Common::GetCANNModuleVersion("runtime");
+    EXPECT_EQ(version, "9.2.0");
+}
+
+TEST_F(UtilsUtest, IsRuntimeSupportMemoryReportShouldReturnTrueWhenVersionValid)
+{
+    EXPECT_TRUE(Mspti::Common::IsRuntimeSupportMemoryReport());
+}
 }  // namespace

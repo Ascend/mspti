@@ -57,6 +57,7 @@ enum ProfilerCallbackType
 #define MSPTI_CONFIG_API (PROF_ACL_API | PROF_TASK_TIME)
 #define MSPTI_CONFIG_COMMUNICATION (PROF_ACL_API | PROF_RUNTIME_TRACE | PROF_TASK_TIME | PROF_HCCL_TRACE)
 #define MSPTI_CONFIG_RUNTIME_API (PROF_RUNTIME_API)
+#define MSPTI_CONFIG_RUNTIME_MEMORY (MSPTI_CONFIG_API | MSPTI_CONFIG_RUNTIME_API)
 
 #define MSPROF_REPORT_RUNTIME_LEVEL 5000U
 #define MSPROF_REPORT_NODE_BASE_LEVEL 10000U
@@ -66,6 +67,9 @@ enum ProfilerCallbackType
 #define MSPROF_REPORT_HCCL_MASTER_TYPE 10001U
 #define MSPROF_REPORT_HCCL_SLAVE_TYPE 10002U
 #define MSPROF_STREAM_EXPAND_SPEC_TYPE 804U
+#define MSPROF_RUNTIME_MEMCPY_TYPE 810U
+#define MSPROF_RUNTIME_MEMSET_TYPE 811U
+#define MSPROF_RUNTIME_MEMORY_TYPE 812U
 
 const uint32_t MSPROF_REPORT_NODE_HCCL_OP_INFO_TYPE = 10;
 const uint32_t MSPROF_REPORT_NODE_LAUNCH_TYPE = 5;
@@ -159,6 +163,41 @@ struct MsprofStreamExpandSpecInfo
 };
 #pragma pack()
 
+#pragma pack(1)
+// for runtime memcpy compact info
+struct MsprofMemcpyInfo
+{
+    uint64_t bytes;
+    uint16_t copyKind;
+    uint16_t deviceId;
+    uint32_t streamId;
+};
+#pragma pack()
+
+#pragma pack(1)
+// for runtime memset compact info
+struct MsprofMemsetInfo
+{
+    uint64_t bytes;
+    int32_t value;
+    uint32_t streamId;
+    uint16_t deviceId;
+};
+#pragma pack()
+
+#pragma pack(1)
+// for runtime memory management compact info
+struct MsprofMemMngInfo
+{
+    uint64_t address;
+    uint64_t size;
+    uint32_t memoryType;
+    uint16_t memMngType;
+    uint16_t deviceId;
+    uint32_t streamId;
+};
+#pragma pack()
+
 enum RtProfileDataType
 {
     RT_PROFILE_TYPE_TASK_BEGIN = 0,
@@ -187,6 +226,9 @@ struct MsprofCompactInfo
         MsprofAttrInfo nodeAttrInfo;
         MsprofHcclOPInfo hcclopInfo;
         MsprofStreamExpandSpecInfo streamExpandInfo;
+        MsprofMemcpyInfo memcpyInfo;
+        MsprofMemsetInfo memsetInfo;
+        MsprofMemMngInfo memMngInfo;
     } data;
 };
 

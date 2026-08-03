@@ -13,22 +13,27 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_RUNTIME_COMMON_UTILS_H
 #define MSPTI_RUNTIME_COMMON_UTILS_H
 
 #include <cstdint>
+
 #include "csrc/common/inject/inject_base.h"
 
-namespace Mspti {
-namespace Common {
+namespace Mspti
+{
+namespace Common
+{
 
 uint32_t GetDeviceId();
 uint32_t GetStreamId(AclrtStream stm);
 AclError ProfTrace(uint64_t indexId, uint64_t modelId, uint16_t tagId, AclrtStream stream);
+std::string GetCANNModuleVersion(const std::string& module);
+bool IsRuntimeSupportMemoryReport();
 
-} // Common
-} // Mspti
+}  // namespace Common
+}  // namespace Mspti
 
-#endif
+#endif  // MSPTI_RUNTIME_COMMON_UTILS_H

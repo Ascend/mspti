@@ -13,17 +13,16 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #include "csrc/common/inject/acl_inject.h"
+#include "securec.h"
 
-AclError aclrtProfTrace(void *userdata, int32_t length, AclrtStream stream)
-{
-    return 0;
-}
+AclError aclrtProfTrace(void *userdata, int32_t length, AclrtStream stream) { return 0; }
 
-AclError aclrtGetDevice(int32_t* devId)
+AclError aclrtGetDevice(int32_t *devId)
 {
-    if (devId != nullptr) {
+    if (devId != nullptr)
+    {
         *devId = 0;
     }
     return 0;
@@ -31,8 +30,26 @@ AclError aclrtGetDevice(int32_t* devId)
 
 AclError aclrtStreamGetId(AclrtStream stm, int32_t *streamId)
 {
-    if (streamId != nullptr) {
+    if (streamId != nullptr)
+    {
         *streamId = 0;
     }
+    return 0;
+}
+
+AclError aclsysGetVersionStr(char *pkgName, char *versionStr)
+{
+    if (pkgName == nullptr || versionStr == nullptr)
+    {
+        return 1;
+    }
+
+    if (strcmp(pkgName, "runtime") != 0)
+    {
+        return 1;
+    }
+
+    const char *version = "9.2.0";
+    (void)memcpy_s(versionStr, 128, version, strlen(version) + 1);
     return 0;
 }

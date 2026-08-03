@@ -158,6 +158,7 @@ class Utils
     static bool CheckCharValid(const std::string& str);
     static std::string GetEnv(const std::string& name);
     static bool StartsWith(const std::string& str, const std::string& prefix);
+    static bool StrToI32(int32_t& dest, const std::string& numStr);
 };
 }  // namespace Common
 }  // namespace Mspti
