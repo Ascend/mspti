@@ -14,26 +14,30 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_ACTIVITY_ASCEND_ASCEND_MANAGER_H
 #define MSPTI_ACTIVITY_ASCEND_ASCEND_MANAGER_H
 
+#include <atomic>
+#include <map>
 #include <memory>
 #include <mutex>
-#include <map>
 #include <set>
 #include <vector>
 
 #include "csrc/activity/ascend/dev_prof_task.h"
 #include "csrc/include/mspti_result.h"
 
-namespace Mspti {
-namespace Ascend {
+namespace Mspti
+{
+namespace Ascend
+{
 
 // Singleton
-class DevTaskManager {
-public:
+class DevTaskManager
+{
+   public:
     using ActivitySwitchType = std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT>;
 
     static DevTaskManager* GetInstance();
@@ -44,22 +48,22 @@ public:
     void RegisterReportCallback();
     void UnRegisterReportCallback();
 
-private:
+   private:
     DevTaskManager();
     ~DevTaskManager();
-    explicit DevTaskManager(const DevTaskManager &obj) = delete;
-    DevTaskManager& operator=(const DevTaskManager &obj) = delete;
-    explicit DevTaskManager(DevTaskManager &&obj) = delete;
-    DevTaskManager& operator=(DevTaskManager &&obj) = delete;
+    explicit DevTaskManager(const DevTaskManager& obj) = delete;
+    DevTaskManager& operator=(const DevTaskManager& obj) = delete;
+    explicit DevTaskManager(DevTaskManager&& obj) = delete;
+    DevTaskManager& operator=(DevTaskManager&& obj) = delete;
     void InitDeviceList();
     msptiResult StartAllDevKindProfTask(std::vector<std::unique_ptr<DevProfTask>>& profTasks,
                                         std::vector<std::unique_ptr<DevProfTask>>& successTasks);
     msptiResult StopAllDevKindProfTask(std::vector<std::unique_ptr<DevProfTask>>& profTasks);
 
-    msptiResult StartCannProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
-    msptiResult StopCannProfTask(uint32_t deviceId);
+    msptiResult StartCANNProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
+    msptiResult StopCANNProfTask(uint32_t deviceId);
 
-private:
+   private:
     std::set<uint32_t> device_set_;
     std::once_flag get_device_flag_;
     static std::map<msptiActivityKind, uint64_t> datatype_config_map_;
@@ -68,7 +72,8 @@ private:
     std::mutex task_map_mtx_;
     std::atomic<uint64_t> profSwitch_{0};
 };
-}  // Ascend
-}  // Mspti
 
-#endif
+}  // namespace Ascend
+}  // namespace Mspti
+
+#endif  // MSPTI_ACTIVITY_ASCEND_ASCEND_MANAGER_H

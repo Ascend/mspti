@@ -71,51 +71,57 @@ typedef struct {
 
 ### 3.3 Activity Memory（内存操作记录）
 
+记录内存分配与释放操作，对应CANN Runtime层内存管理API（如aclrtMalloc、aclrtFree等）。
+
 ```c
 typedef struct {
     msptiActivityKind kind;              // 固定为 MSPTI_ACTIVITY_KIND_MEMORY
-    msptiActivityMemoryOperationType memoryOperationType; // 操作类型（分配/释放）
-    msptiActivityMemoryKind memoryKind;   // 内存类型
+    msptiActivityMemoryOperationType memoryOperationType; // 操作类型（ALLOCATION分配/RELEASE释放）
+    msptiActivityMemoryKind memoryKind;   // 内存类型（DEVICE设备/HOST主机/MANAGED统一管理）
     uint64_t correlationId;              // 关联 ID
     uint64_t start;                      // 开始时间戳（ns）
     uint64_t end;                        // 结束时间戳（ns）
     uint64_t address;                    // 内存地址
-    uint64_t bytes;                      // 字节数
+    uint64_t bytes;                      // 分配或释放的字节数
     uint32_t processId;                  // 进程 ID
     uint32_t deviceId;                   // 设备 ID
-    uint32_t streamId;                   // 流 ID
+    uint32_t streamId;                   // 流 ID，未关联流时设置为 MSPTI_INVALID_STREAM_ID
 } msptiActivityMemory;
 ```
 
 ### 3.4 Activity Memcpy（内存拷贝记录）
 
+记录Host与Device之间的内存拷贝操作，对应CANN Runtime层内存拷贝API（如aclrtMemcpy、aclrtMemcpyAsync等）。
+
 ```c
 typedef struct {
     msptiActivityKind kind;              // 固定为 MSPTI_ACTIVITY_KIND_MEMCPY
-    msptiActivityMemcpyKind copyKind;    // 拷贝类型（HTOD / DTOH / DTOD 等）
+    msptiActivityMemcpyKind copyKind;    // 拷贝方向（HTOH/HTOD/DTOH/DTOD/DEFAULT等）
     uint64_t bytes;                      // 拷贝字节数
     uint64_t start;                      // 开始时间戳（ns）
     uint64_t end;                        // 结束时间戳（ns）
     uint32_t deviceId;                   // 设备 ID
     uint32_t streamId;                   // 流 ID
     uint64_t correlationId;              // 关联 ID
-    uint8_t isAsync;                     // 是否异步
+    uint8_t isAsync;                     // 是否异步操作（通过aclrtMemcpyAsync等异步API调用）
 } msptiActivityMemcpy;
 ```
 
 ### 3.5 Activity Memset（内存设置记录）
 
+记录内存置值操作，对应CANN Runtime层内存设置API（如aclrtMemset、aclrtMemsetAsync等）。
+
 ```c
 typedef struct {
     msptiActivityKind kind;              // 固定为 MSPTI_ACTIVITY_KIND_MEMSET
-    uint32_t value;                      // 设置的值
+    uint32_t value;                      // 设置的目标值
     uint64_t bytes;                      // 设置的字节数
     uint64_t start;                      // 开始时间戳（ns）
     uint64_t end;                        // 结束时间戳（ns）
     uint32_t deviceId;                   // 设备 ID
     uint32_t streamId;                   // 流 ID
     uint64_t correlationId;              // 关联 ID
-    uint8_t isAsync;                     // 是否异步
+    uint8_t isAsync;                     // 是否异步操作（通过aclrtMemsetAsync等异步API调用）
 } msptiActivityMemset;
 ```
 

@@ -4,7 +4,9 @@
 
 ```cpp
 typedef enum {
-    MSPTI_ACTIVITY_MEMORY_UNKNOWN = 0,    // 内部预留，未定义
-    MSPTI_ACTIVITY_MEMORY_DEVICE = 1,    // 设备内存
+    MSPTI_ACTIVITY_MEMORY_UNKNOWN = 0,    // 未知的内存类型
+    MSPTI_ACTIVITY_MEMORY_DEVICE = 1,    // 设备侧内存
+    MSPTI_ACTIVITY_MEMORY_HOST = 2,    // 主机侧内存
+    MSPTI_ACTIVITY_MEMORY_MANAGED = 3    // 统一管理内存（由系统自动迁移）
 } msptiActivityMemoryKind;
 ```

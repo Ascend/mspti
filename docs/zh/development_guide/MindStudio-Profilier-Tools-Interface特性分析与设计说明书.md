@@ -460,9 +460,9 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 | `MSPTI_ACTIVITY_KIND_KERNEL` | 2 | `msptiActivityKernel` | NPU Kernel执行记录 |
 | `MSPTI_ACTIVITY_KIND_API` | 3 | `msptiActivityApi` | CANN API调用记录 |
 | `MSPTI_ACTIVITY_KIND_HCCL` | 4 | `msptiActivityHccl` | HCCL通信操作记录 |
-| `MSPTI_ACTIVITY_KIND_MEMORY` | 5 | `msptiActivityMemory` | 内存分配/释放记录 |
-| `MSPTI_ACTIVITY_KIND_MEMSET` | 6 | `msptiActivityMemset` | 内存设置记录 |
-| `MSPTI_ACTIVITY_KIND_MEMCPY` | 7 | `msptiActivityMemcpy` | 内存拷贝记录 |
+| `MSPTI_ACTIVITY_KIND_MEMORY` | 5 | `msptiActivityMemory` | 内存分配与释放记录（CANN Runtime层） |
+| `MSPTI_ACTIVITY_KIND_MEMSET` | 6 | `msptiActivityMemset` | 内存置值操作记录（CANN Runtime层） |
+| `MSPTI_ACTIVITY_KIND_MEMCPY` | 7 | `msptiActivityMemcpy` | 内存拷贝操作记录（CANN Runtime层） |
 | `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` | 8 | `msptiActivityExternalCorrelation` | 外部关联记录 |
 | `MSPTI_ACTIVITY_KIND_COMMUNICATION` | 9 | `msptiActivityCommunication` | 通信算子记录 |
 | `MSPTI_ACTIVITY_KIND_ACL_API` | 10 | — | ACL级API调用 |
@@ -796,62 +796,71 @@ typedef struct {
 
 ### 5.1.4 ActivityMemory（内存操作记录）
 
-记录内存的分配和释放操作。
+记录CANN Runtime层的内存分配和释放操作（如aclrtMalloc、aclrtFree等），底层通过对`MsprofCompactInfo`中`memMngInfo`数据的解析实现，
+系统内部维护地址到字节数的映射关系，用于关联分配与释放操作。
 
 ```c
 typedef struct {
     msptiActivityKind kind;                    // 固定为 MSPTI_ACTIVITY_KIND_MEMORY
-    msptiActivityMemoryOperationType memoryOperationType;  // 操作类型：ALLOCATION / RELEASE
-    msptiActivityMemoryKind memoryKind;        // 内存类型：DEVICE
+    msptiActivityMemoryOperationType memoryOperationType;  // 操作类型：ALLOCATION（分配）/ RELEASE（释放）
+    msptiActivityMemoryKind memoryKind;        // 内存类型：DEVICE（设备内存）/ HOST（主机内存）/ MANAGED（统一管理内存）
     uint64_t correlationId;                    // 关联ID
     uint64_t start;                            // 操作开始时间戳（ns）
     uint64_t end;                              // 操作结束时间戳（ns）
     uint64_t address;                          // 内存地址
-    uint64_t bytes;                            // 内存大小（字节）
+    uint64_t bytes;                            // 分配或释放的内存大小（字节）
     uint32_t processId;                        // 进程ID
     uint32_t deviceId;                         // 设备ID
-    uint32_t streamId;                         // 流ID
+    uint32_t streamId;                         // 流ID，未关联流时设置为MSPTI_INVALID_STREAM_ID
 } msptiActivityMemory;
 ```
 
 ### 5.1.5 ActivityMemcpy（内存拷贝记录）
 
-记录Host与Device之间的内存拷贝操作。
+记录CANN Runtime层Host与Device之间的内存拷贝操作（如aclrtMemcpy、aclrtMemcpyAsync等），
+底层通过对`MsprofCompactInfo`中`memcpyInfo`数据的解析实现。
 
 ```c
 typedef struct {
     msptiActivityKind kind;                    // 固定为 MSPTI_ACTIVITY_KIND_MEMCPY
-    msptiActivityMemcpyKind copyKind;          // 拷贝方向：HTOD / DTOH / DTOD 等
+    msptiActivityMemcpyKind copyKind;          // 拷贝方向：HTOH / HTOD / DTOH / DTOD / DEFAULT 等
     uint64_t bytes;                            // 拷贝字节数
     uint64_t start;                            // 开始时间戳（ns）
     uint64_t end;                              // 结束时间戳（ns）
     uint32_t deviceId;                         // 设备ID
     uint32_t streamId;                         // 流ID
     uint64_t correlationId;                    // 关联ID
-    uint8_t isAsync;                           // 是否异步拷贝
+    uint8_t isAsync;                           // 是否异步拷贝（通过aclrtMemcpyAsync等异步API调用时为1）
 } msptiActivityMemcpy;
 ```
 
 **copyKind枚举**：
 
-- `MSPTI_ACTIVITY_MEMCPY_KIND_HTOH`：Host到Host
-- `MSPTI_ACTIVITY_MEMCPY_KIND_HTOD`：Host到Device
-- `MSPTI_ACTIVITY_MEMCPY_KIND_DTOH`：Device到Host
-- `MSPTI_ACTIVITY_MEMCPY_KIND_DTOD`：Device到Device
+| 枚举值 | 说明 |
+| --- | --- |
+| `MSPTI_ACTIVITY_MEMCPY_KIND_UNKNOWN` | 未知的拷贝方向 |
+| `MSPTI_ACTIVITY_MEMCPY_KIND_HTOH` | Host到Host内存拷贝 |
+| `MSPTI_ACTIVITY_MEMCPY_KIND_HTOD` | Host到Device内存拷贝 |
+| `MSPTI_ACTIVITY_MEMCPY_KIND_DTOH` | Device到Host内存拷贝 |
+| `MSPTI_ACTIVITY_MEMCPY_KIND_DTOD` | Device到Device内存拷贝（含P2P） |
+| `MSPTI_ACTIVITY_MEMCPY_KIND_DEFAULT` | 系统根据地址自动推断拷贝方向 |
 
 ### 5.1.6 ActivityMemset（内存设置记录）
+
+记录CANN Runtime层的内存置值操作（如aclrtMemset、aclrtMemsetAsync等），
+底层通过对`MsprofCompactInfo`中`memsetInfo`数据的解析实现。
 
 ```c
 typedef struct {
     msptiActivityKind kind;                    // 固定为 MSPTI_ACTIVITY_KIND_MEMSET
-    uint32_t value;                            // 设置的值
+    uint32_t value;                            // 设置的目标值（通常为0，表示将内存区域清零）
     uint64_t bytes;                            // 设置的字节数
     uint64_t start;                            // 开始时间戳（ns）
     uint64_t end;                              // 结束时间戳（ns）
     uint32_t deviceId;                         // 设备ID
     uint32_t streamId;                         // 流ID
     uint64_t correlationId;                    // 关联ID
-    uint8_t isAsync;                           // 是否异步
+    uint8_t isAsync;                           // 是否异步操作（通过aclrtMemsetAsync等异步API调用时为1）
 } msptiActivityMemset;
 ```
 

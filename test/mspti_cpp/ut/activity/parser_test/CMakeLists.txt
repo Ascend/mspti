@@ -8,6 +8,7 @@ add_executable(mspti_parser_utest
     communication_calculator_utest.cpp
     cann_api_parser_utest.cpp
     mstx_parser_utest.cpp
+    memory_parser_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
     ${TOP_DIR}/csrc/activity/activity_manager.cpp
@@ -21,6 +22,7 @@ add_executable(mspti_parser_utest
     ${TOP_DIR}/csrc/activity/ascend/parser/mstx_parser.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/hccl_calculator.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/hccl_reporter.cpp
+    ${TOP_DIR}/csrc/activity/ascend/parser/memory_parser.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/external_correlation_reporter.cpp
     ${TOP_DIR}/csrc/common/context_manager.cpp
     ${TOP_DIR}/csrc/common/utils.cpp

@@ -26,6 +26,7 @@
 #include "csrc/activity/ascend/parser/cann_track_cache.h"
 #include "csrc/activity/ascend/parser/communication_calculator.h"
 #include "csrc/activity/ascend/parser/kernel_parser.h"
+#include "csrc/activity/ascend/parser/memory_parser.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/function_loader.h"
@@ -188,6 +189,11 @@ int32_t MsptiApiReporterCallbackImpl(uint32_t agingFlag, const MsprofApi* const 
                 MSPTI_LOGE("Report Msprof Acl Api data to ParserManager failed.");
                 return PROFAPI_ERROR;
             }
+            if (Mspti::Parser::MemoryParser::GetInstance().RecordApi(*data) != MSPTI_SUCCESS)
+            {
+                MSPTI_LOGE("Report Msprof Acl Api data to MemoryParser failed.");
+                return PROFAPI_ERROR;
+            }
             break;
         default:
             break;
@@ -210,19 +216,53 @@ int32_t MsptiCompactInfoReporterCallbackImpl(uint32_t agingFlag, CONST_VOID_PTR 
         MSPTI_LOGE("Report Msprof Compact failed with nullptr.");
         return PROFAPI_ERROR;
     }
-    const auto* compact = Mspti::Common::ReinterpretConvert<const MsprofCompactInfo*>(data);
-    if (compact->level == MSPROF_REPORT_RUNTIME_LEVEL && compact->type == RT_PROFILE_TYPE_TASK_TRACK)
-    {
-        if (Mspti::Parser::KernelParser::GetInstance().ReportRtTaskTrack(agingFlag, compact) != MSPTI_SUCCESS)
-        {
-            MSPTI_LOGE("Report Msprof Compact data to ParserManager failed.");
-            return PROFAPI_ERROR;
-        }
 
-        if (Mspti::Parser::CannTrackCache::GetInstance().AppendTsTrack(agingFlag == 1, compact) != MSPTI_SUCCESS)
+    const auto* compact = Mspti::Common::ReinterpretConvert<const MsprofCompactInfo*>(data);
+    if (compact->level == MSPROF_REPORT_RUNTIME_LEVEL)
+    {
+        switch (compact->type)
         {
-            MSPTI_LOGE("Report Msprof Compact data to ParserManager failed.");
-            return PROFAPI_ERROR;
+            case RT_PROFILE_TYPE_TASK_TRACK:
+            {
+                if (Mspti::Parser::KernelParser::GetInstance().ReportRtTaskTrack(agingFlag, compact) != MSPTI_SUCCESS)
+                {
+                    MSPTI_LOGE("Report Msprof Compact data to ParserManager failed.");
+                    return PROFAPI_ERROR;
+                }
+                if (Mspti::Parser::CannTrackCache::GetInstance().AppendTsTrack(agingFlag == 1, compact) !=
+                    MSPTI_SUCCESS)
+                {
+                    MSPTI_LOGE("Report Msprof Compact data to ParserManager failed.");
+                    return PROFAPI_ERROR;
+                }
+            }
+            break;
+            case RT_PROFILE_TYPE_STREAM_EXPAND_SPEC:
+                Mspti::Convert::StarsCommon::SetStreamExpandStatus(compact->data.streamExpandInfo.expandStatus);
+                break;
+            case RT_PROFILE_TYPE_MEMORY:
+                if (Mspti::Parser::MemoryParser::GetInstance().ReportMemory(*compact) != MSPTI_SUCCESS)
+                {
+                    MSPTI_LOGE("Report Msprof Memory data to MemoryParser failed.");
+                    return PROFAPI_ERROR;
+                }
+                break;
+            case RT_PROFILE_TYPE_MEMSET:
+                if (Mspti::Parser::MemoryParser::GetInstance().ReportMemset(*compact) != MSPTI_SUCCESS)
+                {
+                    MSPTI_LOGE("Report Msprof Memset data to MemoryParser failed.");
+                    return PROFAPI_ERROR;
+                }
+                break;
+            case RT_PROFILE_TYPE_MEMCPY:
+                if (Mspti::Parser::MemoryParser::GetInstance().ReportMemcpy(*compact) != MSPTI_SUCCESS)
+                {
+                    MSPTI_LOGE("Report Msprof Memcpy data to MemoryParser failed.");
+                    return PROFAPI_ERROR;
+                }
+                break;
+            default:
+                break;
         }
     }
 
@@ -234,11 +274,6 @@ int32_t MsptiCompactInfoReporterCallbackImpl(uint32_t agingFlag, CONST_VOID_PTR 
             MSPTI_LOGE("Report Msprof Compact data to ParserManager failed.");
             return PROFAPI_ERROR;
         }
-    }
-
-    if (compact->level == MSPROF_REPORT_RUNTIME_LEVEL && compact->type == MSPROF_STREAM_EXPAND_SPEC_TYPE)
-    {
-        Mspti::Convert::StarsCommon::SetStreamExpandStatus(compact->data.streamExpandInfo.expandStatus);
     }
 
     return PROFAPI_ERROR_NONE;

@@ -13,19 +13,23 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #include "csrc/activity/ascend/reporter/memory_reporter.h"
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
-#include "csrc/common/utils.h"
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/thread_local.h"
+#include "csrc/common/utils.h"
 #include "securec.h"
 
-namespace Mspti {
-namespace Reporter {
-namespace {
+namespace Mspti
+{
+namespace Reporter
+{
+namespace
+{
 msptiActivityMemcpyKind GetMsptiMemcpyKind(AclrtMemcpyKind rtMemcpykind)
 {
     static const std::unordered_map<AclrtMemcpyKind, msptiActivityMemcpyKind> memoryKindMap = {
@@ -46,9 +50,11 @@ msptiActivityMemcpyKind GetMsptiMemcpyKind(AclrtMemcpyKind rtMemcpykind)
 inline Mspti::Common::ThreadLocal<msptiActivityMemory>& GetDefaultMemoryActivity()
 {
     static Mspti::Common::ThreadLocal<msptiActivityMemory> instance(
-        [] () {
-            auto* activityMemory = new(std::nothrow) msptiActivityMemory();
-            if (UNLIKELY(activityMemory == nullptr)) {
+        []()
+        {
+            auto* activityMemory = new (std::nothrow) msptiActivityMemory();
+            if (UNLIKELY(activityMemory == nullptr))
+            {
                 MSPTI_LOGE("create default activityMemory failed");
                 return activityMemory;
             }
@@ -63,9 +69,11 @@ inline Mspti::Common::ThreadLocal<msptiActivityMemory>& GetDefaultMemoryActivity
 inline Mspti::Common::ThreadLocal<msptiActivityMemcpy>& GetDefaultMemcpyActivity()
 {
     static Mspti::Common::ThreadLocal<msptiActivityMemcpy> instance(
-        [] () {
-            auto* activityMemcpy = new(std::nothrow) msptiActivityMemcpy();
-            if (UNLIKELY(activityMemcpy == nullptr)) {
+        []()
+        {
+            auto* activityMemcpy = new (std::nothrow) msptiActivityMemcpy();
+            if (UNLIKELY(activityMemcpy == nullptr))
+            {
                 MSPTI_LOGE("create default activityMemcpy failed");
                 return activityMemcpy;
             }
@@ -78,9 +86,11 @@ inline Mspti::Common::ThreadLocal<msptiActivityMemcpy>& GetDefaultMemcpyActivity
 inline Mspti::Common::ThreadLocal<msptiActivityMemset>& GetDefaultMemsetActivity()
 {
     static Mspti::Common::ThreadLocal<msptiActivityMemset> instance(
-        [] () {
-            auto* activityMemset = new(std::nothrow) msptiActivityMemset();
-            if (UNLIKELY(activityMemset == nullptr)) {
+        []()
+        {
+            auto* activityMemset = new (std::nothrow) msptiActivityMemset();
+            if (UNLIKELY(activityMemset == nullptr))
+            {
                 MSPTI_LOGE("create default activityMemory failed");
                 return activityMemset;
             }
@@ -89,41 +99,70 @@ inline Mspti::Common::ThreadLocal<msptiActivityMemset>& GetDefaultMemsetActivity
         });
     return instance;
 }
-}
+}  // namespace
 
 MemoryRecord::MemoryRecord(VOID_PTR_PTR devPtr, uint64_t size, msptiActivityMemoryKind memKind,
                            msptiActivityMemoryOperationType opType)
-    : devPtr(devPtr), size(size), memKind(memKind), opType(opType),
-      start(Common::ContextManager::GetInstance()->GetHostTimeStampNs()) {}
+    : devPtr(devPtr),
+      size(size),
+      memKind(memKind),
+      opType(opType),
+      start(Common::ContextManager::GetInstance()->GetHostTimeStampNs())
+{
+}
 
 MemoryRecord::~MemoryRecord()
 {
-    if (devPtr != nullptr &&
-        Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MEMORY)) {
+    if (Common::IsRuntimeSupportMemoryReport())
+    {
+        return;
+    }
+    if (devPtr != nullptr && Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MEMORY))
+    {
         end = Common::ContextManager::GetInstance()->GetHostTimeStampNs();
         MemoryReporter::GetInstance()->ReportMemoryActivity(*this);
     }
 }
 
 MemsetRecord::MemsetRecord(uint32_t value, uint64_t bytes, AclrtStream stream, uint8_t isAsync)
-    : value(value), bytes(bytes), stream(stream), isAsync(isAsync),
-      start(Common::ContextManager::GetInstance()->GetHostTimeStampNs()) {}
+    : value(value),
+      bytes(bytes),
+      stream(stream),
+      isAsync(isAsync),
+      start(Common::ContextManager::GetInstance()->GetHostTimeStampNs())
+{
+}
 
 MemsetRecord::~MemsetRecord()
 {
-    if (Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MEMSET)) {
+    if (Common::IsRuntimeSupportMemoryReport())
+    {
+        return;
+    }
+    if (Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MEMSET))
+    {
         end = Common::ContextManager::GetInstance()->GetHostTimeStampNs();
         MemoryReporter::GetInstance()->ReportMemsetActivity(*this);
     }
 }
 
 MemcpyRecord::MemcpyRecord(AclrtMemcpyKind copyKind, uint64_t bytes, AclrtStream stream, uint8_t isAsync)
-    : copyKind(copyKind), bytes(bytes), stream(stream), isAsync(isAsync),
-      start(Common::ContextManager::GetInstance()->GetHostTimeStampNs()) {}
+    : copyKind(copyKind),
+      bytes(bytes),
+      stream(stream),
+      isAsync(isAsync),
+      start(Common::ContextManager::GetInstance()->GetHostTimeStampNs())
+{
+}
 
 MemcpyRecord::~MemcpyRecord()
 {
-    if (Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MEMCPY)) {
+    if (Common::IsRuntimeSupportMemoryReport())
+    {
+        return;
+    }
+    if (Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MEMCPY))
+    {
         end = Common::ContextManager::GetInstance()->GetHostTimeStampNs();
         MemoryReporter::GetInstance()->ReportMemcpyActivity(*this);
     }
@@ -135,31 +174,41 @@ MemoryReporter* MemoryReporter::GetInstance()
     return &instance;
 }
 
-msptiResult MemoryReporter::ReportMemoryActivity(const MemoryRecord &record)
+msptiResult MemoryReporter::ReportMemoryActivity(const MemoryRecord& record)
 {
     uintptr_t address = (record.devPtr != nullptr ? Common::ReinterpretConvert<uintptr_t>(*record.devPtr) : 0);
     auto size = record.size;
     {
         std::lock_guard<std::mutex> lock(addrMtx_);
         auto iter = addrBytesInfo_.find(address);
-        if (iter == addrBytesInfo_.end()) {
-            if (record.opType == MSPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE) {
+        if (iter == addrBytesInfo_.end())
+        {
+            if (record.opType == MSPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE)
+            {
                 MSPTI_LOGW("Address %llu release, but not have allocation record.", address);
-            } else {
+            }
+            else
+            {
                 addrBytesInfo_.insert({address, size});
             }
-        } else {
-            if (record.opType == MSPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE) {
+        }
+        else
+        {
+            if (record.opType == MSPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE)
+            {
                 size = iter->second;
                 addrBytesInfo_.erase(iter);
-            } else {
+            }
+            else
+            {
                 MSPTI_LOGW("Address %llu more than one allocation record.", address);
                 iter->second = size;
             }
         }
     }
     msptiActivityMemory* activityMemory = GetDefaultMemoryActivity().Get();
-    if (UNLIKELY(activityMemory == nullptr)) {
+    if (UNLIKELY(activityMemory == nullptr))
+    {
         MSPTI_LOGE("Get Default MemoryActivity is nullptr");
         return MSPTI_ERROR_INNER;
     }
@@ -171,19 +220,21 @@ msptiResult MemoryReporter::ReportMemoryActivity(const MemoryRecord &record)
     activityMemory->address = address;
     activityMemory->bytes = size;
     activityMemory->deviceId = Common::GetDeviceId();
-    if (Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity *>(activityMemory), sizeof(msptiActivityMemory)) != MSPTI_SUCCESS) {
+    if (Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activityMemory),
+                                                         sizeof(msptiActivityMemory)) != MSPTI_SUCCESS)
+    {
         MSPTI_LOGE("ReportMemoryActivity fail, please check buffer");
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
 }
 
-msptiResult MemoryReporter::ReportMemsetActivity(const MemsetRecord &record)
+msptiResult MemoryReporter::ReportMemsetActivity(const MemsetRecord& record)
 {
     msptiActivityMemset* activityMemset = GetDefaultMemsetActivity().Get();
-    if (UNLIKELY(activityMemset == nullptr)) {
-        MSPTI_LOGE("Get Default MarkActivity is nullptr");
+    if (UNLIKELY(activityMemset == nullptr))
+    {
+        MSPTI_LOGE("Get Default MemsetActivity is nullptr");
         return MSPTI_ERROR_INNER;
     }
     activityMemset->value = record.value;
@@ -195,19 +246,21 @@ msptiResult MemoryReporter::ReportMemsetActivity(const MemsetRecord &record)
         (record.stream == nullptr ? MSPTI_INVALID_STREAM_ID : Common::GetStreamId(record.stream));
     activityMemset->correlationId = Common::ContextManager::GetInstance()->GetCorrelationId();
     activityMemset->isAsync = record.isAsync;
-    if (Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity *>(activityMemset), sizeof(msptiActivityMemset)) != MSPTI_SUCCESS) {
+    if (Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activityMemset),
+                                                         sizeof(msptiActivityMemset)) != MSPTI_SUCCESS)
+    {
         MSPTI_LOGE("ReportMemsetActivity fail, please check buffer");
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
 }
 
-msptiResult MemoryReporter::ReportMemcpyActivity(const MemcpyRecord &record)
+msptiResult MemoryReporter::ReportMemcpyActivity(const MemcpyRecord& record)
 {
     msptiActivityMemcpy* activityMemcpy = GetDefaultMemcpyActivity().Get();
-    if (UNLIKELY(activityMemcpy == nullptr)) {
-        MSPTI_LOGE("Get Default MarkActivity is nullptr");
+    if (UNLIKELY(activityMemcpy == nullptr))
+    {
+        MSPTI_LOGE("Get Default MemcpyActivity is nullptr");
         return MSPTI_ERROR_INNER;
     }
     activityMemcpy->copyKind = GetMsptiMemcpyKind(record.copyKind);
@@ -219,12 +272,13 @@ msptiResult MemoryReporter::ReportMemcpyActivity(const MemcpyRecord &record)
         (record.stream == nullptr ? MSPTI_INVALID_STREAM_ID : Common::GetStreamId(record.stream));
     activityMemcpy->correlationId = Common::ContextManager::GetInstance()->GetCorrelationId();
     activityMemcpy->isAsync = record.isAsync;
-    if (Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity *>(activityMemcpy), sizeof(msptiActivityMemcpy)) != MSPTI_SUCCESS) {
+    if (Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activityMemcpy),
+                                                         sizeof(msptiActivityMemcpy)) != MSPTI_SUCCESS)
+    {
         MSPTI_LOGE("ReportMemcpyActivity fail, please check buffer");
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
 }
-} // Reporter
-} // Mspti
+}  // namespace Reporter
+}  // namespace Mspti
