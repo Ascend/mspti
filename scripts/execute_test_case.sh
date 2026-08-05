@@ -38,10 +38,30 @@ bash ${CUR_DIR}/download_thirdparty.sh
 rm -rf ${TOP_DIR}/test/build_llt
 mkdir -p ${TOP_DIR}/test/build_llt
 cd ${TOP_DIR}/test/build_llt
-change_file_to_unix_format  # change file from dos to unix format, so that gcov exclude comment can be added
-add_gcov_excl_line  # add gcov exclude comment for macro definition code lines to raise branch coverage
+
+# gcov 覆盖率统计需要给 MSPTI_* 宏加 LCOV_EXCL_LINE 注释，且需要 Unix 换行。
+# 为避免污染源文件，先备份 csrc，修改后编译测试，最后恢复。
+BACKUP_DIR=$(mktemp -d)
+cp -a ${TOP_DIR}/csrc ${BACKUP_DIR}/csrc_bak || { echo "[execute_test_case] WARN: failed to backup csrc, aborting"; exit 1; }
+
+# trap 必须在 csrc 被修改之前注册，否则 set -e 提前退出时无法恢复
+cleanup_and_restore() {
+    echo "[execute_test_case] Restoring csrc from backup..."
+    rm -rf ${TOP_DIR}/csrc
+    cp -a ${BACKUP_DIR}/csrc_bak ${TOP_DIR}/csrc
+    rm -rf ${BACKUP_DIR}
+}
+trap cleanup_and_restore EXIT
+
+change_file_to_unix_format
+add_gcov_excl_line
+
 PYTHON_ROOT=$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("prefix"))')
 PYTHON_EXEC=$(which python3)
+
+# pyenv Python 的库不在默认路径，需加到 LD_LIBRARY_PATH
+PYTHON_LIB_DIR=$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
+export LD_LIBRARY_PATH="${PYTHON_LIB_DIR}:${LD_LIBRARY_PATH}"
 
 cmake ../ -DPACKAGE=ut -DBOOST_INCLUDE_DIRS=${TOP_DIR}/test/opensource/boost -DPython_ROOT_DIR=${PYTHON_ROOT} -DPython_EXECUTABLE=${PYTHON_EXEC}
 make -j$(nproc)

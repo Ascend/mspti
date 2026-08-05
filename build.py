@@ -91,6 +91,16 @@ class BuildManager:
             # 补充依赖下载处理
             pass
 
+        # 支持 only_down_deps 参数：仅下载依赖，不继续编译（IDE Debug 构建使用）
+        extra_options = {}
+        for opt in self.args.extra:
+            key, _, val = opt.partition('=')
+            extra_options[key] = val
+
+        if extra_options.get('only_down_deps') == 'true':
+            logging.info("only_down_deps=true, exiting after dependency download.")
+            return
+
         if 'test' in self.args.command:
             # -------------------- 单元测试 --------------------
             self._execute_command(["bash", "scripts/execute_test_case.sh"], cwd=self.project_root)

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.14.1)
 project(mspti_project)
 set(CMAKE_SKIP_RPATH TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(TOP_DIR ${CMAKE_SOURCE_DIR})
 
 if(${CMAKE_INSTALL_PREFIX} STREQUAL "/usr/local")

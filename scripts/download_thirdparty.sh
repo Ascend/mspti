@@ -75,7 +75,14 @@ mkdir -p ${OPENSOURCE_DIR} && cd ${OPENSOURCE_DIR}
 
 download_boost
 mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
-[ ! -d "googletest" ] && git clone https://gitcode.com/GitHub_Trending/go/googletest.git -b release-1.12.1
+if [ ! -d "googletest" ]; then
+    git clone https://gitcode.com/GitHub_Trending/go/googletest.git -b release-1.10.0
+    # 移除 googletest 内部 -Werror，避免 GCC 编译失败
+    sed -i 's/set(cxx_base_flags "-Wall -Wshadow -Werror")/set(cxx_base_flags "-Wall -Wshadow")/' \
+        googletest/googletest/cmake/internal_utils.cmake
+    sed -i 's/set(cxx_base_flags "-Wall -Wshadow -Werror -Wconversion")/set(cxx_base_flags "-Wall -Wshadow -Wconversion")/' \
+        googletest/googletest/cmake/internal_utils.cmake
+fi
 [ ! -d "mockcpp" ] && git clone https://gitcode.com/hhz0/mockcpp.git -b msprof
 
 mkdir -p ${PLATFORM_DIR} && cd ${PLATFORM_DIR}

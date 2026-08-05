@@ -3,9 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Visual Studio Code files
-.vscode
-.vs
+# VS Code — track only shared configs (launch.json, tasks.json)
+.vscode/settings.json
 
 # PyCharm files
 .idea
@@ -14,15 +13,29 @@ __pycache__/
 /opensource/
 platform/
 
-# build
+# build outputs
 build/
 prefix/
+output/
+artifacts/
+*.so
 
-# mspti build cache
+# Python
+dist/
+*.egg-info/
 mspti/mspti.egg-info/
 mspti/lib64/
 
-# test cache file
+# Cache directories
+.cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Devcontainer generated
+.devcontainer/.host-gitconfig
+
+# test cache
 test/build_llt/
 test/output/
 test/opensource
