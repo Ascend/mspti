@@ -19,7 +19,7 @@ msPTI（MindStudio Profiler Tools Interface）是华为昇腾 MindStudio 提供�
 - **CANN（含 msPTI）**：建议优先安装 CANN 软件（Toolkit + ops 包），msPTI 已集成于 CANN 中。若已安装 CANN，则可直接使用。
   - CANN 快速安装：[昇腾社区 CANN 下载](https://www.hiascend.com/cann/download)
 - **Python 环境**：若使用 msPTI Python API，请确保 Python 3.10+ 环境已配置。
-- **PyTorch + torch_npu**（可选）：Python Monitor 样例依赖 PyTorch 框架和 TorchNPU（[安装指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/installation_description.md)）。
+- **PyTorch + torch_npu**（可选）：Python Monitor 样例依赖 PyTorch 框架和 TorchNPU（[安装指南](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/quick_install.md)）。
 
 ### 2.3 约束说明
 

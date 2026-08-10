@@ -138,7 +138,7 @@ msPTI 提供两类 API：
 
 ### Q17: Python 样例需要额外安装什么？
 
-Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU 软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.7.1/docs/zh/installation_guide/installation_description.md)》。
+Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/quick_install.md)》。
 
 ### Q18: 什么是 Activity Buffer？如何管理？
 
