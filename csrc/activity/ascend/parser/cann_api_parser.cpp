@@ -75,8 +75,8 @@ class CannApiParser::CannApiParserImpl
         api.pt.processId = Mspti::Common::Utils::GetPid();
         api.name = name.data();
         api.pt.threadId = data->threadId;
-        api.start = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(data->beginTime);
-        api.end = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(data->endTime);
+        api.start = Mspti::Common::ContextManager::GetInstance()->GetHostRealTime(data->beginTime);
+        api.end = Mspti::Common::ContextManager::GetInstance()->GetHostRealTime(data->endTime);
         api.correlationId = Mspti::Common::ContextManager::GetInstance()->GetCorrelationId(data->threadId);
         if (Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&api),
                                                                     sizeof(msptiActivityApi)) != MSPTI_SUCCESS)

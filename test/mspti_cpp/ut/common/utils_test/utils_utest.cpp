@@ -17,6 +17,7 @@
 #include <linux/limits.h>
 #include <sys/syscall.h>
 
+#include <cstdint>
 #include <fstream>
 
 #include "csrc/common/runtime_utils.h"
@@ -234,6 +235,54 @@ TEST_F(UtilsUtest, StrToI32ShouldReturnFalseWhenConvertOutOfRange)
     int32_t dest = 0;
     EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, "999999999999"));
     EXPECT_FALSE(Mspti::Common::Utils::StrToI32(dest, "-999999999999"));
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnTrueWhenConvertValidNumber)
+{
+    uint32_t dest = 0;
+    EXPECT_TRUE(Mspti::Common::Utils::StrToU32(dest, "123"));
+    EXPECT_EQ(dest, 123);
+    EXPECT_TRUE(Mspti::Common::Utils::StrToU32(dest, "0"));
+    EXPECT_EQ(dest, 0);
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnTrueWhenConvertUint32Max)
+{
+    uint32_t dest = 0;
+    EXPECT_TRUE(Mspti::Common::Utils::StrToU32(dest, "4294967295"));
+    EXPECT_EQ(dest, UINT32_MAX);
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnFalseWhenConvertEmptyString)
+{
+    uint32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, ""));
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnFalseWhenConvertNonNumericString)
+{
+    uint32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, "abc"));
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, "12a34"));
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnFalseWhenConvertOutOfLongRange)
+{
+    uint32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, std::string(30, '9')));
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnFalseWhenConvertExceedsUint32Max)
+{
+    uint32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, "4294967296"));
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, "18446744073709551615"));
+}
+
+TEST_F(UtilsUtest, StrToU32ShouldReturnFalseWhenConvertNegativeNumber)
+{
+    uint32_t dest = 0;
+    EXPECT_FALSE(Mspti::Common::Utils::StrToU32(dest, "-1"));
 }
 
 TEST_F(UtilsUtest, GetCANNModuleVersionShouldReturnEmptyWhenVersionNotFound)

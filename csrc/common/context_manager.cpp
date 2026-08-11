@@ -68,9 +68,7 @@ static uint64_t GetDevFreq(uint32_t device)
 {
     constexpr uint64_t DEFAULT_FREQ = 50;
     static const std::unordered_map<PlatformType, uint64_t> FREQ_MAP = {
-        {PlatformType::CHIP_910B, 50},
-        {PlatformType::CHIP_310B, 50},
-    };
+        {PlatformType::CHIP_910B, 50}, {PlatformType::CHIP_310B, 50}, {PlatformType::CHIP_V6, 1000}};
     int64_t freq = 0;
     DrvError ret = HalGetDeviceInfo(device, DRV_MODULE_TYPE_SYSTEM, DRV_INFO_TYPE_DEV_OSC_FREQUE, &freq);
     if (ret != DRV_ERROR_NONE)
@@ -91,7 +89,7 @@ static uint64_t GetHostFreq()
     return (ret == DRV_ERROR_NONE) ? freq : ERR_FREQ;
 }
 
-static bool HostFreqIsEnableImpl()
+static bool IsHostFreqEnabledImpl()
 {
     int32_t apiVersion = 0;
     constexpr int32_t SUPPORT_OSC_FREQ_API_VERSION = 0x071905;  // 支持获取host freq的驱动版本号
@@ -110,7 +108,7 @@ static uint64_t GetDevStartSysCnt(uint32_t device)
     return (ret == DRV_ERROR_NONE) ? static_cast<uint64_t>(syscnt) : ERR_SYSCNT;
 }
 
-void ContextManager::InitDevTimeInfo(uint32_t deviceId)
+void ContextManager::InitDeviceTimeInfo(uint32_t deviceId)
 {
     static constexpr uint32_t AVE_NUM = 2;
     std::unique_ptr<DevTimeInfo> dev_ptr = nullptr;
@@ -120,18 +118,18 @@ void ContextManager::InitDevTimeInfo(uint32_t deviceId)
         return;
     }
     dev_ptr->freq = GetDevFreq(deviceId);
-    auto t1 = Mspti::Common::Utils::GetClockRealTimeNs();
+    auto t1 = GetCurrentHostRealTimeNs();
     dev_ptr->startSysCnt = GetDevStartSysCnt(deviceId);
-    auto t2 = Mspti::Common::Utils::GetClockRealTimeNs();
+    auto t2 = GetCurrentHostRealTimeNs();
     dev_ptr->startRealTime = (t2 + t1) / AVE_NUM;
 
     std::lock_guard<std::mutex> lk(devTimeMtx_);
     devTimeInfo_[deviceId] = std::move(dev_ptr);
 }
 
-bool ContextManager::HostFreqIsEnable()
+bool ContextManager::IsHostFreqEnabled()
 {
-    static bool flag = HostFreqIsEnableImpl();
+    static bool flag = IsHostFreqEnabledImpl();
     return flag;
 }
 
@@ -145,7 +143,7 @@ void ContextManager::InitHostTimeInfo()
         MSPTI_LOGE("Failed to init hostTimeInfo_.");
         return;
     }
-    if (!HostFreqIsEnable())
+    if (!IsHostFreqEnabled())
     {
         auto t1 = Mspti::Common::Utils::GetClockMonotonicRawNs();
         auto t2 = Mspti::Common::Utils::GetClockMonotonicRawNs();
@@ -156,14 +154,14 @@ void ContextManager::InitHostTimeInfo()
         curHostTimeInfo_->freq = GetHostFreq();
         curHostTimeInfo_->startSysCnt = Mspti::Common::Utils::GetHostSysCnt();
     }
-    auto t1 = Mspti::Common::Utils::GetClockRealTimeNs();
-    auto t2 = Mspti::Common::Utils::GetClockRealTimeNs();
+    auto t1 = GetCurrentHostRealTimeNs();
+    auto t2 = GetCurrentHostRealTimeNs();
     curHostTimeInfo_->startRealTime = (t2 + t1) / AVE_NUM;
     std::lock_guard<std::mutex> lk(hostTimeMtx_);
     hostTimeInfo_ = std::move(curHostTimeInfo_);
 }
 
-uint64_t ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, uint64_t sysCnt)
+uint64_t ContextManager::GetDeviceRealTime(uint32_t deviceId, uint64_t sysCnt)
 {
     DevTimeInfo devTimeInfo{};
     {
@@ -175,10 +173,10 @@ uint64_t ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, uint64_t sysCn
         }
         devTimeInfo = *iter->second;
     }
-    return CalculateRealTime(sysCnt, devTimeInfo);
+    return ConvertCounterToRealTime(sysCnt, devTimeInfo);
 }
 
-std::vector<uint64_t> ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, const std::vector<uint64_t> &sysCnts)
+std::vector<uint64_t> ContextManager::GetDeviceRealTime(uint32_t deviceId, const std::vector<uint64_t> &sysCnts)
 {
     DevTimeInfo devTimeInfo{};
     {
@@ -193,12 +191,12 @@ std::vector<uint64_t> ContextManager::GetRealTimeFromSysCnt(uint32_t deviceId, c
     std::vector<uint64_t> ans(sysCnts.size());
     for (size_t i = 0; i < sysCnts.size(); i++)
     {
-        ans[i] = CalculateRealTime(sysCnts[i], devTimeInfo);
+        ans[i] = ConvertCounterToRealTime(sysCnts[i], devTimeInfo);
     }
     return ans;
 }
 
-uint64_t ContextManager::GetRealTimeFromSysCnt(uint64_t sysCnt)
+uint64_t ContextManager::GetHostRealTime(uint64_t sysCnt)
 {
     DevTimeInfo hostTime{};
     {
@@ -209,16 +207,16 @@ uint64_t ContextManager::GetRealTimeFromSysCnt(uint64_t sysCnt)
         }
         hostTime = *hostTimeInfo_;
     }
-    return CalculateRealTime(sysCnt, hostTime);
+    return ConvertCounterToRealTime(sysCnt, hostTime);
 }
 
-uint64_t ContextManager::CalculateRealTimeWithMonotonicTime(uint64_t timestamp, const DevTimeInfo &devTimeInfo)
+uint64_t ContextManager::ConvertMonotonicCounterToRealTime(uint64_t timestamp, const DevTimeInfo &devTimeInfo)
 {
     int64_t diff = static_cast<int64_t>(timestamp) - static_cast<int64_t>(devTimeInfo.startMonotonicRawNs);
     return diff + static_cast<int64_t>(devTimeInfo.startRealTime);
 }
 
-uint64_t ContextManager::CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevTimeInfo &devTimeInfo)
+uint64_t ContextManager::ConvertSysCntToRealTime(uint64_t sysCnt, const DevTimeInfo &devTimeInfo)
 {
     if (UNLIKELY(devTimeInfo.freq == ERR_FREQ))
     {
@@ -230,21 +228,38 @@ uint64_t ContextManager::CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevT
            static_cast<int64_t>(devTimeInfo.startRealTime);
 }
 
-uint64_t ContextManager::CalculateRealTime(uint64_t sysCnt, const DevTimeInfo &devTimeInfo)
+uint64_t ContextManager::ConvertCounterToRealTime(uint64_t sysCnt, const DevTimeInfo &devTimeInfo)
 {
-    return (devTimeInfo.freq == ERR_FREQ) ? CalculateRealTimeWithMonotonicTime(sysCnt, devTimeInfo)
-                                          : CalculateRealTimeWithSysCnt(sysCnt, devTimeInfo);
+    return (devTimeInfo.freq == ERR_FREQ) ? ConvertMonotonicCounterToRealTime(sysCnt, devTimeInfo)
+                                          : ConvertSysCntToRealTime(sysCnt, devTimeInfo);
 }
 
 uint64_t ContextManager::GetHostTimeStampNs()
 {
-    return HostFreqIsEnable() ? GetRealTimeFromSysCnt(Common::Utils::GetHostSysCnt())
-                              : Common::Utils::GetClockRealTimeNs();
+    std::call_once(hostTimeInfoInitFlag_, [this] { InitHostTimeInfo(); });
+    return IsHostFreqEnabled() ? GetHostRealTime(Common::Utils::GetHostSysCnt()) : GetCurrentHostRealTimeNs();
 }
 
 uint64_t ContextManager::GetHostSysCnt()
 {
-    return HostFreqIsEnable() ? Common::Utils::GetHostSysCnt() : Common::Utils::GetClockMonotonicRawNs();
+    return IsHostFreqEnabled() ? Common::Utils::GetHostSysCnt() : Common::Utils::GetClockMonotonicRawNs();
+}
+
+msptiResult ContextManager::SetTimestampCallback(msptiTimestampCallbackFunc funcTimestamp)
+{
+    if (funcTimestamp == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    timestampCallback_.store(funcTimestamp);
+    InitHostTimeInfo();
+    return MSPTI_SUCCESS;
+}
+
+inline uint64_t ContextManager::GetCurrentHostRealTimeNs()
+{
+    auto callback = timestampCallback_.load(std::memory_order_relaxed);
+    return (callback != nullptr ? callback() : Common::Utils::GetClockRealTimeNs());
 }
 
 PlatformType ContextManager::GetChipType(uint32_t deviceId)
@@ -298,7 +313,7 @@ void ContextManager::Run()
         const auto devices = Mspti::Activity::ActivityManager::GetInstance()->GetAllValidDevice();
         for (auto device : devices)
         {
-            InitDevTimeInfo(device);
+            InitDeviceTimeInfo(device);
         }
         InitHostTimeInfo();
     }
@@ -343,7 +358,7 @@ bool ContextManager::GetHostTimeInfo(DevTimeInfo &devTimeInfo)
     return true;
 }
 
-bool ContextManager::GetCurDevTimeInfo(uint32_t deviceId, DevTimeInfo &devTimeInfo)
+bool ContextManager::GetDeviceTimeInfo(uint32_t deviceId, DevTimeInfo &devTimeInfo)
 {
     std::lock_guard<std::mutex> lk(devTimeMtx_);
     auto iter = devTimeInfo_.find(deviceId);

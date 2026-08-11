@@ -193,5 +193,32 @@ bool Utils::StrToI32(int32_t& dest, const std::string& numStr)
     }
     return true;
 }
+
+bool Utils::StrToU32(uint32_t& dest, const std::string& numStr)
+{
+    if (numStr.empty())
+    {
+        return false;
+    }
+    size_t pos = 0;
+    try
+    {
+        uint64_t val = std::stoull(numStr, &pos);
+        if (val > UINT32_MAX)
+        {
+            return false;
+        }
+        dest = static_cast<uint32_t>(val);
+    }
+    catch (...)
+    {
+        return false;
+    }
+    if (pos != numStr.size())
+    {
+        return false;
+    }
+    return true;
+}
 }  // namespace Common
 }  // namespace Mspti

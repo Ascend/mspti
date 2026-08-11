@@ -13,31 +13,31 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
-
+ */
 #include <atomic>
-#include "securec.h"
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
-
+#include "csrc/common/runtime_utils.h"
+#include "csrc/common/utils.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "mspti.h"
+#include "securec.h"
 
-namespace {
+namespace
+{
 std::atomic<uint64_t> g_records{0};
 
 std::atomic<uint64_t> g_massive_records{0};
 std::atomic<uint64_t> g_total_records{0};
 
-class ActivityUtest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
+class ActivityUtest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { GlobalMockObject::verify(); }
     virtual void TearDown() {}
 };
 
@@ -45,7 +45,7 @@ void UserBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecords)
 {
     printf("========== UserBufferRequest ============\n");
     constexpr uint32_t bufSize = 2 * 1024 * 1024;
-    *buffer = static_cast<uint8_t*>(malloc(bufSize));
+    *buffer = static_cast<uint8_t *>(malloc(bufSize));
     *size = bufSize;
     *maxNumRecords = 0;
 }
@@ -54,7 +54,7 @@ void UserLittleBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecor
 {
     printf("========== UserBufferRequest ============\n");
     constexpr uint32_t bufSize = 1024;
-    *buffer = static_cast<uint8_t*>(malloc(bufSize));
+    *buffer = static_cast<uint8_t *>(malloc(bufSize));
     *size = bufSize;
     *maxNumRecords = 0;
 }
@@ -62,27 +62,33 @@ void UserLittleBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecor
 static void ActivityParser(msptiActivity *pRecord)
 {
     g_records++;
-    if (pRecord->kind == MSPTI_ACTIVITY_KIND_MARKER) {
-        msptiActivityMarker* activity = reinterpret_cast<msptiActivityMarker*>(pRecord);
-        if (activity->sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_HOST) {
+    if (pRecord->kind == MSPTI_ACTIVITY_KIND_MARKER)
+    {
+        msptiActivityMarker *activity = reinterpret_cast<msptiActivityMarker *>(pRecord);
+        if (activity->sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_HOST)
+        {
             printf("kind: %d, mode: %d, timestamp: %lu, markId: %lu, processId: %d, threadId: %u, name: %s\n",
-                activity->kind, activity->sourceKind, activity->timestamp, activity->id,
-                activity->objectId.pt.processId,
-                activity->objectId.pt.threadId, activity->name);
+                   activity->kind, activity->sourceKind, activity->timestamp, activity->id,
+                   activity->objectId.pt.processId, activity->objectId.pt.threadId, activity->name);
         }
     }
 }
 
 void MassiveBufferComplete(uint8_t *buffer, size_t size, size_t validSize)
 {
-    if (validSize > 0) {
+    if (validSize > 0)
+    {
         msptiActivity *pRecord = NULL;
         msptiResult status = MSPTI_SUCCESS;
-        do {
+        do
+        {
             status = msptiActivityGetNextRecord(buffer, validSize, &pRecord);
-            if (status == MSPTI_SUCCESS) {
+            if (status == MSPTI_SUCCESS)
+            {
                 g_massive_records++;
-            } else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED) {
+            }
+            else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+            {
                 break;
             }
         } while (true);
@@ -93,14 +99,19 @@ void MassiveBufferComplete(uint8_t *buffer, size_t size, size_t validSize)
 void UserBufferComplete(uint8_t *buffer, size_t size, size_t validSize)
 {
     printf("========== UserBufferComplete ============\n");
-    if (validSize > 0) {
+    if (validSize > 0)
+    {
         msptiActivity *pRecord = NULL;
         msptiResult status = MSPTI_SUCCESS;
-        do {
+        do
+        {
             status = msptiActivityGetNextRecord(buffer, validSize, &pRecord);
-            if (status == MSPTI_SUCCESS) {
+            if (status == MSPTI_SUCCESS)
+            {
                 ActivityParser(pRecord);
-            } else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED) {
+            }
+            else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+            {
                 break;
             }
         } while (true);
@@ -120,8 +131,7 @@ void TestActivityApi()
     api.pt.threadId = 0;
     api.correlationId = 1;
     api.name = "Api";
-    Mspti::Activity::ActivityManager::GetInstance()->Record(
-        reinterpret_cast<msptiActivity*>(&api), sizeof(api));
+    Mspti::Activity::ActivityManager::GetInstance()->Record(reinterpret_cast<msptiActivity *>(&api), sizeof(api));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_API));
 }
 
@@ -139,8 +149,7 @@ void TestActivityKernel()
     kernel.correlationId = 1;
     kernel.type = "KERNEL_AIVEC";
     kernel.name = "Kernel";
-    Mspti::Activity::ActivityManager::GetInstance()->Record(
-        reinterpret_cast<msptiActivity*>(&kernel), sizeof(kernel));
+    Mspti::Activity::ActivityManager::GetInstance()->Record(reinterpret_cast<msptiActivity *>(&kernel), sizeof(kernel));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
 }
 
@@ -151,7 +160,8 @@ void RecordMassiveMarkerActivity()
     constexpr uint32_t markNum = 10000;
     constexpr uint32_t flushPeriod = 20;
     auto instance = Mspti::Activity::ActivityManager::GetInstance();
-    for (size_t i = 0; i < markNum ; ++i) {
+    for (size_t i = 0; i < markNum; ++i)
+    {
         activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
         activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
         activity.timestamp = timeStamp;
@@ -159,9 +169,10 @@ void RecordMassiveMarkerActivity()
         activity.objectId.pt.processId = 0;
         activity.objectId.pt.threadId = 0;
         activity.name = "UserMark";
-        instance->Record(reinterpret_cast<msptiActivity*>(&activity), sizeof(activity));
+        instance->Record(reinterpret_cast<msptiActivity *>(&activity), sizeof(activity));
         g_total_records += 1;
-        if (i % flushPeriod == 0) {
+        if (i % flushPeriod == 0)
+        {
             EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
         }
     }
@@ -169,23 +180,20 @@ void RecordMassiveMarkerActivity()
 
 TEST_F(ActivityUtest, ShouldRetSuccessWhenSetAllKindWithCorrectApiInvocationSequence)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, UserBufferComplete));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
     auto instance = Mspti::Activity::ActivityManager::GetInstance();
-    EXPECT_EQ(MSPTI_SUCCESS, instance ->SetDevice(0));
-    EXPECT_EQ(MSPTI_SUCCESS, instance ->ResetAllDevice());
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
     msptiActivityMarker activity;
     constexpr uint64_t timeStamp = 1614659207688700;
     constexpr uint32_t markNum = 10;
     uint64_t totalActivitys = 0;
-    for (size_t i = 0; i < markNum ; ++i) {
+    for (size_t i = 0; i < markNum; ++i)
+    {
         activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
         activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
         activity.timestamp = timeStamp;
@@ -193,7 +201,7 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenSetAllKindWithCorrectApiInvocationSequ
         activity.objectId.pt.processId = 0;
         activity.objectId.pt.threadId = 0;
         activity.name = "UserMark";
-        instance->Record(reinterpret_cast<msptiActivity*>(&activity), sizeof(activity));
+        instance->Record(reinterpret_cast<msptiActivity *>(&activity), sizeof(activity));
         totalActivitys += 1;
     }
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
@@ -210,7 +218,7 @@ TEST_F(ActivityUtest, ShouldRetInvalidParameterErrorWhenSetWrongParam)
     EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityRegisterCallbacks(nullptr, nullptr));
     EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityEnable(MSPTI_ACTIVITY_KIND_FORCE_INT));
     EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityDisable(MSPTI_ACTIVITY_KIND_FORCE_INT));
-    msptiActivity* activity;
+    msptiActivity *activity;
     EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetNextRecord(nullptr, 0, &activity));
 }
 
@@ -242,17 +250,13 @@ TEST_F(ActivityUtest, MsptiActivityIsEnabledWillReturnFalseWhenDisableMarkerKind
 
 TEST_F(ActivityUtest, ShouldRetSuccessWhenSetPeriodFlushTime)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserLittleBufferRequest, UserBufferComplete));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
     auto instance = Mspti::Activity::ActivityManager::GetInstance();
-    EXPECT_EQ(MSPTI_SUCCESS, instance ->SetDevice(0));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
 
     msptiActivityMarker activity;
     constexpr uint64_t timeStamp = 1614659207688700;
@@ -260,7 +264,8 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenSetPeriodFlushTime)
     constexpr uint32_t testPeriodFlushTime = 1;
     constexpr uint32_t sleepTime = 100000;
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushPeriod(testPeriodFlushTime));
-    for (size_t i = 0; i < markNum ; ++i) {
+    for (size_t i = 0; i < markNum; ++i)
+    {
         usleep(sleepTime);
         activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
         activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
@@ -269,10 +274,11 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenSetPeriodFlushTime)
         activity.objectId.pt.processId = 0;
         activity.objectId.pt.threadId = 0;
         activity.name = "UserMark";
-        instance->Record(reinterpret_cast<msptiActivity*>(&activity), sizeof(activity));
+        instance->Record(reinterpret_cast<msptiActivity *>(&activity), sizeof(activity));
     }
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushPeriod(0));
-        for (size_t i = 0; i < markNum ; ++i) {
+    for (size_t i = 0; i < markNum; ++i)
+    {
         usleep(sleepTime);
         activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
         activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
@@ -281,9 +287,9 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenSetPeriodFlushTime)
         activity.objectId.pt.processId = 0;
         activity.objectId.pt.threadId = 0;
         activity.name = "UserMark";
-        instance->Record(reinterpret_cast<msptiActivity*>(&activity), sizeof(activity));
+        instance->Record(reinterpret_cast<msptiActivity *>(&activity), sizeof(activity));
     }
-    EXPECT_EQ(MSPTI_SUCCESS, instance ->ResetAllDevice());
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
 }
@@ -302,16 +308,16 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenPushAndPopExternalCorrelationId)
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 1));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, 1));
 
-    EXPECT_EQ(
-        MSPTI_SUCCESS, Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(1));
+    EXPECT_EQ(MSPTI_SUCCESS,
+              Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(1));
 
-    uint64_t value = 12345678901234567890; // 一个具体的uint64_t类型的变量
+    uint64_t value = 12345678901234567890;  // 一个具体的uint64_t类型的变量
     uint64_t *test = &value;
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, test));
     EXPECT_EQ(1, *test);
 
-    EXPECT_EQ(
-        MSPTI_SUCCESS, Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(1));
+    EXPECT_EQ(MSPTI_SUCCESS,
+              Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(1));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, test));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, test));
@@ -324,12 +330,12 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenPushAndPopExternalCorrelationId)
 TEST_F(ActivityUtest, GetRecordSuccessWhenBufferNull)
 {
     size_t validSize = sizeof(msptiActivityMarker);
-    uint8_t* buffer = nullptr;
+    uint8_t *buffer = nullptr;
     msptiActivity *pRecord = NULL;
     EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetNextRecord(buffer, validSize, &pRecord));
 
-    buffer = static_cast<uint8_t*>(malloc(validSize));
-    msptiActivityMarker* activity = new msptiActivityMarker();
+    buffer = static_cast<uint8_t *>(malloc(validSize));
+    msptiActivityMarker *activity = new msptiActivityMarker();
     activity->kind = MSPTI_ACTIVITY_KIND_MARKER;
     memcpy_s(buffer, validSize, activity, sizeof(msptiActivityMarker));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNextRecord(buffer, validSize, &pRecord));
@@ -339,7 +345,6 @@ TEST_F(ActivityUtest, GetRecordSuccessWhenBufferNull)
     free(buffer);
 }
 
-
 TEST_F(ActivityUtest, MultThreadFlushAll)
 {
     MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
@@ -348,15 +353,133 @@ TEST_F(ActivityUtest, MultThreadFlushAll)
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
 
     std::vector<std::thread> worker;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         worker.push_back(std::thread(RecordMassiveMarkerActivity));
     }
-    for (auto &thread : worker) {
-        if (thread.joinable()) {
+    for (auto &thread : worker)
+    {
+        if (thread.joinable())
+        {
             thread.join();
         }
     }
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
     EXPECT_EQ(g_total_records.load(), g_massive_records.load());
 }
+
+TEST_F(ActivityUtest, MsptiGetVersionReturnsInvalidParameterWhenVersionNull)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiGetVersion(nullptr));
 }
+
+TEST_F(ActivityUtest, MsptiGetVersionReturnsVersionWhenModuleVersionAvailable)
+{
+    MOCKER_CPP(&Mspti::Common::GetCANNModuleVersion).stubs().will(returnValue(std::string("9.2.0")));
+    uint32_t version = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiGetVersion(&version));
+    constexpr uint32_t EXPECTED_VERSION = 9 * 10000 + 2 * 100 + 0;
+    EXPECT_EQ(EXPECTED_VERSION, version);
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetStructSizeReturnsInvalidParameterWhenSizeNull)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_MARKER, 0, nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetStructSizeReturnsInvalidKindForInvalidKind)
+{
+    size_t size = 0;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_KIND, msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_INVALID, 0, &size));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_KIND, msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_FORCE_INT, 0, &size));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetStructSizeReturnsSizeForValidKind)
+{
+    size_t size = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_MARKER, 0, &size));
+    EXPECT_EQ(sizeof(msptiActivityMarker), size);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_KERNEL, 0, &size));
+    EXPECT_EQ(sizeof(msptiActivityKernel), size);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_MEMCPY, 0, &size));
+    EXPECT_EQ(sizeof(msptiActivityMemcpy), size);
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetEnabledKindsReturnsInvalidParameterWhenCountNull)
+{
+    msptiActivityKind buffer[16] = {};
+    uint32_t bufferSize = 16;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetEnabledKinds(nullptr, buffer, &bufferSize, nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetEnabledKindsReturnsInvalidParameterWhenBufferSizeNull)
+{
+    msptiActivityKind buffer[16] = {};
+    uint32_t count = 0;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetEnabledKinds(nullptr, buffer, nullptr, &count));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetEnabledKindsContainsEnabledKind)
+{
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    uint32_t count = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetEnabledKinds(nullptr, nullptr, nullptr, &count));
+    EXPECT_GE(count, 1);
+
+    msptiActivityKind buffer[16] = {};
+    uint32_t bufferSize = 16;
+    count = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetEnabledKinds(nullptr, buffer, &bufferSize, &count));
+    bool foundMarker = false;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        if (buffer[i] == MSPTI_ACTIVITY_KIND_MARKER)
+        {
+            foundMarker = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundMarker);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetNumDroppedRecordsReturnsInvalidParameterWhenDroppedNull)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetNumDroppedRecords(nullptr, 0, nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetNumDroppedRecordsReturnsDroppedCount)
+{
+    size_t dropped = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNumDroppedRecords(nullptr, 0, &dropped));
+    EXPECT_EQ(0, dropped);
+}
+
+TEST_F(ActivityUtest, MsptiGetTimestampReturnsInvalidParameterWhenTimestampNull)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiGetTimestamp(nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiGetTimestampReturnsSuccess)
+{
+    uint64_t timestamp = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiGetTimestamp(&timestamp));
+    EXPECT_GT(timestamp, 0ULL);
+}
+
+TEST_F(ActivityUtest, MsptiActivityRegisterTimestampCallbackReturnsInvalidParameterWhenNull)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityRegisterTimestampCallback(nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiActivityRegisterTimestampCallbackReturnsSuccess)
+{
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterTimestampCallback(
+                                 []() -> uint64_t { return Mspti::Common::Utils::GetClockRealTimeNs(); }));
+    uint64_t timestamp = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiGetTimestamp(&timestamp));
+    EXPECT_GT(timestamp, 0ULL);
+}
+}  // namespace

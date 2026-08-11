@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "csrc/common/concurrent_map.h"
+#include "csrc/include/mspti_activity.h"
 #include "csrc/include/mspti_result.h"
 
 namespace Mspti
@@ -60,20 +61,29 @@ class ContextManager final
 {
    public:
     static ContextManager* GetInstance();
-    void InitDevTimeInfo(uint32_t deviceId);
+
+    // Time calibration initialization
+    void InitDeviceTimeInfo(uint32_t deviceId);
     void InitHostTimeInfo();
-    bool HostFreqIsEnable();
+    bool IsHostFreqEnabled();
     bool GetHostTimeInfo(DevTimeInfo& devTimeInfo);
-    bool GetCurDevTimeInfo(uint32_t deviceId, DevTimeInfo& devTimeInfo);
-    static uint64_t CalculateRealTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
-    static uint64_t CalculateRealTimeWithMonotonicTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
-    static uint64_t CalculateRealTimeWithSysCnt(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
-    uint64_t GetRealTimeFromSysCnt(uint32_t deviceId, uint64_t sysCnt);
-    std::vector<uint64_t> GetRealTimeFromSysCnt(uint32_t deviceId, const std::vector<uint64_t>& sysCnts);
-    // Host
-    uint64_t GetRealTimeFromSysCnt(uint64_t sysCnt);
+    bool GetDeviceTimeInfo(uint32_t deviceId, DevTimeInfo& devTimeInfo);
+
+    // Counter -> real time conversion (pure, static)
+    static uint64_t ConvertCounterToRealTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
+    static uint64_t ConvertSysCntToRealTime(uint64_t sysCnt, const DevTimeInfo& devTimeInfo);
+    static uint64_t ConvertMonotonicCounterToRealTime(uint64_t monotonicNs, const DevTimeInfo& devTimeInfo);
+    // Host counter -> real time conversion
+    uint64_t GetHostRealTime(uint64_t sysCnt);
+    // Device counter -> real time conversion
+    uint64_t GetDeviceRealTime(uint32_t deviceId, uint64_t sysCnt);
+    std::vector<uint64_t> GetDeviceRealTime(uint32_t deviceId, const std::vector<uint64_t>& sysCnts);
+
+    // Host real-time accessors
     uint64_t GetHostTimeStampNs();
     uint64_t GetHostSysCnt();
+    msptiResult SetTimestampCallback(msptiTimestampCallbackFunc funcTimestamp);
+
     PlatformType GetChipType(uint32_t deviceId);
     uint64_t GetCorrelationId(uint32_t threadId = 0);
     uint64_t UpdateAndReportCorrelationId();
@@ -95,10 +105,13 @@ class ContextManager final
 
     void Run();
 
+    uint64_t GetCurrentHostRealTimeNs();
+
    private:
     std::unordered_map<uint32_t, std::unique_ptr<DevTimeInfo>> devTimeInfo_;
     std::mutex devTimeMtx_;
 
+    std::once_flag hostTimeInfoInitFlag_;
     std::mutex hostTimeMtx_;
     std::unique_ptr<DevTimeInfo> hostTimeInfo_;
 
@@ -112,6 +125,8 @@ class ContextManager final
 
     ConcurrentMap<uint32_t, uint64_t> threadCorrelationIdInfo_;
     std::unordered_map<uint32_t, ContextInfo> deviceInfoCache_;
+
+    std::atomic<msptiTimestampCallbackFunc> timestampCallback_{nullptr};
 };
 }  // namespace Common
 }  // namespace Mspti

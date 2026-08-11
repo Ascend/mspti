@@ -132,7 +132,7 @@ int8_t MsptiHostFreqIsEnableImpl()
 {
     constexpr int8_t enable = 1;
     constexpr int8_t disable = 0;
-    return Mspti::Common::ContextManager::GetInstance()->HostFreqIsEnable() ? enable : disable;
+    return Mspti::Common::ContextManager::GetInstance()->IsHostFreqEnabled() ? enable : disable;
 }
 
 int32_t MsptiApiReporterCallbackImpl(uint32_t agingFlag, const MsprofApi* const data)

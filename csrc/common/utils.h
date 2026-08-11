@@ -159,6 +159,7 @@ class Utils
     static std::string GetEnv(const std::string& name);
     static bool StartsWith(const std::string& str, const std::string& prefix);
     static bool StrToI32(int32_t& dest, const std::string& numStr);
+    static bool StrToU32(uint32_t& dest, const std::string& numStr);
 };
 }  // namespace Common
 }  // namespace Mspti

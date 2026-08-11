@@ -71,7 +71,7 @@ msptiResult DeviceTaskCalculator::AssembleTasksTimeWithSocLog(uint32_t deviceId,
     }
     else if (socLog.funcType == STARS_FUNC_TYPE_END)
     {
-        std::vector<uint64_t> timeFromSysCnt = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(
+        std::vector<uint64_t> timeFromSysCnt = Mspti::Common::ContextManager::GetInstance()->GetDeviceRealTime(
             deviceId, {deviceTask.start, socLog.timestamp});
         deviceTask.start = timeFromSysCnt[0];
         deviceTask.end = timeFromSysCnt[1];
@@ -115,7 +115,7 @@ msptiResult DeviceTaskCalculator::AssembleSubTasksTimeWithFftsLog(uint32_t devic
     }
     else
     {
-        auto timeFromSysCnt = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(
+        auto timeFromSysCnt = Mspti::Common::ContextManager::GetInstance()->GetDeviceRealTime(
             deviceId, {subTask.start, fftsLog.timestamp});
         subTask.start = timeFromSysCnt[0];
         subTask.end = timeFromSysCnt[1];

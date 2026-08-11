@@ -1,4 +1,4 @@
-add_executable(context_manager_utest 
+add_executable(context_manager_utest
     ${SRC_FILE}
     main.cpp
     context_manager_utest.cpp

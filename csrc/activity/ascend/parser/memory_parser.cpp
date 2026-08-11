@@ -217,8 +217,8 @@ class MemoryParser::MemoryParserImpl
         auto cmpUpper = [](uint64_t val, const ObjectPtr<T> &ptr) { return val < ptr->start; };
         auto rightIt = std::upper_bound(data.begin(), data.end(), api.endTime, cmpUpper);
 
-        auto realBeginTime = Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(api.beginTime);
-        auto realEndTime = Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(api.endTime);
+        auto realBeginTime = Common::ContextManager::GetInstance()->GetHostRealTime(api.beginTime);
+        auto realEndTime = Common::ContextManager::GetInstance()->GetHostRealTime(api.endTime);
 
         for (auto it = leftIt; it != rightIt; ++it)
         {

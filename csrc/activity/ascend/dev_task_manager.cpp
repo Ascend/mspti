@@ -100,7 +100,7 @@ msptiResult DevTaskManager::StartDevProfTask(uint32_t deviceId, const ActivitySw
         MSPTI_LOGE("Get device: %u channels failed.", deviceId);
         return MSPTI_ERROR_INNER;
     }
-    Mspti::Common::ContextManager::GetInstance()->InitDevTimeInfo(deviceId);
+    Mspti::Common::ContextManager::GetInstance()->InitDeviceTimeInfo(deviceId);
     // 根据DeviceId配置项，开启CANN软件栈的Profiling任务
     if (StartCANNProfTask(deviceId, kinds) != MSPTI_SUCCESS)
     {

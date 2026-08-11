@@ -265,7 +265,7 @@ bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const So
         task = std::move(it->second);  // copy
         device_kernel_map_.erase(it);
         std::vector<uint64_t> timeFromSysCnt =
-            Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(deviceId, {task->start, socLog.timestamp});
+            Common::ContextManager::GetInstance()->GetDeviceRealTime(deviceId, {task->start, socLog.timestamp});
         task->start = timeFromSysCnt[0];
         task->end = timeFromSysCnt[1];
         return true;

@@ -17,6 +17,7 @@
 
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
+#include "csrc/common/utils.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
@@ -44,23 +45,23 @@ TEST_F(ContextManagerUtest, GetInstance)
     EXPECT_EQ(contextManager, anotherInstance);
 }
 
-TEST_F(ContextManagerUtest, GetRealTimeFromSysCnt)
+TEST_F(ContextManagerUtest, GetDeviceRealTime)
 {
     uint64_t sysCnt = 1000000;
     uint32_t deviceId = 0;
-    EXPECT_NO_THROW(contextManager->InitDevTimeInfo(deviceId));
+    EXPECT_NO_THROW(contextManager->InitDeviceTimeInfo(deviceId));
 
-    uint64_t result = contextManager->GetRealTimeFromSysCnt(deviceId, sysCnt);
+    uint64_t result = contextManager->GetDeviceRealTime(deviceId, sysCnt);
     EXPECT_GT(result, 0ULL);
 }
 
-TEST_F(ContextManagerUtest, GetRealTimeFromSysCntVector)
+TEST_F(ContextManagerUtest, GetDeviceRealTimeVector)
 {
     std::vector<uint64_t> sysCnts = {1000000, 2000000, 3000000};
     uint32_t deviceId = 0;
-    EXPECT_NO_THROW(contextManager->InitDevTimeInfo(deviceId));
+    EXPECT_NO_THROW(contextManager->InitDeviceTimeInfo(deviceId));
 
-    std::vector<uint64_t> results = contextManager->GetRealTimeFromSysCnt(deviceId, sysCnts);
+    std::vector<uint64_t> results = contextManager->GetDeviceRealTime(deviceId, sysCnts);
     EXPECT_EQ(results.size(), sysCnts.size());
     for (const auto& result : results)
     {
@@ -68,12 +69,12 @@ TEST_F(ContextManagerUtest, GetRealTimeFromSysCntVector)
     }
 }
 
-TEST_F(ContextManagerUtest, GetRealTimeFromSysCntHost)
+TEST_F(ContextManagerUtest, GetHostRealTime)
 {
     uint64_t sysCnt = 1000000;
     EXPECT_NO_THROW(contextManager->InitHostTimeInfo());
 
-    uint64_t result = contextManager->GetRealTimeFromSysCnt(sysCnt);
+    uint64_t result = contextManager->GetHostRealTime(sysCnt);
     EXPECT_GT(result, 0ULL);
 }
 
@@ -140,22 +141,22 @@ TEST_F(ContextManagerUtest, TimeCalculationFunctions)
 
     uint64_t sysCnt = 500000001000ULL;  // 1us
 
-    uint64_t resultMonotonic = ContextManager::CalculateRealTimeWithMonotonicTime(sysCnt, devTimeInfo);
-    uint64_t resultSysCnt = ContextManager::CalculateRealTimeWithSysCnt(sysCnt, devTimeInfo);
-    uint64_t result = ContextManager::CalculateRealTime(sysCnt, devTimeInfo);
+    uint64_t resultMonotonic = ContextManager::ConvertMonotonicCounterToRealTime(sysCnt, devTimeInfo);
+    uint64_t resultSysCnt = ContextManager::ConvertSysCntToRealTime(sysCnt, devTimeInfo);
+    uint64_t result = ContextManager::ConvertCounterToRealTime(sysCnt, devTimeInfo);
 
     EXPECT_GT(resultMonotonic, devTimeInfo.startRealTime);
     EXPECT_GT(resultSysCnt, devTimeInfo.startRealTime);
     EXPECT_EQ(result, resultSysCnt);
 }
 
-TEST_F(ContextManagerUtest, GetCurDevTimeInfo)
+TEST_F(ContextManagerUtest, GetDeviceTimeInfo)
 {
     uint32_t deviceId = 0;
     DevTimeInfo devTimeInfo;
-    EXPECT_NO_THROW(contextManager->InitDevTimeInfo(deviceId));
+    EXPECT_NO_THROW(contextManager->InitDeviceTimeInfo(deviceId));
 
-    auto result = contextManager->GetCurDevTimeInfo(deviceId, devTimeInfo);
+    auto result = contextManager->GetDeviceTimeInfo(deviceId, devTimeInfo);
     EXPECT_TRUE(result);
     EXPECT_GT(devTimeInfo.freq, 0ULL);
 }
@@ -164,9 +165,9 @@ TEST_F(ContextManagerUtest, ShouldInitDeviceFreqWithDefaultValueWhenDrvFailed)
 {
     MOCKER_CPP(HalGetDeviceInfo).stubs().will(returnValue(DRV_ERROR_NOT_SUPPORT));
     constexpr uint32_t deviceId = 0;
-    EXPECT_NO_THROW(contextManager->InitDevTimeInfo(deviceId));
+    EXPECT_NO_THROW(contextManager->InitDeviceTimeInfo(deviceId));
     DevTimeInfo devTimeInfo;
-    EXPECT_TRUE(contextManager->GetCurDevTimeInfo(deviceId, devTimeInfo));
+    EXPECT_TRUE(contextManager->GetDeviceTimeInfo(deviceId, devTimeInfo));
     constexpr uint64_t expectedFreq = 50ULL;
     EXPECT_EQ(expectedFreq, devTimeInfo.freq);
     constexpr uint64_t expectedStartSysCnt = 0ULL;
@@ -175,10 +176,10 @@ TEST_F(ContextManagerUtest, ShouldInitDeviceFreqWithDefaultValueWhenDrvFailed)
     EXPECT_EQ(devTimeInfo.startMonotonicRawNs, 0ULL);
 }
 
-TEST_F(ContextManagerUtest, HostFreqIsEnable)
+TEST_F(ContextManagerUtest, IsHostFreqEnabled)
 {
     EXPECT_NO_THROW(contextManager->InitHostTimeInfo());
-    bool isEnabled = contextManager->HostFreqIsEnable();
+    bool isEnabled = contextManager->IsHostFreqEnabled();
     EXPECT_TRUE(isEnabled);
 }
 
@@ -343,5 +344,28 @@ TEST_F(ContextManagerUtest, EncodeThenDecodeDstKeyRoundTripClearsStreamIdOnChipV
         EXPECT_EQ(std::get<1>(decodedRes), 0);
         EXPECT_EQ(std::get<2>(decodedRes), c.taskId);
     }
+}
+
+static uint64_t g_timestampCallbackCallCount = 0;
+static uint64_t TimestampCallbackImpl()
+{
+    g_timestampCallbackCallCount++;
+    return Mspti::Common::Utils::GetClockRealTimeNs();
+}
+
+TEST_F(ContextManagerUtest, SetTimestampCallbackWithNullReturnsInvalidParam)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, contextManager->SetTimestampCallback(nullptr));
+}
+
+TEST_F(ContextManagerUtest, SetTimestampCallbackAndGetCurrentHostRealTimeInvokesCallback)
+{
+    g_timestampCallbackCallCount = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, contextManager->SetTimestampCallback(TimestampCallbackImpl));
+
+    uint64_t t1 = contextManager->GetCurrentHostRealTimeNs();
+    uint64_t t2 = contextManager->GetCurrentHostRealTimeNs();
+    EXPECT_GE(t2, t1);
+    EXPECT_GE(g_timestampCallbackCallCount, 1);
 }
 }  // namespace

@@ -13,7 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_ACTIVITY_ACTIVITY_MANAGER_H
 #define MSPTI_ACTIVITY_ACTIVITY_MANAGER_H
@@ -24,19 +24,21 @@
 #include <mutex>
 #include <set>
 #include <thread>
-#include <vector>
 #include <unordered_set>
-#include <array>
+#include <vector>
 
 #include "csrc/activity/ascend/dev_task_manager.h"
-#include "csrc/include/mspti_activity.h"
 #include "csrc/common/config.h"
+#include "csrc/include/mspti_activity.h"
 
-namespace Mspti {
-namespace Activity {
+namespace Mspti
+{
+namespace Activity
+{
 
-class ActivityBuffer {
-public:
+class ActivityBuffer
+{
+   public:
     ActivityBuffer() = default;
     void Init(msptiBuffersCallbackRequestFunc func);
     void UnInit(msptiBuffersCallbackCompleteFunc func);
@@ -44,7 +46,7 @@ public:
     size_t BufSize();
     size_t ValidSize();
 
-private:
+   private:
     uint8_t *buf_{nullptr};
     size_t buf_size_{0};
     size_t records_num_{0};
@@ -52,13 +54,13 @@ private:
 };
 
 // Singleton
-class ActivityManager {
-public:
+class ActivityManager
+{
+   public:
     using ActivitySwitchType = Mspti::Ascend::DevTaskManager::ActivitySwitchType;
-    static ActivityManager* GetInstance();
-    msptiResult RegisterCallbacks(
-        msptiBuffersCallbackRequestFunc funcBufferRequested,
-        msptiBuffersCallbackCompleteFunc funcBufferCompleted);
+    static ActivityManager *GetInstance();
+    msptiResult RegisterCallbacks(msptiBuffersCallbackRequestFunc funcBufferRequested,
+                                  msptiBuffersCallbackCompleteFunc funcBufferCompleted);
     msptiResult FlushPeriod(uint32_t time);
     msptiResult Record(msptiActivity *activity, size_t size);
     static msptiResult GetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record);
@@ -68,27 +70,29 @@ public:
     msptiResult Register(msptiActivityKind kind);
     msptiResult UnRegister(msptiActivityKind kind);
     bool IsActivityKindEnable(msptiActivityKind kind);
+    msptiResult GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize, uint32_t *enabledKindsCount);
+    size_t GetAndResetDroppedCount() { return cur_drop_num_.exchange(0, std::memory_order_relaxed); }
 
-    const std::unordered_set<uint32_t> GetAllValidDevice();    // 仅返回当前device快照
+    const std::unordered_set<uint32_t> GetAllValidDevice();  // 仅返回当前device快照
 
-private:
+   private:
     ActivityManager();
     ~ActivityManager();
     explicit ActivityManager(const ActivityManager &obj) = delete;
-    ActivityManager& operator=(const ActivityManager &obj) = delete;
+    ActivityManager &operator=(const ActivityManager &obj) = delete;
     explicit ActivityManager(ActivityManager &&obj) = delete;
-    ActivityManager& operator=(ActivityManager &&obj) = delete;
+    ActivityManager &operator=(ActivityManager &&obj) = delete;
     void Run();
     void JoinWorkThreads();
 
-private:
+   private:
     const static std::set<msptiActivityKind> supportActivityKinds_;
     // Replace map with bitest
     ActivitySwitchType activity_switch_;
     ActivitySwitchType append_only_activity_switch_;
     std::unordered_set<uint32_t> devices_;
     std::mutex devices_mtx_;
-    
+
     std::thread t_;
     std::atomic<bool> thread_run_{false};
     std::condition_variable cv_;
@@ -102,14 +106,15 @@ private:
     std::unique_ptr<ActivityBuffer> cur_buf_;
     std::mutex buf_mtx_;
 
+    std::atomic<size_t> cur_drop_num_{0};
     std::atomic<size_t> total_drop_num_{0};
     std::atomic<size_t> total_record_num_{0};
-    
+
     msptiBuffersCallbackRequestFunc bufferRequested_handle_ = nullptr;
     msptiBuffersCallbackCompleteFunc bufferCompleted_handle_ = nullptr;
 };
 
-}  // Activity
-}  // Mspti
+}  // namespace Activity
+}  // namespace Mspti
 
-#endif
+#endif  // MSPTI_ACTIVITY_ACTIVITY_MANAGER_H

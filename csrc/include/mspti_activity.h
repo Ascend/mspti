@@ -37,6 +37,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "mspti_callback.h"
 #include "mspti_result.h"
 
 #define MSPTI_INVALID_DEVICE_ID ((uint32_t)0xFFFFFFFFU)
@@ -831,9 +832,10 @@ extern "C"
      * from the buffer. If input value is NULL, returns the first activity
      * record in the buffer.
      *
-     * @return MSPTI_SUCCESS
+     * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_MAX_LIMIT_REACHED if no more records in the buffer
-     * @return MSPTI_ERROR_INVALID_PARAMETER if buffer is NULL.
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p buffer is NULL
+     * @return MSPTI_ERROR_INVALID_KIND if the activity kind is invalid
      */
     msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record);
 
@@ -900,6 +902,123 @@ extern "C"
      * @return MSPTI_ERROR_QUEUE_EMPTY
      */
     msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t *lastId);
+
+    /**
+     * @brief Get the MSPTI API version.
+     *
+     * This function returns the version of MSPTI as an integer value.
+     * the MSPTI API version uses the format: xxyyzz (e.g., "26.2.0" -> 260200) where:
+     * xx : Major version of the MSPTI API (e.g., 26 for MSPTI 26.x)
+     * yy : Minor version of the MSPTI API (e.g., 00 for 26.0, 01 for 26.1)
+     * zz : MSPTI-specific update or patch version
+     *
+     * @param version [out] The version of MSPTI.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p version is NULL
+     * @return MSPTI_ERROR_INNER if get version failed
+     */
+    msptiResult msptiGetVersion(uint32_t *version);
+
+    /**
+     * @brief Get the size of the activity struct for a given kind.
+     *
+     * This function returns the size of the activity struct for a given activity kind.
+     *
+     * @param activityKind [in] The activity kind to get the size for.
+     * @param version [in] The version of the MSPTI API.
+     * @param activityStructSize [out] The size of the activity struct.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p activityStructSize is NULL
+     * @return MSPTI_ERROR_INVALID_KIND if @p activityKind is invalid
+     */
+    msptiResult msptiActivityGetStructSize(msptiActivityKind activityKind, uint32_t version,
+                                           size_t *activityStructSize);
+
+    /**
+     * @brief Get the enabled activity kinds for a subscriber.
+     *
+     * This function returns the enabled activity kinds for a subscriber.
+     * Note: If the provided buffer size is not sufficient to store all the enabled activity kinds,
+     * we populate the buffer with as much as we can, but return the true value of the number
+     * of enabled activity kinds in @p enabledKindsCount.
+     *
+     * @param subscriber [in] The subscriber handle.
+     * @param buffer [out] The buffer to store the enabled activity kinds. If NULL, the number of enabled activity
+     * kinds is returned in @p enabledKindsCount.
+     * @param bufferSize [in] The size of the buffer. If NULL, only the number of enabled activity kinds is returned.
+     * in @p enabledKindsCount. If NULL and @p buffer is not NULL, MSPTI_ERROR_INVALID_PARAMETER is returned.
+     * @param enabledKindsCount [out] The number of enabled activity kinds. If NULL, MSPTI_ERROR_INVALID_PARAMETER
+     * is returned.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p enabledKindsCount is NULL
+     */
+    msptiResult msptiActivityGetEnabledKinds(msptiSubscriberHandle subscriber, msptiActivityKind *buffer,
+                                             uint32_t *bufferSize, uint32_t *enabledKindsCount);
+
+    /**
+     * @brief Get the number of activity records that were dropped of insufficient buffer space.
+     *
+     * Get the number of records that were dropped because of insufficient buffer space.
+     * The dropped count includes records that could not be recorded because MSPTI did not have
+     * activity buffer space available for the record (because the msptiBuffersCallbackRequestFunc callback did not
+     * return an empty buffer of sufficient size). The dropped count is reset to zero when this function is called.
+     *
+     * @param context [in] The context pointer.
+     * @param streamId [in] The stream ID.
+     * @param dropped [out] The number of records that were dropped since the last call to this function.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p dropped is NULL
+     */
+    msptiResult msptiActivityGetNumDroppedRecords(void *context, uint32_t streamId, size_t *dropped);
+
+    /**
+     * @brief Get the MSPTI timestamp.
+     *
+     * Returns a timestamp normalized to correspond with the start and end timestamps reported in the MSPTI activity
+     * records. The timestamp is reported in nanoseconds.
+     *
+     * @param timestamp [out] Returns the MSPTI timestamp.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p timestamp is NULL
+     */
+    msptiResult msptiGetTimestamp(uint64_t *timestamp);
+
+    /**
+     * Function type for callback used by MSPTI to request a timestamp to be used in activity records.
+     * This callback function signals the MSPTI client that a timestamp needs to be returned.
+     * This timestamp would be treated as normalized timestamp to be used for various purposes in MSPTI.
+     * For example to store start and end timestamps reported in the MSPTI activity records.
+     * The returned timestamp must be in nanoseconds.
+     */
+    typedef uint64_t (*msptiTimestampCallbackFunc)();
+
+    /**
+     * @brief Registers callback function with MSPTI for providing timestamp.
+     *
+     * This function registers a callback function to obtain timestamp of user’s choice instead of using MSPTI provided
+     * timestamp. By default MSPTI uses clock_gettime(CLOCK_REALTIME) on Linux (x86_64, aarch64) platform. Timestamps
+     * for NPU activities such as kernels, communication are recorded directly on the NPU. To provide a unified and
+     * normalized view of these timestamps in relation to CPU time, MSPTI performs a linear interpolation to convert NPU
+     * timestamps into CPU timestamps during post-processing. For activities where timestamps are captured on the NPU,
+     * the timestamp callback is invoked during the post-processing phase, while converting NPU timestamps into CPU
+     * timestamps. For activities for which timestamps are captured directly on the CPU, the timestamp callback is
+     * invoked immediately at the time of the activity. The registration of timestamp callback should be done before any
+     * of the MSPTI activity kinds are enabled to make sure that all the records report the timestamp using the callback
+     * function registered through msptiActivityRegisterTimestampCallback API. Changing the timestamp callback function
+     * in MSPTI through msptiActivityRegisterTimestampCallback API in the middle of the profiling session can cause
+     * records generated prior to the change to report timestamps through previous timestamp method.
+     *
+     * @param funcTimestamp [in] callback which is invoked when a timestamp is needed by MSPTI.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p funcTimestamp is NULL
+     */
+    msptiResult msptiActivityRegisterTimestampCallback(msptiTimestampCallbackFunc funcTimestamp);
 
 #if defined(__GNUC__) && defined(MSPTI_LIB)
 #pragma GCC visibility pop

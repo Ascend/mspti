@@ -13,21 +13,23 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/activity/ascend/parser/parser_manager.h"
 
 #include "csrc/activity/activity_manager.h"
+#include "csrc/activity/ascend/parser/cann_hash_cache.h"
+#include "csrc/activity/ascend/parser/mstx_parser.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
 #include "csrc/common/thread_local.h"
 #include "csrc/common/utils.h"
-#include "csrc/activity/ascend/parser/mstx_parser.h"
-#include "csrc/activity/ascend/parser/cann_hash_cache.h"
 
-namespace Mspti {
-namespace Parser {
+namespace Mspti
+{
+namespace Parser
+{
 
-ParserManager *ParserManager::GetInstance()
+ParserManager* ParserManager::GetInstance()
 {
     static ParserManager instance;
     return &instance;
@@ -35,16 +37,19 @@ ParserManager *ParserManager::GetInstance()
 
 msptiResult ParserManager::ReportApi(const MsprofApi* const data)
 {
-    if (!data) {
+    if (!data)
+    {
         return MSPTI_ERROR_INNER;
     }
     const auto& name = CannHashCache::GetHashInfo(data->itemId);
-    if (name.empty()) {
+    if (name.empty())
+    {
         MSPTI_LOGW("Get HashInfo failed. HashId: %lu", data->itemId);
         return MSPTI_SUCCESS;
     }
 
-    if (!Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_API)) {
+    if (!Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_API))
+    {
         return MSPTI_SUCCESS;
     }
 
@@ -53,11 +58,12 @@ msptiResult ParserManager::ReportApi(const MsprofApi* const data)
     api.pt.processId = Mspti::Common::Utils::GetPid();
     api.name = name.data();
     api.pt.threadId = data->threadId;
-    api.start = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(data->beginTime);
-    api.end = Mspti::Common::ContextManager::GetInstance()->GetRealTimeFromSysCnt(data->endTime);
+    api.start = Mspti::Common::ContextManager::GetInstance()->GetHostRealTime(data->beginTime);
+    api.end = Mspti::Common::ContextManager::GetInstance()->GetHostRealTime(data->endTime);
     api.correlationId = Mspti::Common::ContextManager::GetInstance()->GetCorrelationId(data->threadId);
-    if (Mspti::Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity*>(&api), sizeof(msptiActivityApi)) != MSPTI_SUCCESS) {
+    if (Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&api),
+                                                                sizeof(msptiActivityApi)) != MSPTI_SUCCESS)
+    {
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
@@ -65,10 +71,12 @@ msptiResult ParserManager::ReportApi(const MsprofApi* const data)
 
 void ParserManager::ReportStepTrace(uint32_t deviceId, const StepTraceBasic* stepTrace)
 {
-    if (!stepTrace) {
+    if (!stepTrace)
+    {
         return;
     }
-    switch (stepTrace->tagId) {
+    switch (stepTrace->tagId)
+    {
         case STEP_TRACE_TAG_MARKEX:
             MstxParser::GetInstance()->ReportMarkDataToActivity(deviceId, stepTrace);
             break;
@@ -77,38 +85,38 @@ void ParserManager::ReportStepTrace(uint32_t deviceId, const StepTraceBasic* ste
     }
 }
 
-msptiResult ParserManager::StartAnalysisTask(msptiActivityKind kind)
-{
-    return GetAnalysisTask(kind)->StartTask();
-}
+msptiResult ParserManager::StartAnalysisTask(msptiActivityKind kind) { return GetAnalysisTask(kind)->StartTask(); }
 
-msptiResult ParserManager::StartAnalysisTasks(const std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT> &kinds)
+msptiResult ParserManager::StartAnalysisTasks(const std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT>& kinds)
 {
-    for (int kindIndex = 0; kindIndex < MSPTI_ACTIVITY_KIND_COUNT; kindIndex++) {
-        if (!kinds[kindIndex]) {
+    for (int kindIndex = 0; kindIndex < MSPTI_ACTIVITY_KIND_COUNT; kindIndex++)
+    {
+        if (!kinds[kindIndex])
+        {
             continue;
         }
         auto kind = static_cast<msptiActivityKind>(kindIndex);
-        if (StartAnalysisTask(kind) != MSPTI_SUCCESS) {
+        if (StartAnalysisTask(kind) != MSPTI_SUCCESS)
+        {
             return MSPTI_ERROR_INNER;
         }
     }
     return MSPTI_SUCCESS;
 }
 
-msptiResult ParserManager::StopAnalysisTask(msptiActivityKind kind)
-{
-    return GetAnalysisTask(kind)->StopTask();
-}
+msptiResult ParserManager::StopAnalysisTask(msptiActivityKind kind) { return GetAnalysisTask(kind)->StopTask(); }
 
-msptiResult ParserManager::StopAnalysisTasks(const std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT> &kinds)
+msptiResult ParserManager::StopAnalysisTasks(const std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT>& kinds)
 {
-    for (int kindIndex = 0; kindIndex < MSPTI_ACTIVITY_KIND_COUNT; kindIndex++) {
-        if (!kinds[kindIndex]) {
+    for (int kindIndex = 0; kindIndex < MSPTI_ACTIVITY_KIND_COUNT; kindIndex++)
+    {
+        if (!kinds[kindIndex])
+        {
             continue;
         }
         auto kind = static_cast<msptiActivityKind>(kindIndex);
-        if (StopAnalysisTask(kind) != MSPTI_SUCCESS) {
+        if (StopAnalysisTask(kind) != MSPTI_SUCCESS)
+        {
             return MSPTI_ERROR_INNER;
         }
     }
@@ -117,12 +125,13 @@ msptiResult ParserManager::StopAnalysisTasks(const std::array<std::atomic<bool>,
 
 Mspti::Parser::ProfTask* ParserManager::GetAnalysisTask(msptiActivityKind kind)
 {
-    switch (kind) {
+    switch (kind)
+    {
         case MSPTI_ACTIVITY_KIND_COMMUNICATION:
             return &CannTrackCache::GetInstance();
         default:
             return &Mspti::Parser::NullProfTask::GetInstance();
     }
 }
-}  // Parser
-}  // Mspti
+}  // namespace Parser
+}  // namespace Mspti

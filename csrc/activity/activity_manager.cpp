@@ -18,9 +18,11 @@
 #include "csrc/activity/activity_manager.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <regex>
 #include <thread>
 
 #include "csrc/activity/ascend/dev_task_manager.h"
@@ -74,6 +76,35 @@ inline bool IsNeededDevTask(msptiActivityKind kind)
     return needDevTaskKinds.find(kind) != needDevTaskKinds.end();
 }
 }  // namespace
+
+inline bool GetActivityStructSize(msptiActivityKind kind, size_t *size)
+{
+    if (size == nullptr)
+    {
+        return false;
+    }
+    if (kind <= MSPTI_ACTIVITY_KIND_INVALID || MSPTI_ACTIVITY_KIND_COUNT <= kind)
+    {
+        return false;
+    }
+    static constexpr std::array<size_t, MSPTI_ACTIVITY_KIND_COUNT> activityKindDataSize = {
+        0,                                         // MSPTI_ACTIVITY_KIND_INVALID
+        sizeof(msptiActivityMarker),               // MSPTI_ACTIVITY_KIND_MARKER
+        sizeof(msptiActivityKernel),               // MSPTI_ACTIVITY_KIND_KERNEL
+        sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_API
+        sizeof(msptiActivityHccl),                 // MSPTI_ACTIVITY_KIND_HCCL
+        sizeof(msptiActivityMemory),               // MSPTI_ACTIVITY_KIND_MEMORY
+        sizeof(msptiActivityMemset),               // MSPTI_ACTIVITY_KIND_MEMSET
+        sizeof(msptiActivityMemcpy),               // MSPTI_ACTIVITY_KIND_MEMCPY
+        sizeof(msptiActivityExternalCorrelation),  // MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION
+        sizeof(msptiActivityCommunication),        // MSPTI_ACTIVITY_KIND_COMMUNICATION
+        sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_ACL_API
+        sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_NODE_API
+        sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_RUNTIME_API
+    };
+    *size = activityKindDataSize[kind];
+    return true;
+}
 
 void ActivityBuffer::Init(msptiBuffersCallbackRequestFunc func)
 {
@@ -268,6 +299,40 @@ msptiResult ActivityManager::UnRegister(msptiActivityKind kind)
 
 bool ActivityManager::IsActivityKindEnable(msptiActivityKind kind) { return activity_switch_[kind]; }
 
+msptiResult ActivityManager::GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize,
+                                             uint32_t *enabledKindsCount)
+{
+    if (enabledKindsCount == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    *enabledKindsCount = 0;
+    for (auto &kindSwitch : activity_switch_)
+    {
+        if (kindSwitch.load(std::memory_order_relaxed))
+        {
+            (*enabledKindsCount)++;
+        }
+    }
+    if (buffer == nullptr)
+    {
+        return MSPTI_SUCCESS;
+    }
+    if (bufferSize == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    auto writeCount = std::min(*bufferSize, *enabledKindsCount);
+    for (uint32_t i = 0, written = 0; i < activity_switch_.size() && written < writeCount; i++)
+    {
+        if (activity_switch_[i].load(std::memory_order_relaxed))
+        {
+            buffer[written++] = static_cast<msptiActivityKind>(i);
+        }
+    }
+    return MSPTI_SUCCESS;
+}
+
 msptiResult ActivityManager::GetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record)
 {
     if (buffer == nullptr)
@@ -282,29 +347,15 @@ msptiResult ActivityManager::GetNextRecord(uint8_t *buffer, size_t validBufferSi
         return MSPTI_ERROR_MAX_LIMIT_REACHED;
     }
 
-    static const std::unordered_map<msptiActivityKind, size_t> activityKindDataSize = {
-        {MSPTI_ACTIVITY_KIND_MARKER, sizeof(msptiActivityMarker)},
-        {MSPTI_ACTIVITY_KIND_KERNEL, sizeof(msptiActivityKernel)},
-        {MSPTI_ACTIVITY_KIND_API, sizeof(msptiActivityApi)},
-        {MSPTI_ACTIVITY_KIND_HCCL, sizeof(msptiActivityHccl)},
-        {MSPTI_ACTIVITY_KIND_MEMORY, sizeof(msptiActivityMemory)},
-        {MSPTI_ACTIVITY_KIND_MEMSET, sizeof(msptiActivityMemset)},
-        {MSPTI_ACTIVITY_KIND_MEMCPY, sizeof(msptiActivityMemcpy)},
-        {MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION, sizeof(msptiActivityExternalCorrelation)},
-        {MSPTI_ACTIVITY_KIND_COMMUNICATION, sizeof(msptiActivityCommunication)},
-        {MSPTI_ACTIVITY_KIND_ACL_API, sizeof(msptiActivityApi)},
-        {MSPTI_ACTIVITY_KIND_NODE_API, sizeof(msptiActivityApi)},
-        {MSPTI_ACTIVITY_KIND_RUNTIME_API, sizeof(msptiActivityApi)}};
-
     msptiActivityKind *pKind = Common::ReinterpretConvert<msptiActivityKind *>(buffer + pos);
-    auto iter = activityKindDataSize.find(*pKind);
-    if (iter == activityKindDataSize.end())
+    size_t size{0};
+    if (UNLIKELY(!GetActivityStructSize(*pKind, &size) || size == 0))
     {
         MSPTI_LOGE("GetNextRecord failed, invalid kind: %d", *pKind);
-        return MSPTI_ERROR_INNER;
+        return MSPTI_ERROR_INVALID_KIND;
     }
     *record = Common::ReinterpretConvert<msptiActivity *>(buffer + pos);
-    pos += iter->second;
+    pos += size;
     return MSPTI_SUCCESS;
 }
 
@@ -396,6 +447,7 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
     if (cur_buf_->Record(activity, size) != MSPTI_SUCCESS)
     {
         MSPTI_LOGE("Failed to record activity.");
+        cur_drop_num_++;
         total_drop_num_++;
         return MSPTI_ERROR_INNER;
     }
@@ -536,4 +588,93 @@ msptiResult msptiActivityPushExternalCorrelationId(msptiExternalCorrelationKind 
 msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t *lastId)
 {
     return Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->PopExternalCorrelationId(kind, lastId);
+}
+
+msptiResult msptiGetVersion(uint32_t *version)
+{
+    if (version == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    constexpr uint32_t INVALID_VERSION = 0;
+    static auto msptiVersion = []() -> uint32_t
+    {
+        auto versionStr = Mspti::Common::GetCANNModuleVersion("mspti");
+        if (versionStr.empty())
+        {
+            return INVALID_VERSION;
+        }
+        static const std::regex reg(R"(^(\d+)\.(\d+)\.(\d+))");
+        std::smatch match;
+        if (!std::regex_match(versionStr, match, reg) || match.size() < 4)
+        {
+            return INVALID_VERSION;
+        }
+        uint32_t major{0};
+        uint32_t minor{0};
+        uint32_t patch{0};
+        if (!Mspti::Common::Utils::StrToU32(major, match[1].str()) ||
+            !Mspti::Common::Utils::StrToU32(minor, match[2].str()) ||
+            !Mspti::Common::Utils::StrToU32(patch, match[3].str()))
+        {
+            return INVALID_VERSION;
+        }
+        return major * 10000 + minor * 100 + patch;
+    }();
+    if (UNLIKELY(msptiVersion == INVALID_VERSION))
+    {
+        return MSPTI_ERROR_INNER;
+    }
+    *version = msptiVersion;
+    return MSPTI_SUCCESS;
+}
+
+msptiResult msptiActivityGetStructSize(msptiActivityKind activityKind, uint32_t version, size_t *activityStructSize)
+{
+    UNUSED(version);
+    if (activityStructSize == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    size_t size{0};
+    if (!Mspti::Activity::GetActivityStructSize(activityKind, &size) || size == 0)
+    {
+        return MSPTI_ERROR_INVALID_KIND;
+    }
+    *activityStructSize = size;
+    return MSPTI_SUCCESS;
+}
+
+msptiResult msptiActivityGetEnabledKinds(msptiSubscriberHandle subscriber, msptiActivityKind *buffer,
+                                         uint32_t *bufferSize, uint32_t *enabledKindsCount)
+{
+    UNUSED(subscriber);
+    return Mspti::Activity::ActivityManager::GetInstance()->GetEnabledKinds(buffer, bufferSize, enabledKindsCount);
+}
+
+msptiResult msptiActivityGetNumDroppedRecords(void *context, uint32_t streamId, size_t *dropped)
+{
+    UNUSED(context);
+    UNUSED(streamId);
+    if (dropped == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    *dropped = Mspti::Activity::ActivityManager::GetInstance()->GetAndResetDroppedCount();
+    return MSPTI_SUCCESS;
+}
+
+msptiResult msptiGetTimestamp(uint64_t *timestamp)
+{
+    if (timestamp == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    *timestamp = Mspti::Common::ContextManager::GetInstance()->GetHostTimeStampNs();
+    return MSPTI_SUCCESS;
+}
+
+msptiResult msptiActivityRegisterTimestampCallback(msptiTimestampCallbackFunc funcTimestamp)
+{
+    return Mspti::Common::ContextManager::GetInstance()->SetTimestampCallback(funcTimestamp);
 }
