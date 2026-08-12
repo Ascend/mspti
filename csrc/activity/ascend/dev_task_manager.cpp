@@ -18,6 +18,7 @@
 
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
+#include "csrc/activity/ascend/reporter/overhead_reporter.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/inject/profapi_inject.h"
@@ -94,6 +95,8 @@ msptiResult DevTaskManager::StartDevProfTask(uint32_t deviceId, const ActivitySw
         MSPTI_LOGE("Device: %u is offline.", deviceId);
         return MSPTI_ERROR_INNER;
     }
+    Reporter::OverheadRecord overheadRecord(MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE, MSPTI_ACTIVITY_OBJECT_DEVICE);
+    overheadRecord.SetDeviceId(deviceId);
     MSPTI_LOGI("Start DevProfTask, deviceId: %u.", deviceId);
     if (Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->GetAllChannels(deviceId) != MSPTI_SUCCESS)
     {
@@ -143,6 +146,8 @@ msptiResult DevTaskManager::StopDevProfTask(uint32_t deviceId, const ActivitySwi
         MSPTI_LOGE("Device: %u is offline.", deviceId);
         return MSPTI_ERROR_INNER;
     }
+    Reporter::OverheadRecord overheadRecord(MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE, MSPTI_ACTIVITY_OBJECT_DEVICE);
+    overheadRecord.SetDeviceId(deviceId);
     MSPTI_LOGI("Stop DevProfTask, deviceId: %u", deviceId);
     if (StopCANNProfTask(deviceId) != MSPTI_SUCCESS)
     {

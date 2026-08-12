@@ -22,9 +22,9 @@
 
 ### 1.3 混合使用策略
 
-Callback API 和 Activity API 可以同时使能，互不冲突。典型组合：
+Callback API 和 Activity API 可以同时开启，互不冲突。典型组合：
 
-- **Callback 打点 + Activity 采集**：使用 Callback API 在 Launch Kernel 入口/出口调用 `mstxMarkA` 打点，同时使能 Activity API 采集 `MSPTI_ACTIVITY_KIND_MARKER` 和 `MSPTI_ACTIVITY_KIND_KERNEL`，实现 API 上下文与 Kernel 执行数据的关联分析。
+- **Callback 打点 + Activity 采集**：使用 Callback API 在 Launch Kernel 入口/出口调用 `mstxMarkA` 打点，同时开启 Activity API 采集 `MSPTI_ACTIVITY_KIND_MARKER` 和 `MSPTI_ACTIVITY_KIND_KERNEL`，实现 API 上下文与 Kernel 执行数据的关联分析。
 - **Activity 采集 + Python 消费**：使用 C Activity API 采集全量数据，通过 Python 扩展绑定读取和分析结果。
 
 ## 2. 快速导航
@@ -67,6 +67,8 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 | `MSPTI_ERROR_DEVICE_OFFLINE` | 4 | 设备离线 | 无法获取 Device 侧信息 |
 | `MSPTI_ERROR_QUEUE_EMPTY` | 5 | 队列为空 | External Correlation ID 匹配失败 |
 | `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置 LD_PRELOAD | `libmspti.so` 未预加载 |
+| `MSPTI_ERROR_NOT_INITIALIZED` | 7 | 未初始化 | msPTI 未初始化时调用相关接口 |
+| `MSPTI_ERROR_INVALID_KIND` | 8 | 无效 Kind | Activity Kind 无效 |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 | msPTI 初始化失败或内部异常 |
 
 > [!NOTE] Note
@@ -78,10 +80,10 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 - msPTI 依赖 Linux 操作系统和昇腾 NPU 硬件，不支持 Windows 环境。
 - Activity Buffer 缓冲区大小上限为 256 MB。
 - 同一时刻仅支持一个 Callback 订阅者（Subscriber）。
-- 所有 Activity Kind 默认关闭，必须显式调用 `msptiActivityEnable` 使能。
+- 所有 Activity Kind 默认关闭，必须显式调用 `msptiActivityEnable` 开启。
 
 ### 3.4 性能注意事项
 
-- 按需使能 Activity Kind：每多使能一个 Kind 都会增加性能开销。
+- 按需开启 Activity Kind：每多开启一个 Kind 都会增加性能开销。
 - 避免在 Buffer CompleteFunc 中执行耗时操作（文件写入、网络传输等），建议将原始数据放入队列由后台线程异步处理。
 - Python Monitor 的回调函数应尽量轻量，高吞吐场景下推荐使用多线程消费者模式。

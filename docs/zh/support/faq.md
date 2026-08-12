@@ -187,4 +187,4 @@ msPTI 要求 CMake 3.14 及以上版本。请升级 CMake 后重试。
 2. 确认 CANN 环境变量已正确配置：`source ${install_path}/set_env.sh`
 3. 确认没有其他性能采集工具在同时运行。
 4. 确认使用的昇腾产品在支持列表中。
-5. 检查是否正确调用了 `msptiActivityEnable` 使能了对应类型的 Activity Kind。
+5. 检查是否正确调用了 `msptiActivityEnable` 开启了对应类型的 Activity Kind。

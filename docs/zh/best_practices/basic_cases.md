@@ -15,10 +15,10 @@ msPTI 提供三套编程接口，应根据分析目标和开发语言选择合�
 
 ### 混合使用策略
 
-Callback API 和 Activity API 可以同时使能，互不冲突。典型组合：
+Callback API 和 Activity API 可以同时开启，互不冲突。典型组合：
 
-- **Callback 打点 + Activity 采集**：使用 Callback API 在 Launch Kernel 入口/出口调用 `mstxMarkA` 打点，同时使能 Activity API 采集 `MSPTI_ACTIVITY_KIND_MARKER` 和 `MSPTI_ACTIVITY_KIND_KERNEL`，实现 API 上下文与 Kernel 执行数据的关联分析。
-- **Activity 采集 + 自定义消费**：使用 Activity API 使能多种 Kind，在 CompleteFunc 中自定义数据解析和存储逻辑。
+- **Callback 打点 + Activity 采集**：使用 Callback API 在 Launch Kernel 入口/出口调用 `mstxMarkA` 打点，同时开启 Activity API 采集 `MSPTI_ACTIVITY_KIND_MARKER` 和 `MSPTI_ACTIVITY_KIND_KERNEL`，实现 API 上下文与 Kernel 执行数据的关联分析。
+- **Activity 采集 + 自定义消费**：使用 Activity API 开启多种 Kind，在 CompleteFunc 中自定义数据解析和存储逻辑。
 
 ---
 
@@ -68,11 +68,11 @@ void UserBufferComplete(uint8_t *buffer, size_t size, size_t validSize) {
 
 **避免在 CompleteFunc 中执行耗时操作**（文件写入、网络传输等），应将原始数据放入队列由后台线程异步处理。
 
-### 2.2 Activity Kind 使能原则
+### 2.2 Activity Kind 开启原则
 
-- **按需使能**：只使能分析所需的 Kind。每多使能一个 Kind 都会增加性能开销。
+- **按需开启**：只开启分析所需的 Kind。每多开启一个 Kind 都会增加性能开销。
 - **默认全关**：所有 Kind 默认为关闭状态，必须显式调用 `msptiActivityEnable`。
-- **分段采集**：若需要分析不同阶段的不同数据类型，可分段使能/禁用：
+- **分段采集**：若需要分析不同阶段的不同数据类型，可分段开启/关闭：
 
 ```cpp
 // 阶段一：只采集 Kernel
@@ -479,7 +479,7 @@ for name, duration in results:
 **代码要点**：
 
 ```cpp
-// 1. 使能 API 和 Kernel 采集
+// 1. 开启 API 和 Kernel 采集
 msptiActivityEnable(MSPTI_ACTIVITY_KIND_API);
 msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
 
@@ -516,13 +516,13 @@ for (auto &[corrId, api] : apiMap) {
 **方案**：结合 Activity API + Callback API + MSTX 域控制。
 
 ```cpp
-// 在前向传播开始处使能采集
+// 在前向传播开始处开启采集
 msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
 
 // 前向传播代码
 ForwardPass();
 
-// 在前向传播结束后禁用采集，避免反向传播产生的数据
+// 在前向传播结束后关闭采集，避免反向传播产生的数据
 msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL);
 msptiActivityFlushAll(0);
 ```
@@ -534,7 +534,7 @@ msptiActivityFlushAll(0);
 auto domainForward = mstxDomainCreateA("forward");
 auto domainBackward = mstxDomainCreateA("backward");
 
-// 仅使能前向域的 Marker 采集
+// 仅开启前向域的 Marker 采集
 msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER);
 msptiActivityDisableMarkerDomain("backward");
 
@@ -543,7 +543,7 @@ mstxDomainRangeStartA(domainForward, "conv1", stream);
 // ... 前向计算 ...
 mstxDomainRangeEnd(domainForward, id1);
 
-// 使能反向域，关闭前向域
+// 开启反向域，关闭前向域
 msptiActivityEnableMarkerDomain("backward");
 msptiActivityDisableMarkerDomain("forward");
 
@@ -561,7 +561,7 @@ mstxDomainRangeEnd(domainBackward, id2);
 
 | 操作 | 相对开销 | 说明 |
 | --- | --- | --- |
-| `msptiActivityEnable` 使能 Kind | 忽略不计 | 仅设置标志位 |
+| `msptiActivityEnable` 开启 Kind | 忽略不计 | 仅设置标志位 |
 | Activity Buffer 写入 | 低 | 内存写入操作，纳秒级 |
 | RequestFunc 回调 | 中 | 涉及内存分配或缓存查找 |
 | CompleteFunc 回调 | 取决于用户逻辑 | 应保持轻量，避免 I/O |
@@ -570,7 +570,7 @@ mstxDomainRangeEnd(domainBackward, id2);
 
 ### 6.2 降低开销的技巧
 
-1. **精准使能**：只使能需要的 Activity Kind，避免无意义的采集。
+1. **精准开启**：只开启需要的 Activity Kind，避免无意义的采集。
 2. **使用 `msptiEnableCallback` 替代 `msptiEnableDomain`**：精确定位关心的 API。
 3. **避免在回调中执行 I/O**：将数据入队后异步处理。
 4. **合理设置缓冲区大小**：过小的缓冲区导致频繁 Flush，增加 CPU 开销。
@@ -580,7 +580,7 @@ mstxDomainRangeEnd(domainBackward, id2);
 ### 6.3 内存占用
 
 - 每个 Activity Buffer 占用 `size` 参数指定的内存。
-- 多 Kind 使能时，每个 Kind 独立生成记录，总数据量与采集时长和 Activity 密度成正比。
+- 多 Kind 开启时，每个 Kind 独立生成记录，总数据量与采集时长和 Activity 密度成正比。
 - 建议在采集完成后及时调用 `flush_all` 或 `stop` 释放资源。
 
 ---
@@ -590,9 +590,9 @@ mstxDomainRangeEnd(domainBackward, id2);
 | 模式 | 问题 | 正确做法 |
 | --- | --- | --- |
 | 在 CompleteFunc 中写文件 | 阻塞缓冲区回收，导致数据丢失 | 将数据入队，由后台线程写入 |
-| 使能所有 Activity Kind | 不必要的数据采集增加开销 | 只使能分析所需的 Kind |
+| 开启所有 Activity Kind | 不必要的数据采集增加开销 | 只开启分析所需的 Kind |
 | 不处理 `correlationId` 重复 | 漏掉 1:N 的 Kernel 记录 | 使用 `vector` 或 `multimap` |
-| 忘记调用 `msptiActivityRegisterCallbacks` | 使能 Kind 后无数据返回 | 先注册回调，再使能 Kind |
+| 忘记调用 `msptiActivityRegisterCallbacks` | 开启 Kind 后无数据返回 | 先注册回调，再开启 Kind |
 | Push 后忘记 Pop | 外部关联栈错乱 | 确保 Push/Pop 成对出现 |
 | Python 回调中做重量级处理 | 阻塞 Monitor 内部线程 | 使用消费者线程异步处理 |
 | 多进程共用 Monitor 实例 | 数据错乱或崩溃 | 每个进程独立创建 Monitor |

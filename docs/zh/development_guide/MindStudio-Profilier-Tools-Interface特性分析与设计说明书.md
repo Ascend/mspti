@@ -78,7 +78,7 @@ msPTI主要包括以下功能：
     <tr>
         <td>1</td>
         <td>Activity API基础采集能力</td>
-        <td>支持使能/禁用多种Activity Kind的采集，通过异步缓冲区机制将Activity Record返回给用户</td>
+        <td>支持开启/关闭多种Activity Kind的采集，通过异步缓冲区机制将Activity Record返回给用户</td>
         <td>覆盖Kernel、API、Memory、Memcpy、Memset、Marker、HCCL、Communication等类型</td>
     </tr>
     <tr>
@@ -157,7 +157,7 @@ msPTI主要包括以下功能：
 **使用方式**：
 
 - Python场景：使用KernelMonitor + CommunicationMonitor采集计算和通信耗时。
-- C/C++场景：使用Activity API使能KERNEL和API Kind，通过correlationId关联下发与执行。
+- C/C++场景：使用Activity API采集KERNEL和API Kind，通过correlationId关联下发与执行。
 
 ### 场景二：推理延迟分析
 
@@ -169,7 +169,7 @@ msPTI主要包括以下功能：
 
 **触发条件**：多卡分布式训练中，通信开销占比过高，需要分析AllReduce等通信操作的耗时和带宽。
 
-**使用方式**：使用Activity API使能HCCL Kind，或使用Python CommunicationMonitor采集通信算子数据。
+**使用方式**：使用Activity API采集HCCL Kind，或使用Python CommunicationMonitor采集通信算子数据。
 
 ### 场景四：自定义打点监控
 
@@ -183,7 +183,7 @@ msPTI主要包括以下功能：
 
 | 产品类型                                    | 是否支持 |
 | ------------------------------------------- | :------: |
-| Ascend 950 系列产品                   |    √     |
+| Ascend 950 系列产品                         |    √     |
 | Atlas A3 训练系列产品/Atlas A3 推理系列产品 |    √     |
 | Atlas A2 训练系列产品/Atlas A2 推理系列产品 |    √     |
 | Atlas 200I/500 A2 推理产品                  |    √     |
@@ -203,7 +203,7 @@ msPTI主要包括以下功能：
 
 ### 2.3.3性能影响
 
-- Activity API使能Kind后，采集逻辑在每个Activity发生时进行纳秒级的时间戳记录和缓冲区写入，对业务代码的性能影响在5%以内。
+- Activity API开启Kind数据采集后，采集逻辑在每个Activity发生时进行纳秒级的时间戳记录和缓冲区写入，对业务代码的性能影响在5%以内。
 - Callback API在每次API调用时触发函数回调，影响程度取决于回调函数的复杂度。
 - Python Monitor的回调涉及C扩展到Python层的类型转换，建议在回调中仅做轻量操作。
 
@@ -213,7 +213,7 @@ msPTI主要包括以下功能：
 
 msPTI的目标是提供一套统一、高效、易用的Profiling API，使开发者能够：
 
-1. **零成本集成**：通过`LD_PRELOAD`机制注入，无需修改业务代码即可启用采集。
+1. **零成本集成**：通过`LD_PRELOAD`机制注入，无需修改业务代码即可开启采集。
 2. **按需采集**：支持按Activity Kind、按Domain、按Callback ID精细化控制采集范围。
 3. **异步低开销**：通过Activity Buffer异步机制，将采集开销控制在纳秒级。
 4. **多语言覆盖**：同时提供C API和Python API，满足系统层和应用层的不同需求。
@@ -314,7 +314,7 @@ Activity API是msPTI的核心数据采集接口。整体设计围绕以下原则
 
 ### Enable/Disable机制
 
-所有Activity Kind默认关闭。`msptiActivityEnable`/`msptiActivityDisable`通过设置内部标志位控制采集开关。使能后，msPTI在CANN Runtime的对应路径上注册插桩点，开始采集。
+所有Activity Kind默认关闭。`msptiActivityEnable`/`msptiActivityDisable`通过设置内部标志位控制采集开关。开启后，msPTI在CANN Runtime的对应路径上注册插桩点，开始采集。
 
 ```text
 msptiActivityEnable(KIND_KERNEL)
@@ -406,6 +406,64 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 
 不同`msptiExternalCorrelationKind`的栈相互独立，支持嵌套使用。
 
+### 4.3.5 时间戳归一化机制
+
+Activity Record中的`start`/`end`时间戳与Host侧API调用事件位于不同的时间基准（Host计数器或Device计数器）。msPTI通过`ContextManager`统一将各类计数器换算为真实时间（纳秒），保证所有事件的`msptiGetTimestamp`返回值与Record时间戳处于同一时间轴，可直接参与耗时计算。
+
+时间戳来源优先级如下：
+
+```text
+msptiActivityRegisterTimestampCallback(funcTimestamp)
+  → ContextManager 记录外部时间戳回调（原子存储）
+  → InitHostTimeInfo() 基于该回调重新校准Host时基
+msptiGetTimestamp(&ts)
+  → 若存在外部回调，调用自定义回调获取归一化时间戳
+  → 否则使用系统时钟 (GetClockRealTimeNs)
+```
+
+特性点：
+
+- **可注册性**：用户可通过`msptiActivityRegisterTimestampCallback`注入自定义时间函数（返回纳秒），实现分布式场景下的时间对齐。
+- **惰性初始化**：`GetHostTimeStampNs`通过`std::call_once`保证Host时基仅初始化一次。
+- **计数器换算**：根据驱动是否支持Host频率API，选择`SysCnt→RealTime`或`Monotonic→RealTime`换算路径，二者均基于起始时刻的校准值外推，避免每次读取系统调用。
+
+### 4.3.6 版本与结构体大小兼容设计
+
+Activity Record结构体在跨版本演进时可能发生字段增减，为支持向前兼容，msPTI提供版本与结构体大小查询接口：
+
+```text
+msptiGetVersion(&version)                        → version格式 xxyyzz（如260200=26.2.0）
+msptiActivityGetStructSize(kind, version, &size) → 返回指定Kind结构体的字节大小
+msptiActivityGetNextRecord(buffer, size, &record) → 依据记录内kind读取对应大小，跳过无效Kind
+```
+
+- `msptiGetVersion`通过解析CANN模块版本字符串（`major.minor.patch`）换算为整数（`major*10000 + minor*100 + patch`），解析失败返回`MSPTI_ERROR_INNER`。
+- `msptiActivityGetStructSize`内部维护一个以Kind为索引的静态`sizeof`数组（`activityKindDataSize`），非法的Kind（`INVALID`或越界）返回`MSPTI_ERROR_INVALID_KIND`。
+- `msptiActivityGetNextRecord`通过该静态大小表而非动态`unordered_map`定位记录边界，遇到未知Kind（大小为0）时返回`MSPTI_ERROR_INVALID_KIND`，避免越界解析。
+
+### 4.3.7 丢弃记录统计
+
+当用户`RequestFunc`未返回足够大小的空缓冲区，或缓冲区写满后无可用缓冲时，msPTI会在`Record`阶段丢弃当前记录，并维护`cur_drop_num_`与`total_drop_num_`两个原子计数器：
+
+```text
+Record(activity, size) 失败
+  → cur_drop_num_++     （自上次查询以来的丢弃数）
+  → total_drop_num_++   （累计总丢弃数）
+msptiActivityGetNumDroppedRecords(..., &dropped)
+  → dropped = cur_drop_num_.exchange(0)  // 读取后清零
+```
+
+通过该接口，分析工具可量化因缓冲区配置不足造成的采集损失，并据此调整`RequestFunc`的缓冲区大小，优化采集完整度。
+
+### 4.3.8 状态与域查询机制
+
+为便于客户端在运行时探测能力与当前采集范围，msPTI提供一组查询类接口：
+
+- **Activity侧**：`msptiActivityGetEnabledKinds`返回当前已开启的全部Kind，缓冲区不足时按可容纳数量回填并通过参数返回真实数量。
+- **Callback侧**：`msptiSupportedDomains`返回支持的Domain列表；`msptiGetEnabledCallbacks`查询指定Domain下已开启的Callback ID；`msptiGetCallbackState`查询单个Callback的开关状态。
+- **回调名称**：`msptiGetCallbackName`基于静态`DOMAIN_CBID_MAP`映射表（Domain→{Cbid→函数名}）返回Callback ID对应的API函数名，用于日志/展示。
+- **追踪会话**：`msptiIsTracingSessionRunning`通过CallbackManager的`init_`标志判断msPTI库当前是否已被加载并处于活动状态，供工具判断卸载安全性。
+
 ## 4.4子系统间接口
 
 ### 4.4.1 Activity API 函数接口
@@ -413,9 +471,9 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 | 函数 | 分类 | 说明 |
 | --- | --- | --- |
 | `msptiActivityRegisterCallbacks` | 生命周期 | 注册缓冲区Request/Complete回调 |
-| `msptiActivityEnable` | 采集控制 | 使能指定Kind的采集 |
-| `msptiActivityDisable` | 采集控制 | 禁用指定Kind的采集 |
-| `msptiActivityIsEnabled` | 采集控制 | 查询指定Kind是否已使能 |
+| `msptiActivityEnable` | 采集控制 | 开启指定Kind的采集 |
+| `msptiActivityDisable` | 采集控制 | 关闭指定Kind的采集 |
+| `msptiActivityIsEnabled` | 采集控制 | 查询指定Kind是否已开启 |
 | `msptiActivityGetNextRecord` | 数据读取 | 遍历缓冲区中的Activity Record |
 | `msptiActivityFlushAll` | 缓冲刷新 | 强制刷新所有缓冲区 |
 | `msptiActivityFlushPeriod` | 缓冲刷新 | 设置周期性缓冲刷新间隔 |
@@ -423,6 +481,12 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 | `msptiActivityPopExternalCorrelationId` | 外部关联 | 弹出外部关联ID |
 | `msptiActivityEnableMarkerDomain` | 域控制 | 开启指定域的Marker采集 |
 | `msptiActivityDisableMarkerDomain` | 域控制 | 关闭指定域的Marker采集 |
+| `msptiGetVersion` | 版本查询 | 获取msPTI版本号，格式为`xxyyzz`（如`26.2.0`→`260200`） |
+| `msptiActivityGetStructSize` | 兼容性 | 获取指定Activity Kind的结构体大小，结合版本实现跨版本解析 |
+| `msptiActivityGetEnabledKinds` | 状态查询 | 查询当前已开启的Activity Kind列表 |
+| `msptiActivityGetNumDroppedRecords` | 数据统计 | 获取因缓冲区不足而丢弃的记录数（调用后清零） |
+| `msptiGetTimestamp` | 时间戳 | 获取与Activity Record时间轴归一化对齐的当前时间戳（ns） |
+| `msptiActivityRegisterTimestampCallback` | 时间戳 | 注册外部时间戳回调，统一Activity记录的时间基准 |
 
 ### 4.4.2 Callback API 函数接口
 
@@ -430,8 +494,8 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 | --- | --- | --- |
 | `msptiSubscribe` | 生命周期 | 注册回调订阅者 |
 | `msptiUnsubscribe` | 生命周期 | 注销回调订阅者 |
-| `msptiEnableCallback` | 采集控制 | 使能/禁用特定Callback ID |
-| `msptiEnableDomain` | 采集控制 | 使能/禁用整个Domain |
+| `msptiEnableCallback` | 采集控制 | 开启/关闭特定Callback ID |
+| `msptiEnableDomain` | 采集控制 | 开启/关闭整个Domain |
 
 ### 4.4.3 Python API 接口
 
@@ -465,9 +529,10 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 | `MSPTI_ACTIVITY_KIND_MEMCPY` | 7 | `msptiActivityMemcpy` | 内存拷贝操作记录（CANN Runtime层） |
 | `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` | 8 | `msptiActivityExternalCorrelation` | 外部关联记录 |
 | `MSPTI_ACTIVITY_KIND_COMMUNICATION` | 9 | `msptiActivityCommunication` | 通信算子记录 |
-| `MSPTI_ACTIVITY_KIND_ACL_API` | 10 | — | ACL级API调用 |
-| `MSPTI_ACTIVITY_KIND_NODE_API` | 11 | — | Node级API调用 |
-| `MSPTI_ACTIVITY_KIND_RUNTIME_API` | 12 | — | Runtime级API调用 |
+| `MSPTI_ACTIVITY_KIND_ACL_API` | 10 | `msptiActivityApi` | ACL级API调用 |
+| `MSPTI_ACTIVITY_KIND_NODE_API` | 11 | `msptiActivityApi` | Node级API调用 |
+| `MSPTI_ACTIVITY_KIND_RUNTIME_API` | 12 | `msptiActivityApi` | Runtime级API调用 |
+| `MSPTI_ACTIVITY_KIND_OVERHEAD` | 13 | `msptiActivityOverhead` | msPTI自身开销记录（资源创建、Buffer申请/刷新等） |
 
 ### 4.4.5 Callback Domain 枚举
 
@@ -493,7 +558,7 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 
 - 管理订阅者列表（当前仅支持单订阅者）。
 - 维护Domain和Callback ID的Enable/Disable状态。
-- 在API入口/出口检测到使能的Domain或ID时，调用用户回调函数。
+- 在API入口/出口检测到开启的Domain或ID时，调用用户回调函数。
 - 传递包含函数名、参数、返回值、correlationId等信息的`msptiCallbackData`。
 
 **Common模块 (`csrc/common/`)**：
@@ -501,6 +566,7 @@ Pop(INIT, &id)    → 离开初始化阶段，id=0x1
 - 提供线程池、无锁队列等并发基础设施。
 - 提供日志、错误码映射等工具函数。
 - 提供适配层，屏蔽不同CANN版本的接口差异。
+- 提供时间校准基础设施（`ContextManager`），维护Host/Device计数器到真实时间的换算，并支持外部时间戳回调注册。
 
 ### 4.5.2 Python扩展绑定层
 
@@ -536,7 +602,7 @@ BaseMonitor (抽象基类)
 
 msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 
-- **Callback + MSTX**：在Callback中调用`mstxMarkA`打点，同时使能Activity API采集MARKER和KERNEL数据。
+- **Callback + MSTX**：在Callback中调用`mstxMarkA`打点，同时开启Activity API采集MARKER和KERNEL数据。
 - **域控制**：通过`msptiActivityEnableMarkerDomain`/`msptiActivityDisableMarkerDomain`控制MSTX域的采集开关。
 
 ## 4.6DFX属性设计
@@ -545,14 +611,14 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 
 | 操作 | 性能特征 | 优化措施 |
 | --- | --- | --- |
-| Activity Kind使能/禁用 | O(1)，仅设置标志位 | 位图存储，原子操作 |
+| Activity Kind开启/关闭 | O(1)，仅设置标志位 | 位图存储，原子操作 |
 | Activity Record写入 | 纳秒级内存写入 | 预分配缓冲区，避免运行时内存分配 |
 | RequestFunc回调 | 取决于用户实现 | 建议使用预分配缓冲区或缓存复用 |
 | CompleteFunc回调 | 取决于用户处理逻辑 | 建议仅做数据入队，避免I/O |
 | Callback触发 | 函数调用开销 | 通过Domain/ID两级过滤减少不必要的回调 |
 | Python Monitor | C→Python类型转换开销 | 在回调中仅做轻量操作，使用消费者线程 |
 
-**实测结论**：在典型训练场景下，使能KERNEL + API两个Kind时，对训练吞吐的影响在3%~5%以内。
+**实测结论**：在典型训练场景下，开启KERNEL + API两个Kind时，对训练吞吐的影响在3%~5%以内。
 
 ### 4.6.2升级与扩容设计
 
@@ -561,6 +627,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 - msPTI以run包形式发布，升级时自动卸载旧版本并安装新版本。
 - 版本号与CANN版本配套，需关注版本兼容性（参见《[版本说明](https://gitcode.com/Ascend/mspti/releases)》）。
 - API保持向后兼容，新增Activity Kind通过枚举扩展实现，不影响已有接口。
+- 客户端可通过`msptiGetVersion`查询当前版本，结合`msptiActivityGetStructSize`按版本获取各Kind结构体大小，解析不同版本返回的Activity Record，实现二进制级向前兼容。
 
 **扩容设计**：
 
@@ -575,6 +642,8 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 | 缓冲区不足 | msPTI通过RequestFunc申请新缓冲区，若用户返回NULL则丢弃后续记录 | 日志警告`buffer request failed` |
 | 设备离线 | 返回`MSPTI_ERROR_DEVICE_OFFLINE` | 建议检查npu-smi状态 |
 | 未设置LD_PRELOAD | 返回`MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 提示`export LD_PRELOAD=...` |
+| 未初始化 | 返回`MSPTI_ERROR_NOT_INITIALIZED`（后续API需先初始化） | 提示先完成`msptiSubscribe`等初始化流程 |
+| 无效Activity Kind | 返回`MSPTI_ERROR_INVALID_KIND` | 打印Kind值并提示合法范围 |
 | 重复订阅 | 返回`MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED` | 提示单订阅者限制 |
 | 无效参数 | 返回`MSPTI_ERROR_INVALID_PARAMETER` | 打印参数错误详情 |
 | 内存分配失败 | 回调中返回NULL，msPTI丢弃记录 | 建议增大缓冲区或减少并发 |
@@ -609,8 +678,8 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 
 **功能裁剪**：
 
-- Activity Kind按需使能，未使能的Kind不会产生任何采集开销。
-- Callback按Domain/ID粒度使能，未使能的API不会触发回调。
+- Activity Kind按需开启，未开启的Kind不会产生任何采集开销。
+- Callback按Domain/ID粒度开启，未开启的API不会触发回调。
 - Marker域可按名称独立控制，关闭的域不产生打点数据。
 
 ### 4.6.6 可测试性设计
@@ -978,6 +1047,8 @@ typedef union {
 | `MSPTI_ERROR_DEVICE_OFFLINE` | 4 | 设备离线 |
 | `MSPTI_ERROR_QUEUE_EMPTY` | 5 | 队列为空 |
 | `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置LD_PRELOAD |
+| `MSPTI_ERROR_NOT_INITIALIZED` | 7 | 未初始化 |
+| `MSPTI_ERROR_INVALID_KIND` | 8 | 无效Kind |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 |
 
 ### Callback ID

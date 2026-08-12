@@ -1,11 +1,13 @@
-add_executable(mspti_reporter_utest 
+add_executable(mspti_reporter_utest
     ${SRC_FILE}
     main.cpp
     memory_reporter_utest.cpp
+    overhead_reporter_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
     ${TOP_DIR}/csrc/activity/activity_manager.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/memory_reporter.cpp
+    ${TOP_DIR}/csrc/activity/ascend/reporter/overhead_reporter.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/external_correlation_reporter.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/parser_manager.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/communication_calculator.cpp

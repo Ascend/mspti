@@ -22,9 +22,9 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |--|--|
 |**Function类型**|**Function说明**|
 |[msptiActivityRegisterCallbacks](./context/msptiActivityRegisterCallbacks.md)|向msPTI注册回调函数，用于Activity Buffer处理。|
-|[msptiActivityEnable](./context/msptiActivityEnable.md)|用于使能指定类型Activity Kind数据的采集。|
+|[msptiActivityEnable](./context/msptiActivityEnable.md)|用于开启指定类型Activity Kind数据的采集。|
 |[msptiActivityDisable](./context/msptiActivityDisable.md)|停止采集指定类型Activity Kind的数据。|
-|[msptiActivityIsEnabled](./context/msptiActivityIsEnabled.md)|查询指定类型Activity Kind的采集是否使能。|
+|[msptiActivityIsEnabled](./context/msptiActivityIsEnabled.md)|查询指定类型Activity Kind的采集是否开启。|
 |[msptiActivityGetNextRecord](./context/msptiActivityGetNextRecord.md)|依次从Activity Buffer获取Activity Record数据。|
 |[msptiActivityFlushAll](./context/msptiActivityFlushAll.md)|订阅者手动Flush Activity Buffer中记录的数据。|
 |[msptiActivityFlushPeriod](./context/msptiActivityFlushPeriod.md)|设置Flush的执行周期。|
@@ -32,9 +32,16 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |[msptiActivityPopExternalCorrelationId](./context/msptiActivityPopExternalCorrelationId.md)|为调用线程拉取外部关联ID。|
 |[msptiActivityEnableMarkerDomain](./context/msptiActivityEnableMarkerDomain.md)|开启对应域打点的采集。|
 |[msptiActivityDisableMarkerDomain](./context/msptiActivityDisableMarkerDomain.md)|关闭对应域打点的采集。|
+|[msptiActivityGetStructSize](./context/msptiActivityGetStructSize.md)|获取指定Activity Kind对应的结构体大小。|
+|[msptiActivityGetEnabledKinds](./context/msptiActivityGetEnabledKinds.md)|获取订阅者已开启的Activity Kind列表。|
+|[msptiActivityGetNumDroppedRecords](./context/msptiActivityGetNumDroppedRecords.md)|获取因缓冲区空间不足而丢弃的Record数量。|
+|[msptiGetVersion](./context/msptiGetVersion.md)|获取MSPTI API的版本号。|
+|[msptiGetTimestamp](./context/msptiGetTimestamp.md)|获取MSPTI时间戳。|
+|[msptiActivityRegisterTimestampCallback](./context/msptiActivityRegisterTimestampCallback.md)|向msPTI注册时间戳回调函数。|
 |**Typedef类型**|**Typedef说明**|
 |[msptiBuffersCallbackRequestFunc](./context/msptiBuffersCallbackRequestFunc.md)|向msPTI注册回调函数，申请Activity Buffer的存储空间。|
 |[msptiBuffersCallbackCompleteFunc](./context/msptiBuffersCallbackCompleteFunc.md)|向msPTI注册回调函数，释放Activity Buffer中的数据。|
+|[msptiTimestampCallbackFunc](./context/msptiTimestampCallbackFunc.md)|时间戳回调函数类型。|
 |**Enumeration类型**|**Enumeration说明**|
 |[msptiActivityKind](./context/msptiActivityKind.md)|msPTI支持的所有Activity类型。|
 |[msptiActivityFlag](./context/msptiActivityFlag.md)|Activity Record的活动标记。|
@@ -42,6 +49,8 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |[msptiActivityMemoryOperationType](./context/msptiActivityMemoryOperationType.md)|内存操作类型的枚举类。|
 |[msptiActivityMemoryKind](./context/msptiActivityMemoryKind.md)|内存类型的枚举类。|
 |[msptiActivityMemcpyKind](./context/msptiActivityMemcpyKind.md)|内存拷贝类型的枚举类。|
+|[msptiActivityOverheadKind](./context/msptiActivityOverheadKind.md)|msPTI产生开销类型的枚举类。|
+|[msptiActivityObjectKind](./context/msptiActivityObjectKind.md)|Activity对象类型的枚举类。|
 |[msptiExternalCorrelationKind](./context/msptiExternalCorrelationKind.md)|支持关联的外部API的类型。|
 |[msptiCommunicationDataType](./context/msptiCommunicationDataType.md)|记录通信算子的数据类型。|
 |**Data Structure类型**|**Data Structure说明**|
@@ -55,6 +64,7 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |[msptiActivityMemcpy](./context/msptiActivityMemcpy.md)|Activity Record类型MSPTI_ACTIVITY_KIND_MEMCPY对应的结构体。|
 |[msptiActivityExternalCorrelation](./context/msptiActivityExternalCorrelation.md)|Activity Record类型MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION对应的结构体。|
 |[msptiActivityCommunication](./context/msptiActivityCommunication.md)|Activity Record类型MSPTI_ACTIVITY_KIND_COMMUNICATION对应的结构体。|
+|[msptiActivityOverhead](./context/msptiActivityOverhead.md)|Activity Record类型MSPTI_ACTIVITY_KIND_OVERHEAD对应的结构体。|
 |**Union类型**|**Union说明**|
 |[msptiObjectId](./context/msptiObjectId.md)|用于识别Marker的进程ID、线程ID、Device ID、Stream ID。|
 

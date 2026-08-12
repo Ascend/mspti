@@ -16,6 +16,7 @@
  */
 
 // System headers
+#include <chrono>
 #include <vector>
 
 // ACL Header
@@ -125,12 +126,61 @@ int DoAclAdd(aclrtContext context, aclrtStream stream)
     return 0;
 }
 
+// 自定义时间戳回调函数，返回纳秒级时间戳
+uint64_t TimestampCallback()
+{
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch())
+        .count();
+}
+
+void ShowMsptiApiCallResult()
+{
+    // 获取MSPTI API版本号
+    uint32_t version = 0;
+    msptiResult ret = msptiGetVersion(&version);
+    LOG_PRINT("msptiGetVersion result: %d (%s), version: %u\n", ret, GetResultCodeString(ret), version);
+
+    // 获取指定Activity Kind对应的结构体大小
+    size_t structSize = 0;
+    ret = msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_KERNEL, version, &structSize);
+    LOG_PRINT("msptiActivityGetStructSize(MSPTI_ACTIVITY_KIND_KERNEL) result: %d (%s), structSize: %zu\n", ret,
+              GetResultCodeString(ret), structSize);
+
+    // 获取已使能的Activity Kind列表
+    msptiActivityKind enabledKinds[MSPTI_ACTIVITY_KIND_COUNT] = {};
+    uint32_t bufferSize = MSPTI_ACTIVITY_KIND_COUNT;
+    uint32_t enabledKindsCount = 0;
+    ret = msptiActivityGetEnabledKinds(subscriber, enabledKinds, &bufferSize, &enabledKindsCount);
+    LOG_PRINT("msptiActivityGetEnabledKinds result: %d (%s), enabledKindsCount: %u\n", ret, GetResultCodeString(ret),
+              enabledKindsCount);
+    for (uint32_t i = 0; i < enabledKindsCount; i++)
+    {
+        LOG_PRINT("  enabled kind[%u]: %s\n", i, GetActivityKindString(enabledKinds[i]));
+    }
+
+    // 获取因缓冲区空间不足而丢弃的Record数量
+    size_t dropped = 0;
+    ret = msptiActivityGetNumDroppedRecords(nullptr, 0, &dropped);
+    LOG_PRINT("msptiActivityGetNumDroppedRecords result: %d (%s), dropped: %zu\n", ret, GetResultCodeString(ret),
+              dropped);
+
+    // 获取MSPTI时间戳
+    uint64_t timestamp = 0;
+    ret = msptiGetTimestamp(&timestamp);
+    LOG_PRINT("msptiGetTimestamp result: %d (%s), timestamp: %lu\n", ret, GetResultCodeString(ret), timestamp);
+}
+
 void SetUpMspti()
 {
     // 初始化订阅mspti
     InitMspti(nullptr, nullptr);
 
+    // 注册时间戳回调，需在所有Activity Kind使能之前调用
+    msptiResult ret = msptiActivityRegisterTimestampCallback(TimestampCallback);
+    LOG_PRINT("msptiActivityRegisterTimestampCallback result: %d (%s)\n", ret, GetResultCodeString(ret));
+
     // 开启mspti数据采集开关
+    msptiActivityEnable(MSPTI_ACTIVITY_KIND_OVERHEAD);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_API);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_MEMCPY);
@@ -147,7 +197,9 @@ int main()
     aclrtStream stream;
     Init(deviceId, &context, &stream);
     SetUpMspti();
+    ShowMsptiApiCallResult();
     DoAclAdd(context, stream);
+    ShowMsptiApiCallResult();
     DeInit(deviceId, &context, &stream);
 
     DeInitMspti();

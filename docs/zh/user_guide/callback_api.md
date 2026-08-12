@@ -130,26 +130,26 @@ typedef void (*msptiCallbackFunc)(
 msptiResult msptiUnsubscribe(msptiSubscriberHandle subscriber);
 ```
 
-### 3.2 回调使能
+### 3.2 回调开启
 
 #### 3.2.1 msptiEnableDomain
 
-使能或禁用整个 Domain 的所有回调。
+开启或关闭整个 Domain 的所有回调。
 
 ```c
 msptiResult msptiEnableDomain(
-    uint32_t enable,                  // 1 使能，0 禁用
+    uint32_t enable,                  // 1 开启，0 关闭
     msptiSubscriberHandle subscriber,  // 订阅者句柄
     msptiCallbackDomain domain);       // 回调域
 ```
 
 #### 3.2.2 msptiEnableCallback
 
-使能或禁用特定 Domain 中特定 Callback ID 的回调。
+开启或关闭特定 Domain 中特定 Callback ID 的回调。
 
 ```c
 msptiResult msptiEnableCallback(
-    uint32_t enable,                  // 1 使能，0 禁用
+    uint32_t enable,                  // 1 开启，0 关闭
     msptiSubscriberHandle subscriber,  // 订阅者句柄
     msptiCallbackDomain domain,        // 回调域
     msptiCallbackId cbid);             // 回调 ID
@@ -184,7 +184,7 @@ int main() {
     // 1. 订阅回调
     msptiSubscribe(&subscriber, MyCallback, nullptr);
 
-    // 2. 使能整个 Runtime Domain
+    // 2. 开启整个 Runtime Domain
     msptiEnableDomain(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME);
 
     // 3. 执行业务代码（触发 API 调用）
@@ -236,11 +236,11 @@ int main() {
     // 1. 订阅回调，传入 userdata
     msptiSubscribe(&subscriber, LaunchCallback, &ud);
 
-    // 2. 使能特定回调 ID
+    // 2. 开启特定回调 ID
     msptiEnableCallback(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME,
                         MSPTI_CBID_RUNTIME_LAUNCH);
 
-    // 3. 可同时使能 Activity API 采集 Marker 和 Kernel 数据
+    // 3. 可同时开启 Activity API 采集 Marker 和 Kernel 数据
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
 

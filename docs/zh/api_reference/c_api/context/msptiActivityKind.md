@@ -19,6 +19,7 @@ typedef enum {
     MSPTI_ACTIVITY_KIND_ACL_API = 10, // AscendCL API, 昇腾平台上开发深度神经网络应用的C语言API库, 调用结构体msptiActivityApi
     MSPTI_ACTIVITY_KIND_NODE_API = 11, // 对应CANN层算子下发API，调用结构体msptiActivityApi
     MSPTI_ACTIVITY_KIND_RUNTIME_API = 12, // CANN运行时API，调用结构体msptiActivityApi
+    MSPTI_ACTIVITY_KIND_OVERHEAD = 13, // msPTI在采集数据时自身产生的开销，调用结构体msptiActivityOverhead
     MSPTI_ACTIVITY_KIND_COUNT,
     MSPTI_ACTIVITY_KIND_FORCE_INT = 0x7fffffff
 } msptiActivityKind;

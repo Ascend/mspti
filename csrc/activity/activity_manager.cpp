@@ -28,6 +28,7 @@
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
+#include "csrc/activity/ascend/reporter/overhead_reporter.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/utils.h"
@@ -101,6 +102,7 @@ inline bool GetActivityStructSize(msptiActivityKind kind, size_t *size)
         sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_ACL_API
         sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_NODE_API
         sizeof(msptiActivityApi),                  // MSPTI_ACTIVITY_KIND_RUNTIME_API
+        sizeof(msptiActivityOverhead),             // MSPTI_ACTIVITY_KIND_OVERHEAD
     };
     *size = activityKindDataSize[kind];
     return true;
@@ -113,6 +115,8 @@ void ActivityBuffer::Init(msptiBuffersCallbackRequestFunc func)
         MSPTI_LOGE("The request callback is nullptr.");
         return;
     }
+    Reporter::OverheadRecord overheadRecord(MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_REQUEST,
+                                            MSPTI_ACTIVITY_OBJECT_THREAD);
     func(&buf_, &buf_size_, &records_num_);
     constexpr uint64_t MIN_ACTIVITY_BUFFER_SIZE = 2 * 1024 * 1024;
     if (buf_size_ < MIN_ACTIVITY_BUFFER_SIZE)
@@ -129,6 +133,8 @@ void ActivityBuffer::UnInit(msptiBuffersCallbackCompleteFunc func)
         MSPTI_LOGE("The complete callback is nullptr.");
         return;
     }
+    Reporter::OverheadRecord overheadRecord(MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_FLUSH,
+                                            MSPTI_ACTIVITY_OBJECT_THREAD);
     MSPTI_LOGI("CallbackCompleteFunc start, validSize: %zu, bufSize: %zu, recordsNum: %zu", valid_size_, buf_size_,
                records_num_);
     func(buf_, buf_size_, valid_size_);
@@ -171,6 +177,7 @@ const std::set<msptiActivityKind> ActivityManager::supportActivityKinds_ = {
     MSPTI_ACTIVITY_KIND_MEMCPY,        MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION,
     MSPTI_ACTIVITY_KIND_COMMUNICATION, MSPTI_ACTIVITY_KIND_ACL_API,
     MSPTI_ACTIVITY_KIND_NODE_API,      MSPTI_ACTIVITY_KIND_RUNTIME_API,
+    MSPTI_ACTIVITY_KIND_OVERHEAD,
 };
 
 ActivityManager *ActivityManager::GetInstance()
@@ -378,7 +385,7 @@ msptiResult ActivityManager::FlushAll()
         JoinWorkThreads();
     }
     {
-        std::lock_guard<std::mutex> lk(buf_mtx_);
+        std::lock_guard<std::recursive_mutex> lk(buf_mtx_);
         if (cur_buf_)
         {
             auto consumeBuf = std::move(cur_buf_);
@@ -417,7 +424,7 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
         return MSPTI_SUCCESS;
     }
     static const float ACTIVITY_BUFFER_THRESHOLD = 0.8;
-    std::lock_guard<std::mutex> lk(buf_mtx_);
+    std::lock_guard<std::recursive_mutex> lk(buf_mtx_);
     if (!cur_buf_)
     {
         Mspti::Common::MsptiMakeUniquePtr(cur_buf_);

@@ -3,7 +3,7 @@
 ## 产品支持情况<a name="section8178181118225"></a>
 
 > [!NOTE]
-> 
+>
 > 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
@@ -18,7 +18,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-查询指定类型Activity Kind的采集是否已使能。
+查询指定类型Activity Kind的采集是否已开启。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -51,5 +51,5 @@ bool msptiActivityIsEnabled(msptiActivityKind kind)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-- `true`：指定类型的Activity Kind已使能。
-- `false`：指定类型的Activity Kind未使能。
+- `true`：指定类型的Activity Kind已开启。
+- `false`：指定类型的Activity Kind未开启。

@@ -37,6 +37,7 @@ Activity API 是 msPTI 的核心数据采集接口。它通过异步缓冲区机
 | 10 | `MSPTI_ACTIVITY_KIND_ACL_API` | ACL 级 API 调用 | — |
 | 11 | `MSPTI_ACTIVITY_KIND_NODE_API` | Node 级 API 调用 | — |
 | 12 | `MSPTI_ACTIVITY_KIND_RUNTIME_API` | Runtime 级 API 调用 | — |
+| 13 | `MSPTI_ACTIVITY_KIND_OVERHEAD` | msPTI 自身开销（资源创建、Buffer 申请/刷新等） | `msptiActivityOverhead` |
 
 ---
 
@@ -182,6 +183,30 @@ typedef struct {
 } msptiActivityExternalCorrelation;
 ```
 
+### 3.10 Activity Overhead（msPTI 自身开销记录）
+
+记录 msPTI 自身在采集数据时产生的额外开销，用于评估 Profiling 对业务造成的性能影响。当前覆盖以下环节：
+
+- `MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE`：msPTI 内部资源创建/销毁（开启/关闭采集任务）。
+- `MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_REQUEST`：Activity Buffer 申请（调用 Request 回调的耗时）。
+- `MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_FLUSH`：Activity Buffer 刷新（调用 Complete 回调的耗时）。
+
+```c
+typedef struct {
+    msptiActivityKind kind;              // 固定为 MSPTI_ACTIVITY_KIND_OVERHEAD
+    msptiActivityOverheadKind overheadKind; // 开销产生的类型
+    msptiObjectId objectId;              // 对象标识，有效字段由 objectKind 决定
+    uint64_t start;                      // 开始时间戳（ns）
+    uint64_t end;                        // 结束时间戳（ns）
+    uint64_t correlationId;              // 关联 ID（预留）
+    void *overheadData;                  // 附加信息指针（预留）
+    msptiActivityObjectKind objectKind;  // 开销关联的对象类型（PROCESS/THREAD/DEVICE）
+} msptiActivityOverhead;
+```
+
+开启 MSPTI_ACTIVITY_KIND_OVERHEAD 后，每次申请/刷新 Activity Buffer 以及开启/关闭 Profiling 任务时，
+msPTI 会自动记录一条 overhead 记录并通过 CompleteFunc 回调返回给用户。
+
 ---
 
 ## 4. API 函数参考
@@ -190,7 +215,7 @@ typedef struct {
 
 #### 4.1.1 msptiActivityRegisterCallbacks
 
-注册 Activity Buffer 的回调函数。必须在使能任何 Activity Kind 之前调用。
+注册 Activity Buffer 的回调函数。必须在开启任何 Activity Kind 之前调用。
 
 ```c
 msptiResult msptiActivityRegisterCallbacks(
@@ -220,7 +245,7 @@ typedef void(*msptiBuffersCallbackCompleteFunc)(
 
 #### 4.1.2 msptiActivityEnable / msptiActivityDisable
 
-使能或禁用指定类型的 Activity 数据采集。可多次调用使能多种类型。默认所有类型均为关闭状态。
+开启或关闭指定类型的 Activity 数据采集。可多次调用以开启多种类型。默认所有类型均为关闭状态。
 
 ```c
 msptiResult msptiActivityEnable(msptiActivityKind kind);
@@ -229,7 +254,7 @@ msptiResult msptiActivityDisable(msptiActivityKind kind);
 
 #### 4.1.3 msptiActivityIsEnabled
 
-查询指定类型的 Activity 采集是否已使能。
+查询指定类型的 Activity 采集是否已开启。
 
 ```c
 bool msptiActivityIsEnabled(msptiActivityKind kind);
@@ -328,26 +353,26 @@ void PrintActivity(msptiActivity *record) {
     switch (record->kind) {
         case MSPTI_ACTIVITY_KIND_KERNEL: {
             auto *kernel = (msptiActivityKernel*)record;
-            printf("Kernel: %s (%s), start=%lu, end=%lu, device=%u, stream=%u\n",
+            printf("Kernel: %s (%s), start=%llu, end=%llu, device=%u, stream=%u\n",
                    kernel->name, kernel->type, kernel->start, kernel->end,
                    kernel->ds.deviceId, kernel->ds.streamId);
             break;
         }
         case MSPTI_ACTIVITY_KIND_API: {
             auto *api = (msptiActivityApi*)record;
-            printf("API: %s, start=%lu, end=%lu, correlationId=%lu\n",
+            printf("API: %s, start=%llu, end=%llu, correlationId=%llu\n",
                    api->name, api->start, api->end, api->correlationId);
             break;
         }
         case MSPTI_ACTIVITY_KIND_MEMCPY: {
             auto *memcpy = (msptiActivityMemcpy*)record;
-            printf("Memcpy: bytes=%lu, start=%lu, end=%lu\n",
+            printf("Memcpy: bytes=%llu, start=%llu, end=%llu\n",
                    memcpy->bytes, memcpy->start, memcpy->end);
             break;
         }
         case MSPTI_ACTIVITY_KIND_MEMORY: {
             auto *mem = (msptiActivityMemory*)record;
-            printf("Memory: op=%d, bytes=%lu, start=%lu, end=%lu\n",
+            printf("Memory: op=%d, bytes=%llu, start=%llu, end=%llu\n",
                    mem->memoryOperationType, mem->bytes, mem->start, mem->end);
             break;
         }
@@ -369,7 +394,7 @@ int main() {
     // 1. 注册缓冲区回调
     msptiActivityRegisterCallbacks(UserBufferRequest, UserBufferComplete);
 
-    // 2. 使能需要采集的活动类型
+    // 2. 开启需要采集的活动类型
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_API);
     msptiActivityEnable(MSPTI_ACTIVITY_KIND_MEMCPY);
@@ -462,15 +487,18 @@ void DoWork() {
 }
 ```
 
-需使能 `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` 以采集外部关联记录。
+需开启 `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` 以采集外部关联记录。
 
 ### 5.4 域级 Marker 控制
 
 动态启停指定域的 Marker 打点采集：
 
 ```cpp
+#include "acl/acl.h"
 #include "mspti.h"
 #include "mstx/ms_tools_ext.h"
+
+aclrtStream stream;
 
 void DemoDomainControl() {
     // 创建域

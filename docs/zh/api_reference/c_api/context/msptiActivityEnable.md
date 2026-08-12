@@ -10,7 +10,7 @@
 
 | 产品类型                                    | 是否支持 |
 | ------------------------------------------- | :------: |
-| Ascend 950 系列产品                   |    √     |
+| Ascend 950 系列产品                         |    √     |
 | Atlas A3 训练系列产品/Atlas A3 推理系列产品 |    √     |
 | Atlas A2 训练系列产品/Atlas A2 推理系列产品 |    √     |
 | Atlas 200I/500 A2 推理产品                  |    √     |
@@ -19,9 +19,9 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-使能msPTI采集指定Kind的Activity数据。
+开启msPTI对指定Kind的Activity数据采集。
 
-使能指定类型Activity Kind的数据采集。支持该接口的多次调用，并分别设置不同的msptiActivityKind，msPTI可以采集不同类型的Activity数据。
+开启指定类型Activity Kind的数据采集。支持该接口的多次调用，并分别设置不同的msptiActivityKind，msPTI可以采集不同类型的Activity数据。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -46,7 +46,7 @@ msptiResult msptiActivityEnable(msptiActivityKind kind)
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p56528401868"><a name="p56528401868"></a><a name="p56528401868"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a>使能采集的Activity Kind，配置为<a href="msptiActivityKind.md">msptiActivityKind</a>的枚举值。</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a>开启采集的Activity Kind，配置为<a href="msptiActivityKind.md">msptiActivityKind</a>的枚举值。</p>
 </td>
 </tr>
 </tbody>

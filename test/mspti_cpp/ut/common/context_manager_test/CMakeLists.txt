@@ -9,6 +9,7 @@ add_executable(context_manager_utest
     ${TOP_DIR}/csrc/activity/ascend/channel/channel_pool.cpp
     ${TOP_DIR}/csrc/activity/ascend/channel/channel_reader.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/external_correlation_reporter.cpp
+    ${TOP_DIR}/csrc/activity/ascend/reporter/overhead_reporter.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/parser_manager.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/cann_track_cache.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/communication_calculator.cpp

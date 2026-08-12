@@ -104,7 +104,7 @@ class ActivityManager
 
     std::deque<std::unique_ptr<ActivityBuffer>> co_activity_buffers_;
     std::unique_ptr<ActivityBuffer> cur_buf_;
-    std::mutex buf_mtx_;
+    std::recursive_mutex buf_mtx_;
 
     std::atomic<size_t> cur_drop_num_{0};
     std::atomic<size_t> total_drop_num_{0};

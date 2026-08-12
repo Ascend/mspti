@@ -18,6 +18,7 @@ set(SRC_FILE
     ${TOP_DIR}/csrc/activity/ascend/parser/cann_track_cache.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/mstx_parser.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/external_correlation_reporter.cpp
+    ${TOP_DIR}/csrc/activity/ascend/reporter/overhead_reporter.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/hccl_calculator.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/hccl_reporter.cpp
     ${TOP_DIR}/csrc/activity/activity_manager.cpp

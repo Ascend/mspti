@@ -19,6 +19,7 @@ class MsptiActivityKind(Enum):
     MSPTI_ACTIVITY_KIND_ACL_API = 10   # 预留参数，暂未开放
     MSPTI_ACTIVITY_KIND_NODE_API = 11   # 预留参数，暂未开放
     MSPTI_ACTIVITY_KIND_RUNTIME_API = 12   # 预留参数，暂未开放
-    MSPTI_ACTIVITY_KIND_COUNT = 13
+    MSPTI_ACTIVITY_KIND_OVERHEAD = 13   # msPTI在采集数据时自身产生的开销
+    MSPTI_ACTIVITY_KIND_COUNT = 14
     MSPTI_ACTIVITY_KIND_FORCE_INT = 0x7fffffff
 ```

@@ -78,6 +78,7 @@ extern "C"
         MSPTI_ACTIVITY_KIND_ACL_API = 10,
         MSPTI_ACTIVITY_KIND_NODE_API = 11,
         MSPTI_ACTIVITY_KIND_RUNTIME_API = 12,
+        MSPTI_ACTIVITY_KIND_OVERHEAD = 13,
         MSPTI_ACTIVITY_KIND_COUNT,
         MSPTI_ACTIVITY_KIND_FORCE_INT = 0x7fffffff
     } msptiActivityKind;
@@ -213,6 +214,47 @@ extern "C"
          */
         MSPTI_ACTIVITY_MEMCPY_KIND_DEFAULT = 5
     } msptiActivityMemcpyKind;
+
+    typedef enum
+    {
+        /**
+         * The overhead kind is unknown.
+         */
+        MSPTI_ACTIVITY_OVERHEAD_UNKNOWN = 0,
+        /**
+         * MSPTI resource creation and destruction overhead.
+         */
+        MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE = 1,
+        /**
+         * Activity buffer request overhead.
+         */
+        MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_REQUEST = 2,
+        /**
+         * Activity buffer flush overhead.
+         */
+        MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_FLUSH = 3
+    } msptiActivityOverheadKind;
+
+    typedef enum
+    {
+        /**
+         * The object kind is unknown.
+         */
+        MSPTI_ACTIVITY_OBJECT_UNKNOWN = 0,
+        /**
+         * The object is a process.
+         */
+        MSPTI_ACTIVITY_OBJECT_PROCESS = 1,
+        /**
+         * The object is a thread.
+         */
+        MSPTI_ACTIVITY_OBJECT_THREAD = 2,
+        /**
+         * The object is a device.
+         */
+        MSPTI_ACTIVITY_OBJECT_DEVICE = 3,
+        MSPTI_ACTIVITY_OBJECT_FORCE_INT = 0x7fffffff
+    } msptiActivityObjectKind;
 
     START_PACKED_ALIGNMENT
 
@@ -694,6 +736,43 @@ extern "C"
          */
         uint64_t correlationId;
     } msptiActivityCommunication;
+
+    typedef struct PACKED_ALIGNMENT
+    {
+        /**
+         * The activity record kind, must be MSPTI_ACTIVITY_KIND_OVERHEAD.
+         */
+        msptiActivityKind kind;
+        /**
+         * The kind of activity object that the overhead is associated with.
+         */
+        msptiActivityOverheadKind overheadKind;
+        /**
+         * The identifier for the activity object.
+         * 'objectKind' indicates which ID is valid for this record.
+         */
+        msptiObjectId objectId;
+        /**
+         * The start timestamp for the overhead, in ns.
+         */
+        uint64_t start;
+        /**
+         * The end timestamp for the overhead, in ns.
+         */
+        uint64_t end;
+        /**
+         * The correlation ID of the overhead operation to which records belong to, reserved for future use.
+         */
+        uint64_t correlationId;
+        /**
+         * Pointer to the struct with additional details about the overhead, reserved for future use.
+         */
+        void *overheadData;
+        /**
+         * The kind of activity object this record correlated to.
+         */
+        msptiActivityObjectKind objectKind;
+    } msptiActivityOverhead;
 
     END_PACKED_ALIGNMENT
 

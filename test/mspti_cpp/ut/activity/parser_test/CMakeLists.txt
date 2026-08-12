@@ -24,6 +24,7 @@ add_executable(mspti_parser_utest
     ${TOP_DIR}/csrc/activity/ascend/parser/hccl_reporter.cpp
     ${TOP_DIR}/csrc/activity/ascend/parser/memory_parser.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/external_correlation_reporter.cpp
+    ${TOP_DIR}/csrc/activity/ascend/reporter/overhead_reporter.cpp
     ${TOP_DIR}/csrc/common/context_manager.cpp
     ${TOP_DIR}/csrc/common/utils.cpp
     ${TOP_DIR}/csrc/common/runtime_utils.cpp

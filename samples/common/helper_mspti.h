@@ -77,6 +77,7 @@ static const char* GetActivityKindString(msptiActivityKind kind)
         {MSPTI_ACTIVITY_KIND_RUNTIME_API, "RUNTIME_API"},
         {MSPTI_ACTIVITY_KIND_ACL_API, "ACL_API"},
         {MSPTI_ACTIVITY_KIND_NODE_API, "NODE_API"},
+        {MSPTI_ACTIVITY_KIND_OVERHEAD, "OVERHEAD"},
     };
     auto it = STRING_MAP.find(kind);
     return it != STRING_MAP.end() ? it->second : "<unknown>";
@@ -145,6 +146,9 @@ static const char* GetResultCodeString(msptiResult result)
         {MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED, "MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED"},
         {MSPTI_ERROR_DEVICE_OFFLINE, "DEVICE_OFFLINE"},
         {MSPTI_ERROR_QUEUE_EMPTY, "QUEUE_EMPTY"},
+        {MSPTI_ERROR_WITHOUT_LD_PRELOAD, "WITHOUT_LD_PRELOAD"},
+        {MSPTI_ERROR_NOT_INITIALIZED, "NOT_INITIALIZED"},
+        {MSPTI_ERROR_INVALID_KIND, "INVALID_KIND"},
         {MSPTI_ERROR_INNER, "ERROR_INNER"}};
 
     auto it = STRING_MAP.find(result);
@@ -246,6 +250,64 @@ static void ShowMemSetInfo(msptiActivityMemset* data)
         data->streamId, data->correlationId, data->isAsync);
 }
 
+static const char* GetActivityOverheadKindString(msptiActivityOverheadKind overheadKind)
+{
+    static const std::unordered_map<msptiActivityOverheadKind, const char*> STRING_MAP = {
+        {MSPTI_ACTIVITY_OVERHEAD_UNKNOWN, "UNKNOWN"},
+        {MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE, "MSPTI_RESOURCE"},
+        {MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_REQUEST, "ACTIVITY_BUFFER_REQUEST"},
+        {MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_FLUSH, "ACTIVITY_BUFFER_FLUSH"}};
+
+    auto it = STRING_MAP.find(overheadKind);
+    return it != STRING_MAP.end() ? it->second : "<unknown>";
+}
+
+static const char* GetActivityObjectKindString(msptiActivityObjectKind objectKind)
+{
+    static const std::unordered_map<msptiActivityObjectKind, const char*> STRING_MAP = {
+        {MSPTI_ACTIVITY_OBJECT_UNKNOWN, "UNKNOWN"},
+        {MSPTI_ACTIVITY_OBJECT_PROCESS, "PROCESS"},
+        {MSPTI_ACTIVITY_OBJECT_THREAD, "THREAD"},
+        {MSPTI_ACTIVITY_OBJECT_DEVICE, "DEVICE"}};
+
+    auto it = STRING_MAP.find(objectKind);
+    return it != STRING_MAP.end() ? it->second : "<unknown>";
+}
+
+static void ShowOverheadInfo(msptiActivityOverhead* overhead)
+{
+    if (!overhead)
+    {
+        return;
+    }
+    switch (overhead->objectKind)
+    {
+        case MSPTI_ACTIVITY_OBJECT_DEVICE:
+            LOG_PRINT(
+                "[%s] overheadKind: %s, objectKind: %s, deviceId: %u, streamId: %u, start: %lu, end: %lu, "
+                "correlationId: %lu\n",
+                GetActivityKindString(overhead->kind), GetActivityOverheadKindString(overhead->overheadKind),
+                GetActivityObjectKindString(overhead->objectKind), overhead->objectId.ds.deviceId,
+                overhead->objectId.ds.streamId, overhead->start, overhead->end, overhead->correlationId);
+            break;
+        case MSPTI_ACTIVITY_OBJECT_PROCESS:
+        case MSPTI_ACTIVITY_OBJECT_THREAD:
+            LOG_PRINT(
+                "[%s] overheadKind: %s, objectKind: %s, processId: %u, threadId: %u, start: %lu, end: %lu, "
+                "correlationId: %lu\n",
+                GetActivityKindString(overhead->kind), GetActivityOverheadKindString(overhead->overheadKind),
+                GetActivityObjectKindString(overhead->objectKind), overhead->objectId.pt.processId,
+                overhead->objectId.pt.threadId, overhead->start, overhead->end, overhead->correlationId);
+            break;
+        default:
+            LOG_PRINT("[%s] overheadKind: %s, objectKind: %s, start: %lu, end: %lu, correlationId: %lu\n",
+                      GetActivityKindString(overhead->kind), GetActivityOverheadKindString(overhead->overheadKind),
+                      GetActivityObjectKindString(overhead->objectKind), overhead->start, overhead->end,
+                      overhead->correlationId);
+            break;
+    }
+}
+
 void PrintActivity(msptiActivity* pRecord)
 {
     msptiActivityKind activityKind = pRecord->kind;
@@ -274,6 +336,9 @@ void PrintActivity(msptiActivity* pRecord)
             break;
         case MSPTI_ACTIVITY_KIND_MEMSET:
             ShowMemSetInfo(reinterpret_cast<msptiActivityMemset*>(pRecord));
+            break;
+        case MSPTI_ACTIVITY_KIND_OVERHEAD:
+            ShowOverheadInfo(reinterpret_cast<msptiActivityOverhead*>(pRecord));
             break;
         default:
             break;
