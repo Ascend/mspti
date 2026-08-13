@@ -41,8 +41,8 @@ class CallbackUtest : public testing::Test
     virtual void TearDown() {}
 };
 
-static void UserCallback(void *pUserData, msptiCallbackDomain domain, msptiCallbackId callbackId,
-                         const msptiCallbackData *pCallbackInfo)
+static void UserCallback(void* pUserData, msptiCallbackDomain domain, msptiCallbackId callbackId,
+                         const msptiCallbackData* pCallbackInfo)
 {
     if (pCallbackInfo->callbackSite == MSPTI_API_ENTER)
     {
@@ -135,11 +135,13 @@ TEST_F(CallbackUtest, EnableCallbackWithMismatchedSubscriberReturnsInvalidParam)
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
 }
 
-TEST_F(CallbackUtest, EnableCallbackWithoutInitIsSuccess)
+TEST_F(CallbackUtest, EnableCallbackWithoutInitReturnsNotInitialized)
 {
     msptiSubscriberHandle subscriber = reinterpret_cast<msptiSubscriberHandle>(0x1);
-    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableCallback(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
-    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_ERROR_NOT_INITIALIZED,
+              msptiEnableCallback(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(MSPTI_ERROR_NOT_INITIALIZED, msptiEnableDomain(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_ERROR_NOT_INITIALIZED, msptiEnableAllDomains(1, subscriber));
 }
 
 TEST_F(CallbackUtest, EnableDomainWithInvalidDomainReturnsInvalidParam)
@@ -279,4 +281,212 @@ TEST_F(CallbackUtest, SubscribeUnsubscribeSubscribeRepeatedLifecycle)
         EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
         subscriber = nullptr;
     }
+}
+
+TEST_F(CallbackUtest, EnableAllDomainsEnablesAndDisablesAllSupportedDomains)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableAllDomains(1, subscriber));
+    uint32_t enable = 0;
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiGetCallbackState(&enable, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(1, enable);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiGetCallbackState(&enable, subscriber, MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALLREDUCE));
+    EXPECT_EQ(1, enable);
+    Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH,
+                                                                     MSPTI_API_ENTER, "rtLaunch");
+    EXPECT_EQ(1, gCallbackEnterCount);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableAllDomains(0, subscriber));
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiGetCallbackState(&enable, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(0, enable);
+    Mspti::Callback::CallbackManager::GetInstance()->ExecuteCallback(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH,
+                                                                     MSPTI_API_ENTER, "rtLaunch");
+    EXPECT_EQ(1, gCallbackEnterCount);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, EnableAllDomainsWithMismatchedSubscriberReturnsInvalidParam)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    msptiSubscriberHandle wrong = reinterpret_cast<msptiSubscriberHandle>(0x1);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiEnableAllDomains(1, wrong));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetCallbackNameReturnsNameForValidCallbackId)
+{
+    const char* name = nullptr;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiGetCallbackName(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH, &name));
+    ASSERT_NE(name, nullptr);
+    EXPECT_STREQ("aclrtLaunchKernel", name);
+    name = nullptr;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiGetCallbackName(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALLREDUCE, &name));
+    EXPECT_STREQ("HcclAllReduce", name);
+}
+
+TEST_F(CallbackUtest, GetCallbackNameReturnsInvalidParamForInvalidInput)
+{
+    const char* name = nullptr;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetCallbackName(MSPTI_CB_DOMAIN_INVALID, MSPTI_CBID_RUNTIME_LAUNCH, &name));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetCallbackName(MSPTI_CB_DOMAIN_SIZE, MSPTI_CBID_RUNTIME_LAUNCH, &name));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiGetCallbackName(MSPTI_CB_DOMAIN_RUNTIME, 1024, &name));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetCallbackName(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH, nullptr));
+}
+
+TEST_F(CallbackUtest, GetCallbackStateReflectsEnableStatus)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableCallback(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+
+    uint32_t enable = 0;
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiGetCallbackState(&enable, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(1, enable);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableCallback(0, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiGetCallbackState(&enable, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(0, enable);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetCallbackStateReturnsInvalidParamWhenEnableNull)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetCallbackState(nullptr, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetCallbackStateReturnsInvalidParamWhenSubscriberMismatched)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    msptiSubscriberHandle wrong = reinterpret_cast<msptiSubscriberHandle>(0x1);
+    uint32_t enable = 0;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetCallbackState(&enable, wrong, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetSupportedDomainsReturnsDomains)
+{
+    size_t count = 0;
+    msptiDomainTable table = nullptr;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSupportedDomains(&count, &table));
+    EXPECT_GT(count, 0);
+    ASSERT_NE(table, nullptr);
+    bool foundRuntime = false;
+    bool foundHccl = false;
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (table[i] == MSPTI_CB_DOMAIN_RUNTIME)
+        {
+            foundRuntime = true;
+        }
+        if (table[i] == MSPTI_CB_DOMAIN_HCCL)
+        {
+            foundHccl = true;
+        }
+    }
+    EXPECT_TRUE(foundRuntime);
+    EXPECT_TRUE(foundHccl);
+}
+
+TEST_F(CallbackUtest, GetSupportedDomainsReturnsInvalidParamWhenArgsNull)
+{
+    size_t count = 0;
+    msptiDomainTable table = nullptr;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiSupportedDomains(nullptr, &table));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiSupportedDomains(&count, nullptr));
+}
+
+TEST_F(CallbackUtest, GetEnabledCallbacksReturnsEnabledCallbackIds)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableCallback(1, subscriber, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_LAUNCH));
+
+    msptiCallbackId buffer[16] = {};
+    uint32_t bufferSize = 16;
+    uint32_t count = 0;
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiGetEnabledCallbacks(subscriber, MSPTI_CB_DOMAIN_RUNTIME, buffer, &bufferSize, &count));
+    EXPECT_GE(count, 1);
+    bool found = false;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        if (buffer[i] == MSPTI_CBID_RUNTIME_LAUNCH)
+        {
+            found = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetEnabledCallbacksReturnsInvalidParamWhenCountNull)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetEnabledCallbacks(subscriber, MSPTI_CB_DOMAIN_RUNTIME, nullptr, nullptr, nullptr));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetEnabledCallbacksReturnsInvalidParamWhenDomainInvalid)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    uint32_t count = 0;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetEnabledCallbacks(subscriber, MSPTI_CB_DOMAIN_INVALID, nullptr, nullptr, &count));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, GetEnabledCallbacksReturnsInvalidParamWhenSubscriberMismatched)
+{
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    msptiSubscriberHandle wrong = reinterpret_cast<msptiSubscriberHandle>(0x1);
+    uint32_t count = 0;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiGetEnabledCallbacks(wrong, MSPTI_CB_DOMAIN_RUNTIME, nullptr, nullptr, &count));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+}
+
+TEST_F(CallbackUtest, MsptiIsTracingSessionRunningFollowsLifecycle)
+{
+    uint8_t isRunning = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiIsTracingSessionRunning(&isRunning));
+    EXPECT_EQ(0, isRunning);
+
+    msptiSubscriberHandle subscriber;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber, UserCallback, nullptr));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiIsTracingSessionRunning(&isRunning));
+    EXPECT_EQ(1, isRunning);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiIsTracingSessionRunning(&isRunning));
+    EXPECT_EQ(0, isRunning);
+}
+
+TEST_F(CallbackUtest, IsTracingSessionRunningReturnsInvalidParamWhenNull)
+{
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiIsTracingSessionRunning(nullptr));
 }

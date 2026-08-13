@@ -16,6 +16,7 @@
  */
 
 // System headers
+#include <algorithm>
 #include <vector>
 
 // ACL headers
@@ -146,7 +147,54 @@ void MstxCallback(void* pUserData, msptiCallbackDomain domain, msptiCallbackId c
 void SetUpMspti(aclrtContext* context, aclrtStream* stream)
 {
     msptiSubscriberHandle* handle = InitMspti((void*)MstxCallback, nullptr);
-    msptiEnableDomain(1, *handle, MSPTI_CB_DOMAIN_RUNTIME);
+
+    // 查询追踪会话是否仍在运行
+    uint8_t isRunning = 0;
+    msptiResult ret = msptiIsTracingSessionRunning(&isRunning);
+    LOG_PRINT("[msptiIsTracingSessionRunning] ret: %s, isRunning: %u\n", GetResultCodeString(ret), isRunning);
+
+    // 获取支持的callback domain列表
+    size_t domainCount = 0;
+    msptiDomainTable domainTable = nullptr;
+    ret = msptiSupportedDomains(&domainCount, &domainTable);
+    LOG_PRINT("[msptiSupportedDomains] ret: %s, domainCount: %zu\n", GetResultCodeString(ret), domainCount);
+    for (size_t i = 0; i < domainCount; i++)
+    {
+        LOG_PRINT("  supported domain[%zu]: %u\n", i, domainTable[i]);
+    }
+
+    // 开启所有domain的所有callback
+    ret = msptiEnableAllDomains(1, *handle);
+    LOG_PRINT("[msptiEnableAllDomains] ret: %s\n", GetResultCodeString(ret));
+
+    // 获取指定domain和callbackId对应的回调名称
+    const char* name = nullptr;
+    ret = msptiGetCallbackName(MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_MEMCPY, &name);
+    LOG_PRINT("[msptiGetCallbackName] ret: %s, name: %s\n", GetResultCodeString(ret), name != nullptr ? name : "null");
+
+    // 查询指定回调当前的开启/关闭状态
+    uint32_t enable = 0;
+    ret = msptiGetCallbackState(&enable, *handle, MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_MEMCPY);
+    LOG_PRINT("[msptiGetCallbackState] ret: %s, domain: %u, callbackId: %u, enable: %u\n", GetResultCodeString(ret),
+              MSPTI_CB_DOMAIN_RUNTIME, MSPTI_CBID_RUNTIME_MEMCPY, enable);
+    ret = msptiGetCallbackState(&enable, *handle, MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALLREDUCE);
+    LOG_PRINT("[msptiGetCallbackState] ret: %s, domain: %u, callbackId: %u, enable: %u\n", GetResultCodeString(ret),
+              MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALLREDUCE, enable);
+
+    // 获取指定domain下已开启的callback ID列表
+    msptiCallbackId callbackIdBuffer[MSPTI_CBID_HCCL_SIZE] = {};
+    uint32_t bufferSize = MSPTI_CBID_HCCL_SIZE;
+    uint32_t enabledCount = 0;
+    ret = msptiGetEnabledCallbacks(*handle, MSPTI_CB_DOMAIN_HCCL, callbackIdBuffer, &bufferSize, &enabledCount);
+    LOG_PRINT("[msptiGetEnabledCallbacks] ret: %s, domain: %u, enabledCount: %u\n", GetResultCodeString(ret),
+              MSPTI_CB_DOMAIN_HCCL, enabledCount);
+    for (uint32_t i = 0, writeCount = std::min(enabledCount, bufferSize); i < writeCount; i++)
+    {
+        const char* callbackName = nullptr;
+        msptiGetCallbackName(MSPTI_CB_DOMAIN_HCCL, callbackIdBuffer[i], &callbackName);
+        LOG_PRINT("  enabled callback[%u]: domain: %u, id: %u, name: %s\n", i, MSPTI_CB_DOMAIN_HCCL,
+                  callbackIdBuffer[i], callbackName != nullptr ? callbackName : "null");
+    }
 }
 
 int main()

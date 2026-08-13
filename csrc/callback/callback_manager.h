@@ -22,8 +22,6 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "csrc/common/plog_manager.h"
 #include "csrc/include/mspti_callback.h"
@@ -50,8 +48,16 @@ class CallbackManager final
     msptiResult EnableCallback(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
                                msptiCallbackId cbid);
     msptiResult EnableDomain(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain);
+    msptiResult EnableAllDomains(uint32_t enable, msptiSubscriberHandle subscriber);
+    msptiResult GetCallbackName(msptiCallbackDomain domain, uint32_t cbid, const char** name);
+    msptiResult GetCallbackState(uint32_t* enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
+                                 msptiCallbackId cbid);
+    msptiResult SupportedDomains(size_t* domainCount, msptiDomainTable* domainTable);
+    msptiResult GetEnabledCallbacks(msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
+                                    msptiCallbackId* buffer, uint32_t* bufferSize, uint32_t* enabledCallbacksCount);
     void ExecuteCallback(msptiCallbackDomain domain, msptiCallbackId cbid, msptiApiCallbackSite site,
                          const char* funcName);
+    bool IsTracingSessionRunning() { return init_.load(std::memory_order_relaxed); }
 
    public:
     using BitMap = uint64_t;
@@ -63,12 +69,12 @@ class CallbackManager final
     CallbackManager& operator=(const CallbackManager& obj) = delete;
     explicit CallbackManager(CallbackManager&& obj) = delete;
     CallbackManager& operator=(CallbackManager&& obj) = delete;
+    msptiResult PreCheck(msptiSubscriberHandle subscriber);
     msptiResult Register(msptiCallbackDomain domain, msptiCallbackId c);
     msptiResult UnRegister(msptiCallbackDomain domain, msptiCallbackId c);
     bool IsCallbackIdEnable(msptiCallbackDomain domain, msptiCallbackId cbid);
 
    private:
-    static std::unordered_map<msptiCallbackDomain, std::unordered_set<msptiCallbackId>> domain_cbid_map_;
     std::atomic<bool> init_{false};
     std::mutex subscriber_mutex_;
     std::shared_ptr<msptiSubscriber_st> subscriber_ptr_{nullptr};

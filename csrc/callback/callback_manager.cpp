@@ -16,6 +16,8 @@
  */
 #include "csrc/callback/callback_manager.h"
 
+#include <vector>
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
@@ -36,60 +38,113 @@ inline bool IsValidCBDomain(msptiCallbackDomain domain)
 
 inline bool IsValidCBId(msptiCallbackId cbid) { return cbid < sizeof(CallbackManager::BitMap) * 8; }
 
-inline msptiResult HasLdPreload()
+inline bool HasLdPreload()
 {
-    static const std::string ld = Mspti::Common::Utils::GetEnv("LD_PRELOAD");
-    if (ld.find("libmspti.so") == std::string::npos)
+    static auto hasLdPreload = []() -> bool
     {
-        MSPTI_LOGE("Enable callbackDomain requires libmspti.so in LD_PRELOAD.");
-        return MSPTI_ERROR_WITHOUT_LD_PRELOAD;
+        const std::string ld = Common::Utils::GetEnv("LD_PRELOAD");
+        return ld.find("libmspti.so") != std::string::npos;
+    }();
+    return hasLdPreload;
+}
+
+constexpr std::array<const char*, MSPTI_CBID_RUNTIME_SIZE> RUNTIME_DOMAIN_CALLBACKS = {
+    nullptr,                              // MSPTI_CBID_RUNTIME_INVALID
+    "aclrtSetDevice",                     // MSPTI_CBID_RUNTIME_DEVICE_SET
+    "aclrtResetDevice",                   // MSPTI_CBID_RUNTIME_DEVICE_RESET
+    "aclrtSetDeviceEx",                   // MSPTI_CBID_RUNTIME_DEVICE_SET_EX
+    "aclrtCreateContextEx",               // MSPTI_CBID_RUNTIME_CONTEXT_CREATED_EX
+    "aclrtCreateContext",                 // MSPTI_CBID_RUNTIME_CONTEXT_CREATED
+    "aclrtDestroyContext",                // MSPTI_CBID_RUNTIME_CONTEXT_DESTROY
+    "aclrtCreateStream",                  // MSPTI_CBID_RUNTIME_STREAM_CREATED
+    "aclrtDestroyStream",                 // MSPTI_CBID_RUNTIME_STREAM_DESTROY
+    "aclrtSynchronizeStream",             // MSPTI_CBID_RUNTIME_STREAM_SYNCHRONIZED
+    "aclrtLaunchKernel",                  // MSPTI_CBID_RUNTIME_LAUNCH
+    "aclrtLaunchKernel",                  // MSPTI_CBID_RUNTIME_CPU_LAUNCH
+    "aclrtLaunchKernel",                  // MSPTI_CBID_RUNTIME_AICPU_LAUNCH
+    "aclrtLaunchKernel",                  // MSPTI_CBID_RUNTIME_AIV_LAUNCH
+    "aclrtLaunchKernel",                  // MSPTI_CBID_RUNTIME_FFTS_LAUNCH
+    "aclrtMalloc",                        // MSPTI_CBID_RUNTIME_MALLOC
+    "aclrtFree",                          // MSPTI_CBID_RUNTIME_FREE
+    "aclrtMallocHost",                    // MSPTI_CBID_RUNTIME_MALLOC_HOST
+    "aclrtFreeHost",                      // MSPTI_CBID_RUNTIME_FREE_HOST
+    "aclrtMallocCached",                  // MSPTI_CBID_RUNTIME_MALLOC_CACHED
+    "aclrtMemFlush",                      // MSPTI_CBID_RUNTIME_FLUSH_CACHE
+    "aclrtMemInvalidate",                 // MSPTI_CBID_RUNTIME_INVALID_CACHE
+    "aclrtMemcpy",                        // MSPTI_CBID_RUNTIME_MEMCPY
+    "aclrtMemcpy",                        // MSPTI_CBID_RUNTIME_MEMCPY_HOST
+    "aclrtMemcpyAsync",                   // MSPTI_CBID_RUNTIME_MEMCPY_ASYNC
+    "aclrtMemcpy2D",                      // MSPTI_CBID_RUNTIME_MEM_CPY2D
+    "aclrtMemcpy2DAsync",                 // MSPTI_CBID_RUNTIME_MEM_CPY2D_ASYNC
+    "aclrtMemSet",                        // MSPTI_CBID_RUNTIME_MEM_SET
+    "aclrtMemSetAsync",                   // MSPTI_CBID_RUNTIME_MEM_SET_ASYNC
+    "aclrtGetMemInfo",                    // MSPTI_CBID_RUNTIME_MEM_GET_INFO
+    "aclrtReserveMemAddress",             // MSPTI_CBID_RUNTIME_RESERVE_MEM_ADDRESS
+    "aclrtReleaseMemAddress",             // MSPTI_CBID_RUNTIME_RELEASE_MEM_ADDRESS
+    "aclrtMallocPhysical",                // MSPTI_CBID_RUNTIME_MALLOC_PHYSICAL
+    "aclrtFreePhysical",                  // MSPTI_CBID_RUNTIME_FREE_PHYSICAL
+    "aclrtMemExportToShareableHandle",    // MSPTI_CBID_RUNTIME_MEM_EXPORT_TO_SHAREABLE_HANDLE
+    "aclrtMemImportFromShareableHandle",  // MSPTI_CBID_RUNTIME_MEM_IMPORT_FROM_SHAREABLE_HANDLE
+    "aclrtMemSetPidToShareableHandle",    // MSPTI_CBID_RUNTIME_MEM_SET_PID_TO_SHAREABLE_HANDLE
+};
+
+constexpr std::array<const char*, MSPTI_CBID_HCCL_SIZE> HCCL_DOMAIN_CALLBACKS = {
+    nullptr,              // MSPTI_CBID_HCCL_INVALID
+    "HcclAllReduce",      // MSPTI_CBID_HCCL_ALLREDUCE
+    "HcclBroadcast",      // MSPTI_CBID_HCCL_BROADCAST
+    "HcclAllGather",      // MSPTI_CBID_HCCL_ALLGATHER
+    "HcclReduceScatter",  // MSPTI_CBID_HCCL_REDUCE_SCATTER
+    "HcclReduce",         // MSPTI_CBID_HCCL_REDUCE
+    "HcclAllToAll",       // MSPTI_CBID_HCCL_ALL_TO_ALL
+    "HcclAllToAllV",      // MSPTI_CBID_HCCL_ALL_TO_ALLV
+    "HcclBarrier",        // MSPTI_CBID_HCCL_BARRIER
+    "HcclScatter",        // MSPTI_CBID_HCCL_SCATTER
+    "HcclSend",           // MSPTI_CBID_HCCL_SEND
+    "HcclRecv",           // MSPTI_CBID_HCCL_RECV
+    "HcclBatchSendRecv",  // MSPTI_CBID_HCCL_SENDRECV
+};
+
+inline uint32_t GetDomainCallbackCount(msptiCallbackDomain domain)
+{
+    switch (domain)
+    {
+        case MSPTI_CB_DOMAIN_RUNTIME:
+            return RUNTIME_DOMAIN_CALLBACKS.size();
+        case MSPTI_CB_DOMAIN_HCCL:
+            return HCCL_DOMAIN_CALLBACKS.size();
+        default:
+            return 0;
     }
-    return MSPTI_SUCCESS;
+}
+
+inline bool GetCallbackNameByDomain(msptiCallbackDomain domain, msptiCallbackId cbid, const char** name)
+{
+    if (name == nullptr)
+    {
+        return false;
+    }
+    switch (domain)
+    {
+        case MSPTI_CB_DOMAIN_RUNTIME:
+            if (cbid <= MSPTI_CBID_RUNTIME_INVALID || cbid >= RUNTIME_DOMAIN_CALLBACKS.size())
+            {
+                return false;
+            }
+            *name = RUNTIME_DOMAIN_CALLBACKS[cbid];
+            break;
+        case MSPTI_CB_DOMAIN_HCCL:
+            if (cbid <= MSPTI_CBID_HCCL_INVALID || cbid >= HCCL_DOMAIN_CALLBACKS.size())
+            {
+                return false;
+            }
+            *name = HCCL_DOMAIN_CALLBACKS[cbid];
+            break;
+        default:
+            return false;
+    }
+    return *name != nullptr;
 }
 }  // namespace
-
-std::unordered_map<msptiCallbackDomain, std::unordered_set<msptiCallbackId>> CallbackManager::domain_cbid_map_ = {
-    {MSPTI_CB_DOMAIN_RUNTIME,
-     {MSPTI_CBID_RUNTIME_DEVICE_SET,
-      MSPTI_CBID_RUNTIME_DEVICE_RESET,
-      MSPTI_CBID_RUNTIME_DEVICE_SET_EX,
-      MSPTI_CBID_RUNTIME_CONTEXT_CREATED_EX,
-      MSPTI_CBID_RUNTIME_CONTEXT_CREATED,
-      MSPTI_CBID_RUNTIME_CONTEXT_DESTROY,
-      MSPTI_CBID_RUNTIME_STREAM_CREATED,
-      MSPTI_CBID_RUNTIME_STREAM_DESTROY,
-      MSPTI_CBID_RUNTIME_STREAM_SYNCHRONIZED,
-      MSPTI_CBID_RUNTIME_LAUNCH,
-      MSPTI_CBID_RUNTIME_CPU_LAUNCH,
-      MSPTI_CBID_RUNTIME_AICPU_LAUNCH,
-      MSPTI_CBID_RUNTIME_AIV_LAUNCH,
-      MSPTI_CBID_RUNTIME_FFTS_LAUNCH,
-      MSPTI_CBID_RUNTIME_MALLOC,
-      MSPTI_CBID_RUNTIME_FREE,
-      MSPTI_CBID_RUNTIME_MALLOC_HOST,
-      MSPTI_CBID_RUNTIME_FREE_HOST,
-      MSPTI_CBID_RUNTIME_MALLOC_CACHED,
-      MSPTI_CBID_RUNTIME_FLUSH_CACHE,
-      MSPTI_CBID_RUNTIME_INVALID_CACHE,
-      MSPTI_CBID_RUNTIME_MEMCPY,
-      MSPTI_CBID_RUNTIME_MEMCPY_HOST,
-      MSPTI_CBID_RUNTIME_MEMCPY_ASYNC,
-      MSPTI_CBID_RUNTIME_MEM_CPY2D,
-      MSPTI_CBID_RUNTIME_MEM_CPY2D_ASYNC,
-      MSPTI_CBID_RUNTIME_MEM_SET,
-      MSPTI_CBID_RUNTIME_MEM_SET_ASYNC,
-      MSPTI_CBID_RUNTIME_MEM_GET_INFO,
-      MSPTI_CBID_RUNTIME_RESERVE_MEM_ADDRESS,
-      MSPTI_CBID_RUNTIME_RELEASE_MEM_ADDRESS,
-      MSPTI_CBID_RUNTIME_MALLOC_PHYSICAL,
-      MSPTI_CBID_RUNTIME_FREE_PHYSICAL,
-      MSPTI_CBID_RUNTIME_MEM_EXPORT_TO_SHAREABLE_HANDLE,
-      MSPTI_CBID_RUNTIME_MEM_IMPORT_FROM_SHAREABLE_HANDLE,
-      MSPTI_CBID_RUNTIME_MEM_SET_PID_TO_SHAREABLE_HANDLE}},
-    {MSPTI_CB_DOMAIN_HCCL,
-     {MSPTI_CBID_HCCL_ALLREDUCE, MSPTI_CBID_HCCL_BROADCAST, MSPTI_CBID_HCCL_ALLGATHER, MSPTI_CBID_HCCL_REDUCE_SCATTER,
-      MSPTI_CBID_HCCL_REDUCE, MSPTI_CBID_HCCL_ALL_TO_ALL, MSPTI_CBID_HCCL_ALL_TO_ALLV, MSPTI_CBID_HCCL_BARRIER,
-      MSPTI_CBID_HCCL_SCATTER, MSPTI_CBID_HCCL_SEND, MSPTI_CBID_HCCL_RECV, MSPTI_CBID_HCCL_SENDRECV}}};
 
 CallbackManager* CallbackManager::GetInstance()
 {
@@ -187,26 +242,37 @@ msptiResult CallbackManager::UnRegister(msptiCallbackDomain domain, msptiCallbac
     return MSPTI_SUCCESS;
 }
 
-msptiResult CallbackManager::EnableCallback(uint32_t enable, msptiSubscriberHandle subscriber,
-                                            msptiCallbackDomain domain, msptiCallbackId cbid)
+msptiResult CallbackManager::PreCheck(msptiSubscriberHandle subscriber)
 {
-    if (HasLdPreload() != MSPTI_SUCCESS)
+    if (!HasLdPreload())
     {
+        MSPTI_LOGE("Enable callbackDomain requires libmspti.so in LD_PRELOAD.");
         return MSPTI_ERROR_WITHOUT_LD_PRELOAD;
     }
     if (!init_.load())
     {
-        MSPTI_LOGW("CallbackManager was not init.");
-        return MSPTI_SUCCESS;
+        MSPTI_LOGW("CallbackManager is not initialized.");
+        return MSPTI_ERROR_NOT_INITIALIZED;
     }
     if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
     {
-        MSPTI_LOGE("subscriber was not subscribe.");
+        MSPTI_LOGE("subscriber is not subscribe.");
         return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    return MSPTI_SUCCESS;
+}
+
+msptiResult CallbackManager::EnableCallback(uint32_t enable, msptiSubscriberHandle subscriber,
+                                            msptiCallbackDomain domain, msptiCallbackId cbid)
+{
+    auto preCheckRet = PreCheck(subscriber);
+    if (preCheckRet != MSPTI_SUCCESS)
+    {
+        return preCheckRet;
     }
     if (!IsValidCBDomain(domain))
     {
-        MSPTI_LOGE("domain: %d was invalid.", domain);
+        MSPTI_LOGE("domain: %d is invalid.", domain);
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
     return (enable != 0) ? Register(domain, cbid) : UnRegister(domain, cbid);
@@ -214,35 +280,53 @@ msptiResult CallbackManager::EnableCallback(uint32_t enable, msptiSubscriberHand
 
 msptiResult CallbackManager::EnableDomain(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain)
 {
-    if (HasLdPreload() != MSPTI_SUCCESS)
+    auto preCheckRet = PreCheck(subscriber);
+    if (preCheckRet != MSPTI_SUCCESS)
     {
-        return MSPTI_ERROR_WITHOUT_LD_PRELOAD;
-    }
-    if (!init_.load())
-    {
-        MSPTI_LOGW("CallbackManager was not init.");
-        return MSPTI_SUCCESS;
-    }
-    if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
-    {
-        MSPTI_LOGE("subscriber was not subscribe.");
-        return MSPTI_ERROR_INVALID_PARAMETER;
+        return preCheckRet;
     }
     if (!IsValidCBDomain(domain))
     {
         MSPTI_LOGE("domain: %d was invalid.", domain);
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
-    auto cbid_set = domain_cbid_map_.find(domain);
-    if (cbid_set == domain_cbid_map_.end())
+    auto count = GetDomainCallbackCount(domain);
+    if (count == 0)
     {
-        return MSPTI_SUCCESS;
+        return MSPTI_ERROR_INVALID_PARAMETER;
     }
     msptiResult ret = MSPTI_SUCCESS;
-    for (const auto& cbid : cbid_set->second)
+    for (uint32_t idx = 1; idx < count; ++idx)
     {
-        auto reg_ret = (enable != 0) ? Register(domain, cbid) : UnRegister(domain, cbid);
-        ret = (reg_ret != MSPTI_SUCCESS) ? reg_ret : ret;
+        auto cbid = static_cast<msptiCallbackId>(idx);
+        auto regRet = (enable != 0) ? Register(domain, cbid) : UnRegister(domain, cbid);
+        ret = (regRet != MSPTI_SUCCESS) ? regRet : ret;
+    }
+    return ret;
+}
+
+msptiResult CallbackManager::EnableAllDomains(uint32_t enable, msptiSubscriberHandle subscriber)
+{
+    auto preCheckRet = PreCheck(subscriber);
+    if (preCheckRet != MSPTI_SUCCESS)
+    {
+        return preCheckRet;
+    }
+    msptiResult ret = MSPTI_SUCCESS;
+    for (uint32_t domain = 1; domain < MSPTI_CB_DOMAIN_SIZE; ++domain)
+    {
+        auto count = GetDomainCallbackCount(static_cast<msptiCallbackDomain>(domain));
+        if (count == 0)
+        {
+            continue;
+        }
+        auto cbDomain = static_cast<msptiCallbackDomain>(domain);
+        for (uint32_t idx = 1; idx < count; ++idx)
+        {
+            auto cbid = static_cast<msptiCallbackId>(idx);
+            auto regRet = (enable != 0) ? Register(cbDomain, cbid) : UnRegister(cbDomain, cbid);
+            ret = (regRet != MSPTI_SUCCESS) ? regRet : ret;
+        }
     }
     return ret;
 }
@@ -281,6 +365,128 @@ bool CallbackManager::IsCallbackIdEnable(msptiCallbackDomain domain, msptiCallba
     return (bits >> static_cast<int>(cbid)) & 1;
 }
 
+msptiResult CallbackManager::GetCallbackName(msptiCallbackDomain domain, uint32_t cbid, const char** name)
+{
+    if (name == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (!IsValidCBDomain(domain) || !IsValidCBId(cbid))
+    {
+        MSPTI_LOGE("domain: %d, cbid: %d is invalid.", domain, cbid);
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (!GetCallbackNameByDomain(domain, static_cast<msptiCallbackId>(cbid), name))
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    return MSPTI_SUCCESS;
+}
+
+msptiResult CallbackManager::GetCallbackState(uint32_t* enable, msptiSubscriberHandle subscriber,
+                                              msptiCallbackDomain domain, msptiCallbackId cbid)
+{
+    if (enable == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (!IsValidCBDomain(domain) || !IsValidCBId(cbid))
+    {
+        MSPTI_LOGE("domain: %d, cbid: %d is invalid.", domain, cbid);
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (!init_.load())
+    {
+        MSPTI_LOGW("CallbackManager is not initialized.");
+        return MSPTI_ERROR_NOT_INITIALIZED;
+    }
+    if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
+    {
+        MSPTI_LOGE("subscriber is not subscribe.");
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    *enable = IsCallbackIdEnable(domain, cbid) ? 1 : 0;
+    return MSPTI_SUCCESS;
+}
+
+msptiResult CallbackManager::SupportedDomains(size_t* domainCount, msptiDomainTable* domainTable)
+{
+    if (domainCount == nullptr || domainTable == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    static auto supportedDomains = []() -> std::vector<msptiCallbackDomain>
+    {
+        std::vector<msptiCallbackDomain> domains;
+        for (size_t domain = 1; domain < MSPTI_CB_DOMAIN_SIZE; ++domain)
+        {
+            if (GetDomainCallbackCount(static_cast<msptiCallbackDomain>(domain)) != 0)
+            {
+                domains.push_back(static_cast<msptiCallbackDomain>(domain));
+            }
+        }
+        return domains;
+    }();
+    *domainCount = supportedDomains.size();
+    *domainTable = supportedDomains.data();
+    return MSPTI_SUCCESS;
+}
+
+msptiResult CallbackManager::GetEnabledCallbacks(msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
+                                                 msptiCallbackId* buffer, uint32_t* bufferSize,
+                                                 uint32_t* enabledCallbacksCount)
+{
+    if (enabledCallbacksCount == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (!IsValidCBDomain(domain))
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (!init_.load())
+    {
+        MSPTI_LOGW("CallbackManager is not initialized.");
+        return MSPTI_ERROR_NOT_INITIALIZED;
+    }
+    if (std::atomic_load(&subscriber_ptr_).get() != subscriber)
+    {
+        MSPTI_LOGE("subscriber is not subscribe.");
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    *enabledCallbacksCount = 0;
+    auto count = GetDomainCallbackCount(domain);
+    if (count == 0)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    for (uint32_t idx = 1; idx < count; ++idx)
+    {
+        if (IsCallbackIdEnable(domain, static_cast<msptiCallbackId>(idx)))
+        {
+            (*enabledCallbacksCount)++;
+        }
+    }
+    if (buffer == nullptr)
+    {
+        return MSPTI_SUCCESS;
+    }
+    if (bufferSize == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    auto writeCount = std::min(*bufferSize, *enabledCallbacksCount);
+    uint32_t written = 0;
+    for (uint32_t idx = 1; idx < count && written < writeCount; ++idx)
+    {
+        auto cbid = static_cast<msptiCallbackId>(idx);
+        if (IsCallbackIdEnable(domain, cbid))
+        {
+            buffer[written++] = cbid;
+        }
+    }
+    return MSPTI_SUCCESS;
+}
 }  // namespace Callback
 }  // namespace Mspti
 
@@ -307,4 +513,42 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain)
 {
     return Mspti::Callback::CallbackManager::GetInstance()->EnableDomain(enable, subscriber, domain);
+}
+
+msptiResult msptiEnableAllDomains(uint32_t enable, msptiSubscriberHandle subscriber)
+{
+    return Mspti::Callback::CallbackManager::GetInstance()->EnableAllDomains(enable, subscriber);
+}
+
+msptiResult msptiGetCallbackName(msptiCallbackDomain domain, uint32_t cbid, const char** name)
+{
+    return Mspti::Callback::CallbackManager::GetInstance()->GetCallbackName(domain, cbid, name);
+}
+
+msptiResult msptiGetCallbackState(uint32_t* enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
+                                  msptiCallbackId cbid)
+{
+    return Mspti::Callback::CallbackManager::GetInstance()->GetCallbackState(enable, subscriber, domain, cbid);
+}
+
+msptiResult msptiSupportedDomains(size_t* domainCount, msptiDomainTable* domainTable)
+{
+    return Mspti::Callback::CallbackManager::GetInstance()->SupportedDomains(domainCount, domainTable);
+}
+
+msptiResult msptiGetEnabledCallbacks(msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
+                                     msptiCallbackId* buffer, uint32_t* bufferSize, uint32_t* enabledCallbacksCount)
+{
+    return Mspti::Callback::CallbackManager::GetInstance()->GetEnabledCallbacks(subscriber, domain, buffer, bufferSize,
+                                                                                enabledCallbacksCount);
+}
+
+msptiResult msptiIsTracingSessionRunning(uint8_t* isRunning)
+{
+    if (isRunning == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    *isRunning = Mspti::Callback::CallbackManager::GetInstance()->IsTracingSessionRunning() ? 1 : 0;
+    return MSPTI_SUCCESS;
 }
