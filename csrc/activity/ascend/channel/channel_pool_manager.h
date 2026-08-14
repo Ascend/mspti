@@ -13,25 +13,30 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #ifndef MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_MANAGER_H
 #define MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_MANAGER_H
 
 #include <memory>
 #include <mutex>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
 
 #include "csrc/activity/ascend/channel/channel_pool.h"
+#include "csrc/common/config.h"
 #include "csrc/include/mspti_result.h"
 
-namespace Mspti {
-namespace Ascend {
-namespace Channel {
+namespace Mspti
+{
+namespace Ascend
+{
+namespace Channel
+{
 
-class ChannelPoolManager {
-public:
-    static ChannelPoolManager* GetInstance();
+class ChannelPoolManager
+{
+   public:
+    static ChannelPoolManager *GetInstance();
     msptiResult Init();
     void UnInit();
     msptiResult GetAllChannels(uint32_t devId);
@@ -39,22 +44,26 @@ public:
     msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId);
+    msptiResult SetChannelBufferSize(uint32_t bufferSize);
+    uint32_t GetChannelBufferSize() const { return channelBufferSize_; };
 
-private:
+   private:
     ChannelPoolManager() = default;
     ~ChannelPoolManager();
     explicit ChannelPoolManager(const ChannelPoolManager &obj) = delete;
-    ChannelPoolManager& operator=(const ChannelPoolManager &obj) = delete;
+    ChannelPoolManager &operator=(const ChannelPoolManager &obj) = delete;
     explicit ChannelPoolManager(ChannelPoolManager &&obj) = delete;
-    ChannelPoolManager& operator=(ChannelPoolManager &&obj) = delete;
+    ChannelPoolManager &operator=(ChannelPoolManager &&obj) = delete;
 
-private:
+   private:
     std::unique_ptr<ChannelPool> drvChannelPoll_;
     std::mutex channelPollMutex_;
     std::unordered_map<uint32_t, std::set<uint32_t>> channels_;
     std::mutex channels_mtx_;
+    uint32_t channelBufferSize_{DEFAULT_CHANNEL_BUFFER_SIZE};
 };
 }  // namespace Channel
 }  // namespace Ascend
 }  // namespace Mspti
+
 #endif  // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_MANAGER_H

@@ -83,6 +83,7 @@ class ContextManager final
     uint64_t GetHostTimeStampNs();
     uint64_t GetHostSysCnt();
     msptiResult SetTimestampCallback(msptiTimestampCallbackFunc funcTimestamp);
+    msptiTimestampCallbackFunc GetTimestampCallback();
 
     PlatformType GetChipType(uint32_t deviceId);
     uint64_t GetCorrelationId(uint32_t threadId = 0);

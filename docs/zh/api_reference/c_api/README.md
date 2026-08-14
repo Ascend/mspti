@@ -35,9 +35,11 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |[msptiActivityGetStructSize](./context/msptiActivityGetStructSize.md)|获取指定Activity Kind对应的结构体大小。|
 |[msptiActivityGetEnabledKinds](./context/msptiActivityGetEnabledKinds.md)|获取订阅者已开启的Activity Kind列表。|
 |[msptiActivityGetNumDroppedRecords](./context/msptiActivityGetNumDroppedRecords.md)|获取因缓冲区空间不足而丢弃的Record数量。|
-|[msptiGetVersion](./context/msptiGetVersion.md)|获取MSPTI API的版本号。|
-|[msptiGetTimestamp](./context/msptiGetTimestamp.md)|获取MSPTI时间戳。|
+|[msptiGetVersion](./context/msptiGetVersion.md)|获取msPTI API的版本号。|
+|[msptiGetTimestamp](./context/msptiGetTimestamp.md)|获取msPTI时间戳。|
 |[msptiActivityRegisterTimestampCallback](./context/msptiActivityRegisterTimestampCallback.md)|向msPTI注册时间戳回调函数。|
+|[msptiActivitySetAttribute](./context/msptiActivitySetAttribute.md)|设置Activity属性，用于配置Activity采集行为。|
+|[msptiActivityGetAttribute](./context/msptiActivityGetAttribute.md)|获取Activity属性，用于查询Activity采集的当前配置。|
 |**Typedef类型**|**Typedef说明**|
 |[msptiBuffersCallbackRequestFunc](./context/msptiBuffersCallbackRequestFunc.md)|向msPTI注册回调函数，申请Activity Buffer的存储空间。|
 |[msptiBuffersCallbackCompleteFunc](./context/msptiBuffersCallbackCompleteFunc.md)|向msPTI注册回调函数，释放Activity Buffer中的数据。|
@@ -53,6 +55,7 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |[msptiActivityObjectKind](./context/msptiActivityObjectKind.md)|Activity对象类型的枚举类。|
 |[msptiExternalCorrelationKind](./context/msptiExternalCorrelationKind.md)|支持关联的外部API的类型。|
 |[msptiCommunicationDataType](./context/msptiCommunicationDataType.md)|记录通信算子的数据类型。|
+|[msptiActivityAttribute](./context/msptiActivityAttribute.md)|Activity属性的枚举类，用于标识可配置的Activity属性。|
 |**Data Structure类型**|**Data Structure说明**|
 |[msptiActivity](./context/msptiActivity.md)|Activity Record的基础结构体。|
 |[msptiActivityApi](./context/msptiActivityApi.md)|Activity Record类型MSPTI_ACTIVITY_KIND_API对应的结构体。|
@@ -81,10 +84,17 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 |[msptiUnsubscribe](./context/msptiUnsubscribe.md)|向msPTI注销当前订阅者。|
 |[msptiEnableCallback](./context/msptiEnableCallback.md)|为特定**domain**和**CallbackId**的订阅者开启或关闭回调。|
 |[msptiEnableDomain](./context/msptiEnableDomain.md)|为特定**domain**的订阅者开启或关闭所有回调。|
+|[msptiEnableAllDomains](./context/msptiEnableAllDomains.md)|为订阅者开启或关闭所有**domain**的所有回调。|
+|[msptiGetCallbackName](./context/msptiGetCallbackName.md)|获取指定**domain**和**CallbackId**对应的回调函数名称。|
+|[msptiGetCallbackState](./context/msptiGetCallbackState.md)|获取指定**domain**和**CallbackId**对应的回调当前状态。|
+|[msptiSupportedDomains](./context/msptiSupportedDomains.md)|获取可用的回调**domain**列表。|
+|[msptiGetEnabledCallbacks](./context/msptiGetEnabledCallbacks.md)|获取订阅者在指定**domain**下已开启的回调列表。|
+|[msptiIsTracingSessionRunning](./context/msptiIsTracingSessionRunning.md)|查询msPTI跟踪会话是否仍在运行。|
 |**Typedef类型**|**Typedef说明**|
 |[msptiCallbackFunc](./context/msptiCallbackFunc.md)|回调函数类型。|
 |[msptiCallbackId](./context/msptiCallbackId.md)|标识callback跟踪函数的ID。|
 |[msptiSubscriberHandle](./context/msptiSubscriberHandle.md)|订阅者的句柄。|
+|[msptiDomainTable](./context/msptiDomainTable.md)|指向回调域数组的指针。|
 |**Enumeration类型**|**Enumeration说明**|
 |[msptiCallbackDomain](./context/msptiCallbackDomain.md)|相关API函数或CANN驱动程序活动的回调点。|
 |[msptiApiCallbackSite](./context/msptiApiCallbackSite.md)|指定API调用中发出回调的点，如回调的开始和回调的结束。|

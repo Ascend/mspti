@@ -256,6 +256,34 @@ extern "C"
         MSPTI_ACTIVITY_OBJECT_FORCE_INT = 0x7fffffff
     } msptiActivityObjectKind;
 
+    /**
+     * @brief The activity attributes that can be configured for activity collection.
+     *
+     * These attributes control the behavior of activity collection and can be
+     * queried or modified using msptiActivityGetAttribute and msptiActivitySetAttribute.
+     */
+    typedef enum
+    {
+        /**
+         * The size of the channel buffer used for activity collection, in bytes.
+         *
+         * The value is of type uint32_t. The default value is 2 * 1024 * 1024 bytes
+         * and the valid range is [2MB, 10MB].
+         * Note: this attribute only takes effect on channel buffers created after it
+         * is set, so it should be set before activity kinds are enabled or any
+         * channel is created.
+         */
+        MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE = 0,
+        /**
+         * The timestamp callback function used by MSPTI to obtain timestamps.
+         *
+         * The value is of type msptiTimestampCallbackFunc.
+         * @see msptiTimestampCallbackFunc
+         */
+        MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK = 1,
+        MSPTI_ACTIVITY_ATTR_FORCE_INT = 0x7fffffff
+    } msptiActivityAttribute;
+
     START_PACKED_ALIGNMENT
 
     typedef struct PACKED_ALIGNMENT
@@ -1098,6 +1126,48 @@ extern "C"
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p funcTimestamp is NULL
      */
     msptiResult msptiActivityRegisterTimestampCallback(msptiTimestampCallbackFunc funcTimestamp);
+
+    /**
+     * @brief Set the value of a specified activity attribute.
+     *
+     * This function set the value of the activity attribute specified by @p attr.
+     * On input, @p valueSize points to an integer that specifies the size of the
+     * buffer pointed to by @p value in bytes.
+     *
+     * @param attr [in] The activity attribute to set.
+     * @param valueSize [in] Specifies the size of the value buffer in bytes.
+     * @param value [in] The buffer that contains the value to set.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p valueSize or @p value is NULL,
+     * if @p attr is invalid, or if the value is invalid for @p attr
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if the buffer size is
+     * smaller than the size required for @p attr
+     * @return MSPTI_ERROR_INNER if an inner error occurs
+     */
+    msptiResult msptiActivitySetAttribute(msptiActivityAttribute attr, size_t *valueSize, void *value);
+
+    /**
+     * @brief Get the value of a specified activity attribute.
+     *
+     * This function get the value of the activity attribute specified by @p attr.
+     * On input, @p valueSize specifies the size of the buffer pointed to by @p value
+     * in bytes. On success, @p valueSize is updated to the size of the value copied
+     * into @p value.
+     *
+     * @param attr [in] The activity attribute to get.
+     * @param valueSize [in/out] Specifies the size of the value buffer in bytes, and
+     * returns the size of the value copied on success.
+     * @param value [out] The buffer that receives the value.
+     *
+     * @return MSPTI_SUCCESS on success
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p valueSize or @p value is NULL,
+     * or if @p attr is invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if the buffer size is
+     * smaller than the size required for @p attr
+     * @return MSPTI_ERROR_INNER if an inner error occurs
+     */
+    msptiResult msptiActivityGetAttribute(msptiActivityAttribute attr, size_t *valueSize, void *value);
 
 #if defined(__GNUC__) && defined(MSPTI_LIB)
 #pragma GCC visibility pop

@@ -256,6 +256,11 @@ msptiResult ContextManager::SetTimestampCallback(msptiTimestampCallbackFunc func
     return MSPTI_SUCCESS;
 }
 
+msptiTimestampCallbackFunc ContextManager::GetTimestampCallback()
+{
+    return timestampCallback_.load(std::memory_order_relaxed);
+}
+
 inline uint64_t ContextManager::GetCurrentHostRealTimeNs()
 {
     auto callback = timestampCallback_.load(std::memory_order_relaxed);

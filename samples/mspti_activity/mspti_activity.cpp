@@ -170,10 +170,50 @@ void ShowMsptiApiCallResult()
     LOG_PRINT("msptiGetTimestamp result: %d (%s), timestamp: %lu\n", ret, GetResultCodeString(ret), timestamp);
 }
 
+void ShowActivityAttribute()
+{
+    // 获取Activity属性：Channel Buffer大小
+    uint32_t channelSize = 0;
+    size_t valueSize = sizeof(channelSize);
+    msptiResult ret = msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize);
+    LOG_PRINT("msptiActivityGetAttribute(CHANNEL_BUFFER_SIZE) result: %d (%s), channelSize: %u\n", ret,
+              GetResultCodeString(ret), channelSize);
+
+    // 设置Activity属性：Channel Buffer大小，取值范围为[2MB, 10MB]
+    channelSize = 4 * 1024 * 1024;
+    valueSize = sizeof(channelSize);
+    ret = msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize);
+    LOG_PRINT("msptiActivitySetAttribute(CHANNEL_BUFFER_SIZE) result: %d (%s), channelSize: %u\n", ret,
+              GetResultCodeString(ret), channelSize);
+    if (ret == MSPTI_SUCCESS)
+    {
+        // 重新获取设置后的Channel Buffer大小
+        valueSize = sizeof(channelSize);
+        ret = msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize);
+        LOG_PRINT("msptiActivityGetAttribute(CHANNEL_BUFFER_SIZE) after set result: %d (%s), channelSize: %u\n", ret,
+                  GetResultCodeString(ret), channelSize);
+    }
+
+    // 获取Activity属性：时间戳回调函数
+    msptiTimestampCallbackFunc funcTimestamp = nullptr;
+    valueSize = sizeof(funcTimestamp);
+    ret = msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK, &valueSize, &funcTimestamp);
+    LOG_PRINT("msptiActivityGetAttribute(TIMESTAMP_CALLBACK) result: %d (%s)\n", ret, GetResultCodeString(ret));
+
+    // 错误attr入参示例：非法属性
+    uint32_t invalidValue = 0;
+    valueSize = sizeof(invalidValue);
+    ret = msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_FORCE_INT, &valueSize, &invalidValue);
+    LOG_PRINT("msptiActivitySetAttribute(FORCE_INT) result: %d (%s)\n", ret, GetResultCodeString(ret));
+}
+
 void SetUpMspti()
 {
     // 初始化订阅mspti
     InitMspti(nullptr, nullptr);
+
+    // 演示Activity属性设置与获取
+    ShowActivityAttribute();
 
     // 注册时间戳回调，需在所有Activity Kind使能之前调用
     msptiResult ret = msptiActivityRegisterTimestampCallback(TimestampCallback);

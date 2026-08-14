@@ -36,7 +36,8 @@ namespace Ascend
 {
 namespace Channel
 {
-ChannelReader::ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId) : deviceId_(deviceId), channelId_(channelId)
+ChannelReader::ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId, uint32_t bufferSize)
+    : deviceId_(deviceId), channelId_(channelId), bufferSize_(bufferSize), buffer_(bufferSize, '\0')
 {
 }
 
@@ -95,11 +96,12 @@ msptiResult ChannelReader::Execute()
 {
     isScheduling_ = false;
     int currLen = 0;
+    char* buff = const_cast<char*>(buffer_.data());
     std::unique_lock<std::mutex> guard(flushMutex_, std::defer_lock);
     while (isInited_ && !isChannelStopped_)
     {
         guard.lock();
-        currLen = ProfChannelRead(deviceId_, channelId_, buffer_ + curPos_, MAX_BUFFER_SIZE - curPos_);
+        currLen = ProfChannelRead(deviceId_, channelId_, buff + curPos_, bufferSize_ - curPos_);
         CheckIfSendFlush(currLen);
         guard.unlock();
         if (currLen <= 0)
@@ -111,15 +113,15 @@ msptiResult ChannelReader::Execute()
             break;
         }
         auto uintCurrLen = static_cast<size_t>(currLen);
-        if (uintCurrLen > (MAX_BUFFER_SIZE - curPos_))
+        if (uintCurrLen > (bufferSize_ - curPos_))
         {
             MSPTI_LOGE("Read invalid data len [%zu] from driver", uintCurrLen);
             break;
         }
-        size_t lastPos = TransDataToActivityBuffer(buffer_, curPos_ + uintCurrLen, deviceId_, channelId_);
+        size_t lastPos = TransDataToActivityBuffer(buff, curPos_ + uintCurrLen, deviceId_, channelId_);
         if (lastPos < curPos_ + uintCurrLen)
         {
-            if (memcpy_s(buffer_, MAX_BUFFER_SIZE, buffer_ + lastPos, curPos_ + uintCurrLen - lastPos) != EOK)
+            if (memcpy_s(buff, bufferSize_, buff + lastPos, curPos_ + uintCurrLen - lastPos) != EOK)
             {
                 MSPTI_LOGE("memcpy channel buff data failed, deviceId=%u, channelId=%d, totalSize=%lu", deviceId_,
                            channelId_, totalSize_);

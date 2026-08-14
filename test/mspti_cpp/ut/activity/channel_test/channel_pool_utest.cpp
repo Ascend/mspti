@@ -40,20 +40,20 @@ TEST_F(ChannelPoolUtest, AddReaderWillReturnSuccWhenCreateReaderSucc)
     constexpr uint32_t devId0 = 0;
     constexpr uint32_t devId1 = 1;
 
-    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_TS_FW));
+    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
     EXPECT_EQ(1, pool->readers_map_.size());
 
-    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_STARS_SOC_LOG));
+    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_STARS_SOC_LOG, DEFAULT_CHANNEL_BUFFER_SIZE));
     EXPECT_EQ(2, pool->readers_map_.size());
 
-    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId1, PROF_CHANNEL_TS_FW));
+    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId1, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
     EXPECT_EQ(3, pool->readers_map_.size());
 
-    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId1, PROF_CHANNEL_STARS_SOC_LOG));
+    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId1, PROF_CHANNEL_STARS_SOC_LOG, DEFAULT_CHANNEL_BUFFER_SIZE));
     EXPECT_EQ(4, pool->readers_map_.size());
 
     // repeat add reader for same devId and channelId
-    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_TS_FW));
+    EXPECT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
     EXPECT_EQ(4, pool->readers_map_.size());
 }
 
@@ -69,7 +69,7 @@ TEST_F(ChannelPoolUtest, RemoveReaderWillReturnSuccWhenInputValidDevIdAndChannel
     EXPECT_EQ(MSPTI_SUCCESS, pool->RemoveReader(devId0, PROF_CHANNEL_TS_FW));
     EXPECT_EQ(0, pool->readers_map_.size());
 
-    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_TS_FW));
+    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(devId0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
     ASSERT_EQ(1, pool->readers_map_.size());
     EXPECT_EQ(MSPTI_SUCCESS, pool->RemoveReader(devId0, PROF_CHANNEL_TS_FW));
     EXPECT_EQ(0, pool->readers_map_.size());
@@ -132,7 +132,7 @@ TEST_F(ChannelPoolUtest, ChannelPoolRunLoopWillDispatchChannelWhenProfChannelPol
     MOCKER_CPP(&ProfChannelRead).stubs().will(returnValue(0));
 
     EXPECT_EQ(MSPTI_SUCCESS, pool->Start());
-    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(0, PROF_CHANNEL_TS_FW));
+    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
     ASSERT_EQ(1, pool->readers_map_.size());
 
     pool->Stop();
@@ -153,7 +153,7 @@ TEST_F(ChannelPoolUtest, FlushDrvBuffWillReturnSuccWhenFlushDrvBuffReturnSucc)
     Mspti::Common::MsptiMakeSharedPtr(pool, 1);
     ASSERT_NE(pool, nullptr);
 
-    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(0, PROF_CHANNEL_TS_FW));
+    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
     ASSERT_EQ(1, pool->readers_map_.size());
 
     MOCKER_CPP(&Mspti::Ascend::Channel::ChannelReader::FlushDrvBuff).stubs().will(returnValue(MSPTI_SUCCESS));

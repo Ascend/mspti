@@ -464,6 +464,44 @@ msptiActivityGetNumDroppedRecords(..., &dropped)
 - **回调名称**：`msptiGetCallbackName`基于静态`DOMAIN_CBID_MAP`映射表（Domain→{Cbid→函数名}）返回Callback ID对应的API函数名，用于日志/展示。
 - **追踪会话**：`msptiIsTracingSessionRunning`通过CallbackManager的`init_`标志判断msPTI库当前是否已被加载并处于活动状态，供工具判断卸载安全性。
 
+### 4.3.9 Activity属性配置机制
+
+为便于用户对Activity采集行为进行细粒度配置与查询，msPTI提供`msptiActivitySetAttribute`/`msptiActivityGetAttribute`属性接口，通过`msptiActivityAttribute`枚举标识不同属性。所有属性均为定长二进制值，接口通过`valueSize`携带缓冲区大小，保证内存安全。
+
+```text
+msptiActivityAttribute 枚举
+  ├── MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE    // Channel Buffer大小（uint32_t，Byte）
+  └── MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK     // 时间戳回调函数（msptiTimestampCallbackFunc）
+```
+
+**定长属性校验流程**（`msptiActivitySetAttribute`与`msptiActivityGetAttribute`共用）：
+
+1. 校验`valueSize`与`value`不为NULL，否则返回`MSPTI_ERROR_INVALID_PARAMETER`。
+2. 通过`GetActivityAttributeSize`按枚举值查询属性所需的固定字节数（内部switch映射表驱动）；非法属性查询到的大小为0，返回`MSPTI_ERROR_INVALID_PARAMETER`。
+3. 若`*valueSize`小于属性所需大小，返回`MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT`，从源头避免越界读写。
+4. 校验通过后按属性类型执行对应读写逻辑：
+
+```text
+Set CHANNEL_BUFFER_SIZE
+  → 从value拷贝uint32_t值
+  → ChannelPoolManager::SetChannelBufferSize(size)
+  → 超出[2MB, 10MB]范围返回 MSPTI_ERROR_INVALID_PARAMETER
+Get CHANNEL_BUFFER_SIZE
+  → 返回ChannelPoolManager当前channelBufferSize_（默认2MB）
+
+Set TIMESTAMP_CALLBACK
+  → 从value拷贝msptiTimestampCallbackFunc
+  → 经msptiActivityRegisterTimestampCallback注册到ContextManager（NULL回调返回INVALID_PARAMETER）
+Get TIMESTAMP_CALLBACK
+  → 返回ContextManager当前注册的时间戳回调函数
+```
+
+实现要点：
+
+- **统一尺寸来源**：Set/Get分支均以校验后的`size`作为`memcpy_s`的目标容量与拷贝长度，属性枚举与本地变量类型保持一致，避免尺寸定义发散导致越界。
+- **原子存储**：时间戳回调经`ContextManager`以`std::atomic`存储，Get并发读取安全（见4.3.5节）。
+- **时序约束**：`MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE`仅对设置之后创建的Channel Buffer生效，已创建的Channel不受影响，建议在启用Activity采集或创建Channel之前完成设置。
+
 ## 4.4子系统间接口
 
 ### 4.4.1 Activity API 函数接口
@@ -487,6 +525,8 @@ msptiActivityGetNumDroppedRecords(..., &dropped)
 | `msptiActivityGetNumDroppedRecords` | 数据统计 | 获取因缓冲区不足而丢弃的记录数（调用后清零） |
 | `msptiGetTimestamp` | 时间戳 | 获取与Activity Record时间轴归一化对齐的当前时间戳（ns） |
 | `msptiActivityRegisterTimestampCallback` | 时间戳 | 注册外部时间戳回调，统一Activity记录的时间基准 |
+| `msptiActivitySetAttribute` | 属性配置 | 设置Activity属性，当前支持Channel Buffer大小、时间戳回调函数 |
+| `msptiActivityGetAttribute` | 属性查询 | 获取Activity属性的当前值 |
 
 ### 4.4.2 Callback API 函数接口
 
@@ -496,6 +536,12 @@ msptiActivityGetNumDroppedRecords(..., &dropped)
 | `msptiUnsubscribe` | 生命周期 | 注销回调订阅者 |
 | `msptiEnableCallback` | 采集控制 | 开启/关闭特定Callback ID |
 | `msptiEnableDomain` | 采集控制 | 开启/关闭整个Domain |
+| `msptiEnableAllDomains` | 采集控制 | 开启/关闭所有Domain的所有Callback |
+| `msptiGetCallbackState` | 状态查询 | 查询指定Callback ID的开启/关闭状态 |
+| `msptiGetEnabledCallbacks` | 状态查询 | 获取指定Domain下已开启的Callback ID列表 |
+| `msptiGetCallbackName` | 信息查询 | 获取指定Domain + Callback ID对应的API函数名 |
+| `msptiSupportedDomains` | 信息查询 | 获取当前支持的Callback Domain列表 |
+| `msptiIsTracingSessionRunning` | 生命周期 | 查询msPTI追踪会话是否仍在运行 |
 
 ### 4.4.3 Python API 接口
 
@@ -558,6 +604,8 @@ msptiActivityGetNumDroppedRecords(..., &dropped)
 
 - 管理订阅者列表（当前仅支持单订阅者）。
 - 维护Domain和Callback ID的Enable/Disable状态。
+- 提供状态查询及域枚举能力：`msptiGetCallbackState`/`msptiGetEnabledCallbacks`/`msptiSupportedDomains`/`msptiGetCallbackName`。
+- 提供批量控制与会话探活能力：`msptiEnableAllDomains`/`msptiEnableDomain`/`msptiIsTracingSessionRunning`。
 - 在API入口/出口检测到开启的Domain或ID时，调用用户回调函数。
 - 传递包含函数名、参数、返回值、correlationId等信息的`msptiCallbackData`。
 
@@ -644,6 +692,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 | 未设置LD_PRELOAD | 返回`MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 提示`export LD_PRELOAD=...` |
 | 未初始化 | 返回`MSPTI_ERROR_NOT_INITIALIZED`（后续API需先初始化） | 提示先完成`msptiSubscribe`等初始化流程 |
 | 无效Activity Kind | 返回`MSPTI_ERROR_INVALID_KIND` | 打印Kind值并提示合法范围 |
+| 参数缓冲区大小不足 | 返回`MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT`（如属性接口valueSize小于属性所需大小） | 提示按属性所需字节数放大缓冲区 |
 | 重复订阅 | 返回`MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED` | 提示单订阅者限制 |
 | 无效参数 | 返回`MSPTI_ERROR_INVALID_PARAMETER` | 打印参数错误详情 |
 | 内存分配失败 | 回调中返回NULL，msPTI丢弃记录 | 建议增大缓冲区或减少并发 |
@@ -1049,6 +1098,7 @@ typedef union {
 | `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置LD_PRELOAD |
 | `MSPTI_ERROR_NOT_INITIALIZED` | 7 | 未初始化 |
 | `MSPTI_ERROR_INVALID_KIND` | 8 | 无效Kind |
+| `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` | 9 | 参数缓冲区大小不足（如设置/获取Activity属性时 valueSize 小于属性所需大小） |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 |
 
 ### Callback ID
@@ -1064,6 +1114,16 @@ Marker标记的6种标志位，使用位域组合。前3个为纯Host标记，�
 ### Communication Data Type
 
 支持17种通信数据类型，覆盖INT8/16/32/64/128、UINT8/16/32/64、FP16/32/64、BFP16、HIF8、FP8E4M3/FP8E5M2/FP8E8M0等。
+
+### msptiActivityAttribute（Activity属性）
+
+用于标识Activity采集过程中的可配置属性，作为`msptiActivitySetAttribute`/`msptiActivityGetAttribute`的参数使用。
+
+| 枚举值 | 数值 | 值类型 | 说明 |
+| --- | --- | --- | --- |
+| `MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE` | 0 | uint32_t | Channel Buffer大小（Byte），默认2\*1024\*1024，取值范围\[2MB, 10MB\]，设置后仅对新建Channel生效 |
+| `MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK` | 1 | msptiTimestampCallbackFunc | 时间戳回调函数，用于替代msPTI默认时间戳获取方式 |
+| `MSPTI_ACTIVITY_ATTR_FORCE_INT` | 0x7fffffff | - | 强制类型标识，保证枚举占满32位，不可传入接口 |
 
 ## 5.4 Python数据类型映射
 

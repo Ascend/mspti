@@ -13,7 +13,8 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
+
 #ifndef MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_H
 #define MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_H
 
@@ -25,25 +26,29 @@
 #include "csrc/common/thread_pool.h"
 #include "csrc/include/mspti_result.h"
 
-namespace Mspti {
-namespace Ascend {
-namespace Channel {
-class ChannelPool {
-public:
+namespace Mspti
+{
+namespace Ascend
+{
+namespace Channel
+{
+class ChannelPool
+{
+   public:
     ChannelPool(uint32_t pool_size) : pool_size_(pool_size) {}
     ~ChannelPool() = default;
-    msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId);
+    msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId, uint32_t bufferSize);
     msptiResult RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult Start();
     void Stop();
 
-private:
+   private:
     void Run();
     void DispatchChannel(uint32_t devId, AI_DRV_CHANNEL channelId);
     size_t GetChannelIndex(uint32_t devId, AI_DRV_CHANNEL channelId);
 
-private:
+   private:
     uint32_t pool_size_;
     volatile bool isStarted_{false};
     std::thread thread_;
@@ -54,4 +59,5 @@ private:
 }  // namespace Channel
 }  // namespace Ascend
 }  // namespace Mspti
-#endif // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_H
+
+#endif  // MSPTI_ACTIVITY_ASCEND_CHANNEL_CHANNEL_POOL_H

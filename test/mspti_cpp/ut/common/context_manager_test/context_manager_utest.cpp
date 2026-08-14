@@ -353,6 +353,32 @@ static uint64_t TimestampCallbackImpl()
     return Mspti::Common::Utils::GetClockRealTimeNs();
 }
 
+TEST_F(ContextManagerUtest, GetTimestampCallbackReturnsNullWhenNoCallbackSet)
+{
+    EXPECT_EQ(contextManager->GetTimestampCallback(), nullptr);
+}
+
+TEST_F(ContextManagerUtest, GetTimestampCallbackReturnsCallbackSetBySetTimestampCallback)
+{
+    EXPECT_EQ(MSPTI_SUCCESS, contextManager->SetTimestampCallback(TimestampCallbackImpl));
+    EXPECT_EQ(contextManager->GetTimestampCallback(), TimestampCallbackImpl);
+}
+
+TEST_F(ContextManagerUtest, GetTimestampCallbackReturnsUpdatedCallbackAfterReset)
+{
+    msptiTimestampCallbackFunc newCallback = []() -> uint64_t { return 0ULL; };
+    EXPECT_EQ(MSPTI_SUCCESS, contextManager->SetTimestampCallback(newCallback));
+    EXPECT_EQ(contextManager->GetTimestampCallback(), newCallback);
+}
+
+TEST_F(ContextManagerUtest, GetTimestampCallbackKeepsOldCallbackWhenSetFailsWithNull)
+{
+    auto currentCallback = contextManager->GetTimestampCallback();
+    ASSERT_NE(currentCallback, nullptr);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, contextManager->SetTimestampCallback(nullptr));
+    EXPECT_EQ(contextManager->GetTimestampCallback(), currentCallback);
+}
+
 TEST_F(ContextManagerUtest, SetTimestampCallbackWithNullReturnsInvalidParam)
 {
     EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, contextManager->SetTimestampCallback(nullptr));

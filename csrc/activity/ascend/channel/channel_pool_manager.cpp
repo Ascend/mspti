@@ -13,19 +13,24 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
+
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
-namespace Mspti {
-namespace Ascend {
-namespace Channel {
+namespace Mspti
+{
+namespace Ascend
+{
+namespace Channel
+{
 
-namespace {
+namespace
+{
 constexpr uint32_t MAX_DEV_NUM = 64;
 }
 
@@ -37,7 +42,8 @@ ChannelPoolManager *ChannelPoolManager::GetInstance()
 
 ChannelPoolManager::~ChannelPoolManager()
 {
-    if (drvChannelPoll_ != nullptr) {
+    if (drvChannelPoll_ != nullptr)
+    {
         drvChannelPoll_->Stop();
         drvChannelPoll_.reset(nullptr);
     }
@@ -46,23 +52,27 @@ ChannelPoolManager::~ChannelPoolManager()
 msptiResult ChannelPoolManager::Init()
 {
     std::lock_guard<std::mutex> lock(channelPollMutex_);
-    if (drvChannelPoll_ != nullptr) {
+    if (drvChannelPoll_ != nullptr)
+    {
         return MSPTI_SUCCESS;
     }
     uint32_t dev_num = 0;
     auto ret = DrvGetDevNum(&dev_num);
-    if (ret != DRV_ERROR_NONE || dev_num == 0) {
+    if (ret != DRV_ERROR_NONE || dev_num == 0)
+    {
         MSPTI_LOGE("Failed to get dev num, ret: %d, num: %u", ret, dev_num);
         return MSPTI_ERROR_DEVICE_OFFLINE;
     }
 
-    if (dev_num > MAX_DEV_NUM) {
+    if (dev_num > MAX_DEV_NUM)
+    {
         MSPTI_LOGW("dev_num is too big: %u, reset to %u", dev_num, MAX_DEV_NUM);
         dev_num = MAX_DEV_NUM;
     }
 
     Mspti::Common::MsptiMakeUniquePtr(drvChannelPoll_, dev_num);
-    if (!drvChannelPoll_) {
+    if (!drvChannelPoll_)
+    {
         MSPTI_LOGE("Failed to init ChannelPool.");
         return MSPTI_ERROR_INNER;
     }
@@ -72,7 +82,8 @@ msptiResult ChannelPoolManager::Init()
 void ChannelPoolManager::UnInit()
 {
     std::lock_guard<std::mutex> lock(channelPollMutex_);
-    if (drvChannelPoll_ != nullptr) {
+    if (drvChannelPoll_ != nullptr)
+    {
         drvChannelPoll_->Stop();
         drvChannelPoll_.reset(nullptr);
     }
@@ -82,16 +93,19 @@ msptiResult ChannelPoolManager::GetAllChannels(uint32_t devId)
 {
     std::lock_guard<std::mutex> lock(channels_mtx_);
     ChannelListT channelList;
-    if (memset_s(&channelList, sizeof(ChannelListT), 0, sizeof(ChannelListT)) != EOK) {
+    if (memset_s(&channelList, sizeof(ChannelListT), 0, sizeof(ChannelListT)) != EOK)
+    {
         MSPTI_LOGE("DrvGetChannels, memset failed");
         return MSPTI_ERROR_INNER;
     }
     ProfDrvGetChannels(devId, &channelList);
-    if (channelList.channelNum > PROF_CHANNEL_NUM_MAX || channelList.channelNum == 0) {
+    if (channelList.channelNum > PROF_CHANNEL_NUM_MAX || channelList.channelNum == 0)
+    {
         MSPTI_LOGE("ProfDrvGetChannels failed. Channel Num: %d.", channelList.channelNum);
         return MSPTI_ERROR_INNER;
     }
-    for (size_t i = 0; i < channelList.channelNum; ++i) {
+    for (size_t i = 0; i < channelList.channelNum; ++i)
+    {
         channels_[devId].insert(channelList.channel[i].channelId);
     }
     return MSPTI_SUCCESS;
@@ -101,7 +115,8 @@ bool ChannelPoolManager::CheckChannelValid(uint32_t devId, uint32_t channelId)
 {
     std::lock_guard<std::mutex> lock(channels_mtx_);
     auto devIter = channels_.find(devId);
-    if (devIter == channels_.end() || devIter->second.find(channelId) == devIter->second.end()) {
+    if (devIter == channels_.end() || devIter->second.find(channelId) == devIter->second.end())
+    {
         return false;
     }
     return true;
@@ -110,8 +125,9 @@ bool ChannelPoolManager::CheckChannelValid(uint32_t devId, uint32_t channelId)
 msptiResult ChannelPoolManager::AddReader(uint32_t devId, AI_DRV_CHANNEL channelId)
 {
     std::lock_guard<std::mutex> lock(channelPollMutex_);
-    if (drvChannelPoll_) {
-        return drvChannelPoll_->AddReader(devId, channelId);
+    if (drvChannelPoll_)
+    {
+        return drvChannelPoll_->AddReader(devId, channelId, channelBufferSize_);
     }
     return MSPTI_SUCCESS;
 }
@@ -119,7 +135,8 @@ msptiResult ChannelPoolManager::AddReader(uint32_t devId, AI_DRV_CHANNEL channel
 msptiResult ChannelPoolManager::RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId)
 {
     std::lock_guard<std::mutex> lock(channelPollMutex_);
-    if (drvChannelPoll_) {
+    if (drvChannelPoll_)
+    {
         return drvChannelPoll_->RemoveReader(devId, channelId);
     }
     return MSPTI_SUCCESS;
@@ -128,9 +145,24 @@ msptiResult ChannelPoolManager::RemoveReader(uint32_t devId, AI_DRV_CHANNEL chan
 msptiResult ChannelPoolManager::FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId)
 {
     std::lock_guard<std::mutex> lock(channelPollMutex_);
-    if (drvChannelPoll_) {
+    if (drvChannelPoll_)
+    {
         return drvChannelPoll_->FlushDrvBuff(devId, channelId);
     }
+    return MSPTI_SUCCESS;
+}
+
+msptiResult ChannelPoolManager::SetChannelBufferSize(uint32_t bufferSize)
+{
+    constexpr uint32_t MIN_CHANNEL_BUFFER_SIZE = 1024 * 1024 * 2;
+    constexpr uint32_t MAX_CHANNEL_BUFFER_SIZE = 1024 * 1024 * 10;
+    if (bufferSize < MIN_CHANNEL_BUFFER_SIZE || bufferSize > MAX_CHANNEL_BUFFER_SIZE)
+    {
+        MSPTI_LOGE("bufferSize is invalid: %u", bufferSize);
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    channelBufferSize_ = bufferSize;
+    MSPTI_LOGI("SetChannelBufferSize: %u", bufferSize);
     return MSPTI_SUCCESS;
 }
 }  // namespace Channel

@@ -20,7 +20,9 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <string>
 
+#include "csrc/common/config.h"
 #include "csrc/common/inject/inject_base.h"
 #include "csrc/common/task.h"
 #include "csrc/include/mspti_result.h"
@@ -31,12 +33,10 @@ namespace Ascend
 {
 namespace Channel
 {
-constexpr size_t MAX_BUFFER_SIZE = 1024 * 1024 * 2;
-
 class ChannelReader : public Mspti::Common::Task
 {
    public:
-    ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId);
+    ChannelReader(uint32_t deviceId, AI_DRV_CHANNEL channelId, uint32_t bufferSize = DEFAULT_CHANNEL_BUFFER_SIZE);
     virtual ~ChannelReader() = default;
     virtual msptiResult Execute();
     virtual size_t HashId();
@@ -63,7 +63,8 @@ class ChannelReader : public Mspti::Common::Task
     size_t hashId_{0};
     uint64_t totalSize_{0};
     size_t curPos_{0};
-    char buffer_[MAX_BUFFER_SIZE] = {0};
+    uint32_t bufferSize_{0};
+    std::string buffer_;
 
     // status info
     volatile bool isInited_{false};

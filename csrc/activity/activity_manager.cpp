@@ -25,6 +25,7 @@
 #include <regex>
 #include <thread>
 
+#include "csrc/activity/ascend/channel/channel_pool_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
@@ -106,6 +107,20 @@ inline bool GetActivityStructSize(msptiActivityKind kind, size_t *size)
     };
     *size = activityKindDataSize[kind];
     return true;
+}
+
+inline size_t GetActivityAttributeSize(msptiActivityAttribute attr)
+{
+    switch (attr)
+    {
+        case MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE:
+            return sizeof(uint32_t);
+        case MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK:
+            return sizeof(msptiTimestampCallbackFunc);
+        default:
+            break;
+    }
+    return 0;
 }
 
 void ActivityBuffer::Init(msptiBuffersCallbackRequestFunc func)
@@ -684,4 +699,92 @@ msptiResult msptiGetTimestamp(uint64_t *timestamp)
 msptiResult msptiActivityRegisterTimestampCallback(msptiTimestampCallbackFunc funcTimestamp)
 {
     return Mspti::Common::ContextManager::GetInstance()->SetTimestampCallback(funcTimestamp);
+}
+
+msptiResult msptiActivitySetAttribute(msptiActivityAttribute attr, size_t *valueSize, void *value)
+{
+    if (valueSize == nullptr || value == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    size_t size = Mspti::Activity::GetActivityAttributeSize(attr);
+    if (size == 0)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (*valueSize < size)
+    {
+        return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT;
+    }
+    switch (attr)
+    {
+        case MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE:
+        {
+            uint32_t channelBufferSize{0};
+            if (memcpy_s(&channelBufferSize, size, value, size) != EOK)
+            {
+                return MSPTI_ERROR_INNER;
+            }
+            return Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->SetChannelBufferSize(channelBufferSize);
+        }
+        case MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK:
+        {
+            msptiTimestampCallbackFunc funcTimestamp{nullptr};
+            if (memcpy_s(&funcTimestamp, size, value, size) != EOK)
+            {
+                return MSPTI_ERROR_INNER;
+            }
+            return msptiActivityRegisterTimestampCallback(funcTimestamp);
+        }
+        default:
+            return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+}
+
+msptiResult msptiActivityGetAttribute(msptiActivityAttribute attr, size_t *valueSize, void *value)
+{
+    if (valueSize == nullptr || value == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    size_t size = Mspti::Activity::GetActivityAttributeSize(attr);
+    if (size == 0)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (*valueSize < size)
+    {
+        return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT;
+    }
+    msptiResult ret{MSPTI_SUCCESS};
+    switch (attr)
+    {
+        case MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE:
+        {
+            auto channelBufferSize = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->GetChannelBufferSize();
+            if (memcpy_s(value, size, &channelBufferSize, sizeof(channelBufferSize)) != EOK)
+            {
+                ret = MSPTI_ERROR_INNER;
+            }
+            break;
+        }
+        case MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK:
+        {
+            auto funcTimestamp = Mspti::Common::ContextManager::GetInstance()->GetTimestampCallback();
+            if (memcpy_s(value, size, &funcTimestamp, sizeof(funcTimestamp)) != EOK)
+            {
+                ret = MSPTI_ERROR_INNER;
+            }
+            break;
+        }
+        default:
+            ret = MSPTI_ERROR_INVALID_PARAMETER;
+            break;
+    }
+    if (ret != MSPTI_SUCCESS)
+    {
+        return ret;
+    }
+    *valueSize = size;
+    return MSPTI_SUCCESS;
 }

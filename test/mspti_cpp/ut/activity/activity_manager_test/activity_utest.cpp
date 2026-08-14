@@ -482,4 +482,124 @@ TEST_F(ActivityUtest, MsptiActivityRegisterTimestampCallbackReturnsSuccess)
     EXPECT_EQ(MSPTI_SUCCESS, msptiGetTimestamp(&timestamp));
     EXPECT_GT(timestamp, 0ULL);
 }
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsInvalidParameterWhenValueSizeNull)
+{
+    uint32_t channelSize = 4 * 1024 * 1024;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, nullptr, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsInvalidParameterWhenValueNull)
+{
+    size_t valueSize = sizeof(uint32_t);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsInvalidParameterWhenAttrInvalid)
+{
+    uint32_t channelSize = 4 * 1024 * 1024;
+    size_t valueSize = sizeof(uint32_t);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_FORCE_INT, &valueSize, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsParameterSizeNotSufficientWhenSizeTooSmall)
+{
+    uint32_t channelSize = 4 * 1024 * 1024;
+    size_t valueSize = 1;
+    EXPECT_EQ(MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsSuccessForChannelSize)
+{
+    uint32_t channelSize = 4 * 1024 * 1024;
+    size_t valueSize = sizeof(channelSize);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
+
+    uint32_t getChannelSize = 0;
+    valueSize = sizeof(getChannelSize);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &getChannelSize));
+    EXPECT_EQ(channelSize, getChannelSize);
+
+    uint32_t defaultChannelSize = 2 * 1024 * 1024;
+    valueSize = sizeof(defaultChannelSize);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &defaultChannelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsInvalidParameterWhenChannelSizeOutOfRange)
+{
+    uint32_t channelSize = 1 * 1024 * 1024;
+    size_t valueSize = sizeof(channelSize);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
+
+    channelSize = 11 * 1024 * 1024;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivitySetAttributeReturnsSuccessForTimestampCallback)
+{
+    msptiTimestampCallbackFunc timestampCallback = []() -> uint64_t
+    { return Mspti::Common::Utils::GetClockRealTimeNs(); };
+    size_t valueSize = sizeof(timestampCallback);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK, &valueSize, &timestampCallback));
+
+    msptiTimestampCallbackFunc getCallback = nullptr;
+    valueSize = sizeof(getCallback);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK, &valueSize, &getCallback));
+    EXPECT_EQ(timestampCallback, getCallback);
+
+    msptiTimestampCallbackFunc nullCallback = nullptr;
+    valueSize = sizeof(nullCallback);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivitySetAttribute(MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK, &valueSize, &nullCallback));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetAttributeReturnsInvalidParameterWhenValueSizeNull)
+{
+    uint32_t channelSize = 0;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, nullptr, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetAttributeReturnsInvalidParameterWhenValueNull)
+{
+    size_t valueSize = sizeof(uint32_t);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, nullptr));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetAttributeReturnsInvalidParameterWhenAttrInvalid)
+{
+    uint32_t channelSize = 0;
+    size_t valueSize = sizeof(channelSize);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_FORCE_INT, &valueSize, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetAttributeReturnsParameterSizeNotSufficientWhenSizeTooSmall)
+{
+    uint32_t channelSize = 0;
+    size_t valueSize = 1;
+    EXPECT_EQ(MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
+}
+
+TEST_F(ActivityUtest, MsptiActivityGetAttributeReturnsDefaultChannelSize)
+{
+    uint32_t channelSize = 0;
+    size_t valueSize = sizeof(channelSize);
+    EXPECT_EQ(MSPTI_SUCCESS,
+              msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
+    EXPECT_EQ(2 * 1024 * 1024, channelSize);
+}
 }  // namespace

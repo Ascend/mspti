@@ -35,7 +35,6 @@ Callback API 和 Activity API 可以同时开启，互不冲突。典型组合�
 | C 接口完整参考 | 《[C API 参考](../api_reference/c_api/README.md)》 | Activity API + Callback API 全部函数与数据结构 |
 | Python 接口完整参考 | 《[Python API 参考](../api_reference/python_api/README.md)》 | KernelMonitor / HcclMonitor / MstxMonitor / CommunicationMonitor 全接口 |
 | 样例列表与说明 | 《[msPTI 样例指南](../user_guide/samples_guide.md)》 | 9 个覆盖各类接口的实战样例 |
-| 开发与构建 | 《[msPTI 开发指南](../development_guide/development_guide.md)》 | 源码编译、二次开发、测试与提交 |
 | 最佳实践与典型案例 | 《[msPTI 最佳实践](../best_practices/basic_cases.md)》 | 接口选型、缓冲区管理、反模式规避 |
 
 ## 3. 通用约定
@@ -69,6 +68,7 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 | `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置 LD_PRELOAD | `libmspti.so` 未预加载 |
 | `MSPTI_ERROR_NOT_INITIALIZED` | 7 | 未初始化 | msPTI 未初始化时调用相关接口 |
 | `MSPTI_ERROR_INVALID_KIND` | 8 | 无效 Kind | Activity Kind 无效 |
+| `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` | 9 | 参数缓冲区大小不足 | valueSize 指定的缓冲区大小小于属性所需大小（如 `msptiActivitySetAttribute`/`msptiActivityGetAttribute`） |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 | msPTI 初始化失败或内部异常 |
 
 > [!NOTE] Note

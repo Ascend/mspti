@@ -13,6 +13,7 @@ class MsptiResult(Enum):
     MSPTI_ERROR_WITHOUT_LD_PRELOAD = 6    # libmspti.so未设置到LD_PRELOAD环境变量时返回，表示msPTI执行失败
     MSPTI_ERROR_NOT_INITIALIZED = 7    # msPTI未初始化时返回，表示msPTI执行失败
     MSPTI_ERROR_INVALID_KIND = 8    # Activity Kind无效时返回，表示msPTI执行失败
+    MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT = 9    # 参数缓冲区大小不足时返回，表示msPTI执行失败
     MSPTI_ERROR_INNER = 999    # msPTI内部错误时返回，表示msPTI执行失败
     MSPTI_ERROR_FORCE_INT = 0x7fffffff
 ```
