@@ -64,7 +64,12 @@ msptiResult ChannelReader::FlushDrvBuff()
     std::unique_lock<std::mutex> guard(flushMutex_);
     unsigned int flushSize = 0;
     const int32_t ret = HalProfDataFlush(deviceId_, channelId_, &flushSize);
-    if (ret != MSPTI_SUCCESS)
+    if (ret == DRV_ERROR_NOT_SUPPORT)
+    {
+        MSPTI_LOGW("Function HalProfDataFlush is not supported, deviceId:%u, channelId:%u", deviceId_, channelId_);
+        return MSPTI_SUCCESS;
+    }
+    if (ret != DRV_ERROR_NONE)
     {
         MSPTI_LOGE("HalProfDataFlush failed, deviceId:%u, channelId:%u, ret:%d", deviceId_, channelId_, ret);
         return MSPTI_ERROR_INNER;

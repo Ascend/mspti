@@ -15,4 +15,3 @@
 | `test_MsptiMarkMultiThreadCase` | 验证 16 线程并发 Mark 发射（每线程 40000 次）的可靠性 | 校验日志中 MSPTI_SMOKE_MARK_NUM 总数是否为 640000（无标记丢失） |
 | `test_MsptiPythonMonitorCase` | 验证分布式 MNIST 训练场景下 Monitor 采集精度 | 校验 CSV 中 MARKER(HcclAllreduce) 7500 条、HCCL 7508 条、KERNEL(Relu) 22512 条，总数精确匹配 |
 | `test_mspti_communication` | 验证通信域 profiling 的 API-Communication 关联完整性 | 校验 20 条通信记录（hcom_allReduce_）、API 记录时间合法性、Communication 与 API 按 correlationId 一一关联 |
-| `test_mspti_graph` | 验证 Graph 模式 profiling 的 SQLite DB 交付件完整性 | 逐 DB 校验 kernel 与 api 全量关联（无 NULL）、kernel 的 correlationId 分组仅含 1 或 3 行、communication 与 api 的 name 一致 |

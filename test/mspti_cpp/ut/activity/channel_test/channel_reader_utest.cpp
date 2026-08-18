@@ -170,6 +170,35 @@ TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnSuccess)
     reader.Uinit();
 }
 
+TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnSuccessWhenDriverDoesNotSupportFlush)
+{
+    MOCKER_CPP(&HalProfDataFlush).stubs().will(returnValue(static_cast<int32_t>(DRV_ERROR_NOT_SUPPORT)));
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_TS_FW);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    msptiResult flushResult = MSPTI_ERROR_INNER;
+    std::thread flushThread([&reader, &flushResult]() { flushResult = reader.FlushDrvBuff(); });
+    flushThread.join();
+    EXPECT_EQ(MSPTI_SUCCESS, flushResult);
+    reader.Uinit();
+    GlobalMockObject::verify();
+}
+
+TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnInnerErrorWhenDriverFlushFails)
+{
+    constexpr int32_t flushFailed = 1;
+    MOCKER_CPP(&HalProfDataFlush).stubs().will(returnValue(flushFailed));
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_TS_FW);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    msptiResult flushResult = MSPTI_SUCCESS;
+    std::thread flushThread([&reader, &flushResult]() { flushResult = reader.FlushDrvBuff(); });
+    flushThread.join();
+    EXPECT_EQ(MSPTI_ERROR_INNER, flushResult);
+    reader.Uinit();
+    GlobalMockObject::verify();
+}
+
 // Test FlushDrvBuff() with data to flush
 TEST_F(ChannelReaderUtest, FlushDrvBuffShouldHandleFlushWithData)
 {
