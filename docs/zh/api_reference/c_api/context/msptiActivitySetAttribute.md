@@ -41,7 +41,7 @@ msptiResult msptiActivitySetAttribute(msptiActivityAttribute attr, size_t *value
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |
 | attr | 输入 | 需要设置的Activity属性，配置为[msptiActivityAttribute](./msptiActivityAttribute.md)的枚举值。 |
-| valueSize | 输入 | 指定value缓冲区的大小，单位为Byte。值与attr对应属性所需大小不一致时，接口返回MSPTI\_ERROR\_PARAMETER\_SIZE\_NOT\_SUFFICIENT。 |
+| valueSize | 输入 | 指定value缓冲区的大小，单位为Byte。值小于attr对应属性所需大小时，接口返回MSPTI\_ERROR\_PARAMETER\_SIZE\_NOT\_SUFFICIENT。 |
 | value | 输入 | 指向待设置的属性值缓冲区，缓冲区大小由valueSize指定。 |
 
 ## 返回值说明<a name="section16621124213476"></a>

@@ -105,5 +105,31 @@ bool IsRuntimeSupportMemoryReport()
     }();
     return isSupport;
 }
+
+uint32_t ParseMsptiVersion(const std::string& versionStr)
+{
+    constexpr uint32_t INVALID_VERSION = 0;
+    if (versionStr.empty())
+    {
+        return INVALID_VERSION;
+    }
+    static const std::regex reg(R"(^(\d+)\.(\d+)\.(\d+))");
+    std::smatch match;
+    if (!std::regex_search(versionStr, match, reg) || match.size() < 4)
+    {
+        MSPTI_LOGE("mspti version str: %s is invalid.", versionStr.c_str());
+        return INVALID_VERSION;
+    }
+    uint32_t major{0};
+    uint32_t minor{0};
+    uint32_t patch{0};
+    if (!Common::Utils::StrToU32(major, match[1].str()) || !Common::Utils::StrToU32(minor, match[2].str()) ||
+        !Common::Utils::StrToU32(patch, match[3].str()))
+    {
+        MSPTI_LOGE("mspti version str: %s is invalid.", versionStr.c_str());
+        return INVALID_VERSION;
+    }
+    return major * 10000 + minor * 100 + patch;
+}
 }  // namespace Common
 }  // namespace Mspti

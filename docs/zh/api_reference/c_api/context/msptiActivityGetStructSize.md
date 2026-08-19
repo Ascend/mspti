@@ -39,4 +39,4 @@ msptiResult msptiActivityGetStructSize(msptiActivityKind activityKind, uint32_t 
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；activityStructSize为空时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败；activityKind无效时返回MSPTI\_ERROR\_INVALID\_KIND，表示失败。
+返回MSPTI\_SUCCESS表示成功；activityStructSize为NULL时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败；activityKind无效时返回MSPTI\_ERROR\_INVALID\_KIND，表示失败。

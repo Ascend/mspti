@@ -42,4 +42,4 @@ msptiResult msptiActivityGetEnabledKinds(msptiSubscriberHandle subscriber, mspti
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；enabledKindsCount为空时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败；buffer不为NULL且bufferSize为NULL时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。
+返回MSPTI\_SUCCESS表示成功；enabledKindsCount为NULL时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败；buffer不为NULL且bufferSize为NULL时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。

@@ -32,6 +32,7 @@ uint32_t GetStreamId(AclrtStream stm);
 AclError ProfTrace(uint64_t indexId, uint64_t modelId, uint16_t tagId, AclrtStream stream);
 std::string GetCANNModuleVersion(const std::string& module);
 bool IsRuntimeSupportMemoryReport();
+uint32_t ParseMsptiVersion(const std::string& versionStr);
 
 }  // namespace Common
 }  // namespace Mspti

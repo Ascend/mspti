@@ -39,4 +39,4 @@ msptiResult msptiGetTimestamp(uint64_t *timestamp)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；timestamp为空时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。
+返回MSPTI\_SUCCESS表示成功；timestamp为NULL时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。

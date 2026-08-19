@@ -301,4 +301,32 @@ TEST_F(UtilsUtest, IsRuntimeSupportMemoryReportShouldReturnTrueWhenVersionValid)
 {
     EXPECT_TRUE(Mspti::Common::IsRuntimeSupportMemoryReport());
 }
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsVersionWhenModuleVersionAvailable)
+{
+    constexpr uint32_t EXPECTED_VERSION = 9 * 10000 + 2 * 100 + 0;
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("9.2.0"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsVersionWhenModuleVersionHasSuffix)
+{
+    constexpr uint32_t EXPECTED_VERSION = 26 * 10000 + 2 * 100 + 0;
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("26.2.0.dev"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsVersionWhenModuleVersionHasSuffixAndBuildMeta)
+{
+    constexpr uint32_t EXPECTED_VERSION = 26 * 10000 + 2 * 100 + 0;
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("26.2.0-rc1"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenModuleVersionInvalid)
+{
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("invalid"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenModuleVersionEmpty)
+{
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion(""));
+}
 }  // namespace

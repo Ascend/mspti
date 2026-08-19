@@ -22,7 +22,6 @@
 #include <chrono>
 #include <cstring>
 #include <functional>
-#include <regex>
 #include <thread>
 
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
@@ -622,26 +621,8 @@ msptiResult msptiGetVersion(uint32_t *version)
     static auto msptiVersion = []() -> uint32_t
     {
         auto versionStr = Mspti::Common::GetCANNModuleVersion("mspti");
-        if (versionStr.empty())
-        {
-            return INVALID_VERSION;
-        }
-        static const std::regex reg(R"(^(\d+)\.(\d+)\.(\d+))");
-        std::smatch match;
-        if (!std::regex_match(versionStr, match, reg) || match.size() < 4)
-        {
-            return INVALID_VERSION;
-        }
-        uint32_t major{0};
-        uint32_t minor{0};
-        uint32_t patch{0};
-        if (!Mspti::Common::Utils::StrToU32(major, match[1].str()) ||
-            !Mspti::Common::Utils::StrToU32(minor, match[2].str()) ||
-            !Mspti::Common::Utils::StrToU32(patch, match[3].str()))
-        {
-            return INVALID_VERSION;
-        }
-        return major * 10000 + minor * 100 + patch;
+        MSPTI_LOGI("mspti version str: %s", versionStr.c_str());
+        return Mspti::Common::ParseMsptiVersion(versionStr);
     }();
     if (UNLIKELY(msptiVersion == INVALID_VERSION))
     {
