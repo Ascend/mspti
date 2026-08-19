@@ -71,7 +71,8 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 | `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` | 9 | 参数缓冲区大小不足 | valueSize 指定的缓冲区大小小于属性所需大小（如 `msptiActivitySetAttribute`/`msptiActivityGetAttribute`） |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 | msPTI 初始化失败或内部异常 |
 
-> [!NOTE] Note
+> [!NOTE]
+> 
 > 详细错误处理请参见各 API 参考文档中的"返回值说明"章节。
 
 ### 3.3 约束与限制

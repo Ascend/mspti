@@ -2,19 +2,20 @@
 
 ## Supported Products
 
->![](public_sys-resources/icon-note.gif) **Note:**
->For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> [!NOTE]
+> 
+> For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 <a name="zh-cn_topic_0000002143882701_table38301303189"></a>
 
 | Product Type                                   | Supported|
 | ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training series products                         |    ×     |
+| Ascend 950PR&950DT Products                  |    √     |
+| Ascend A3 Products|    √     |
+| Ascend A2 Products|    √     |
+| Ascend 310B Products                 |    √     |
+| Ascend 310P Products                         |    ×     |
+| Ascend 910 Products                         |    ×     |
 
 ## Function Usage <a name="section463019538153"></a>
 

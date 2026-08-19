@@ -4,7 +4,7 @@
 
 This document describes how to install the msPTI tool.
 
-## Prepare for installation.
+## Prepare for installation
 
 - For hardware environment requirements, see [Ascend Product Models](<>).
 
@@ -13,24 +13,31 @@ This document describes how to install the msPTI tool.
 ## Installing the .run Package
 
 You can obtain the.runfile in either of the following ways:
+
 - Method 1: Download the.runfile from the releases page.
 - Method 2: Build the.runfile from the source code.
 
 ### Method 1: Downloading from the releases page
+
 The software installation package is released at:
+
 - [msPTI releases](https://gitcode.com/Ascend/mspti/releases)
 
 After the download, you are advised to verify the integrity (MD5) of the package before installing it. Example:
+
 ```shell
 wget https://gitcode.com/Ascend/mspti/releases/download/<tag>/mindstudio-profiler-tools-interface_<version>_<arch>.run
 md5sum mindstudio-profiler-tools-interface_<version>_<arch>.run
 echo "<expected_md5> mindstudio-profiler-tools-interface_<version>_<arch>.run" | md5sum -c -
 ```
-**NOTE**
-- For `<expected_md5>`, use the MD5 value corresponding to the installation package of the same version on the release page.
-- For details about the MD5 list of installation packages of each version, see the Release Notes (./release_notes.md).
+
+> [!NOTE]
+> 
+> - For `<expected_md5>`, use the MD5 value corresponding to the installation package of the same version on the release page.
+> - For details about the MD5 list of installation packages of each version, see the Release Notes (./release_notes.md).
 
 **Suggestions for MD5 checksum inconsistency:**
+
 - If the `FAILED` is displayed in the `md5sum -c -` output, do not continue the installation.
 - Delete the current file, download it again, and perform the MD5 verification again.
 - If the verification still fails, check whether the file name and version are consistent on the releases page and report the problem using Issues.

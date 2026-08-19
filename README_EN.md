@@ -14,7 +14,7 @@
 
 ## 📢 What's New
 
-* [2026.02.06]: Added the : Added the `26.0.0-alpha.1` release notes and compatibility with CANN `> 8.5.0`. For details, see [Release Notes](./docs/en/release_notes.md).
+* [2026.02.06]: Added the : Added the `26.0.0-alpha.1` release notes and compatibility with CANN `> 8.5.0`. For details, see [Release Notes](https://gitcode.com/Ascend/mspti/releases).
 
 ## 📌 Overview
 
@@ -52,7 +52,7 @@ msPTI provides the following capabilities:
 | `Activity API` | Collects activity data of APIs, kernels, memory, HCCL, markers, and external correlations, which is used to build tracing and profiling tools.| [C API Reference](./docs/en/c_api/README.md)|
 | `Callback API` | Subscribes to Runtime/HCCL callbacks and executes custom logic or collects associated data before and after API calls.| [C API Reference](./docs/en/c_api/README.md)|
 | `Python API` | Provides APIs such as `KernelMonitor`, `HcclMonitor` and `MstxMonitor` to quickly access the Python scenario analysis capability.| [Python API Reference](./docs/en/python_api/README.md)|
-| `Sample Set`| It covers typical scenarios such as callback, activity, correlation, HCCL, and Python monitor, facilitating quick start.| [Sample Description](./samples/README.md) / [User Guide](./docs/zh/README.md)|
+| `Sample Set`| It covers typical scenarios such as callback, activity, correlation, HCCL, and Python monitor, facilitating quick start.| [Sample Description](./samples/README.md) / [User Guide](./docs/en/README.md)|
 
 ## 🛠️ Installation Guide
 
@@ -66,7 +66,7 @@ After the preceding preparations are complete, you can install msPTI in either o
 - Method 1: Download the pre-built `run` package from the [releases page](https://gitcode.com/Ascend/mspti/releases), perform MD5 verification, and install the package.
 - Method 2: Run the `bash scripts/build.sh [<version>]` command in the source code repository to build the `run` package and then install the package.
 
-For details about the environment preparation, two installation methods, installation parameters, and example commands, see [msPTI Installation Guide](./docs/zh/mspti_install_guide.md).
+For details about the environment preparation, two installation methods, installation parameters, and example commands, see [msPTI Installation Guide](./docs/en/mspti_install_guide.md).
 
 ## 🚀 Quick Start
 
@@ -95,9 +95,9 @@ For details about the application scenarios, capabilities, and supplementary inf
 
 ## 📝 Additional Information
 
-- [Release Notes](./docs/zh/release_notes.md)
-- [C API Reference](./docs/zh/c_api/README.md)
-- [Python API Reference](./docs/zh/python_api/README.md)
+- [Release Notes](https://gitcode.com/Ascend/mspti/releases)
+- [C API Reference](./docs/en/c_api/README.md)
+- [Python API Reference](./docs/en/python_api/README.md)
 - [Security Statement](./docs/en/security_statement.md)
 - [LICENSE](./LICENSE)
 - [Third_Party_Open_Source_Software_Notice](./Third_Party_Open_Source_Software_Notice)

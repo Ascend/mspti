@@ -44,41 +44,6 @@ For the complete CC BY-SA 4.0, visit [https://creativecommons.org/licenses/by-sa
     </tr>
 </table>
 
-<!-- TOC -->
-* [1 Overview](#1-Overview)
-  * [1.1 Scope](#11-Scope)
-  * [1.2 Feature Requirements](#12-Feature-Requirements)
-* [2 Requirement Scenario Analysis](#2-Requirement-Scenario-Analysis)
-  * [2.1 Requirement Origin and Benefits](#21-Requirement-Origin-and-Benefits)
-  * [2.2 Feature Scenario Analysis](#22-Feature-Scenario-Analysis)
-  * [2.3 Feature Impact Analysis](#23-Feature-Impact-Analysis)
-    * [2.3.1 Hardware Restrictions](#231-Hardware-Restrictions)
-    * [2.3.2 Technical Restrictions](#232-Technical-Restrictions)
-* [3 Feature/Function Implementation Principles (Decomposable into Multiple Use Cases)](#3-Feature/Function-Implementation-Principles-(Decomposable-into-Multiple-Use-Cases))
-  * [3.1 Objectives](#31-Objectives)
-  * [3.2 Overall Solution](#32-Overall-Solution)
-* [4. Supporting the Collection Capability of the CANN Runtime API](#4 Supporting the Collection Capability of the CANN Runtime API)
-  * [4.1 Design Rationale](#41-Design-Rationale)
-  * [4.2 Constraints](#42-Constraints)
-  * [4.3 Detailed Implementation (Module- or Process-Level Message Sequence Diagrams from the User Entry)](#43 Detailed Implementation (Module--or-Process-Level-Message-Sequence-Diagrams-from-the-User-Entry))
-  * [4.4 Inter-Subsystem Interfaces (Mainly Module Interface Definitions)](#44-Inter-Subsystem-Interfaces-(Mainly-Module-Interface-Definitions))
-  * [4.5 Detailed Subsystem Design](#45-Detailed-Subsystem-Design)
-  * [4.6 DFX Attribute Design](#46-DFX-Attribute-Design)
-    * [4.6.1 Performance Design](#461-Performance-Design)
-    * [4.6.2 Upgrade and Capacity Expansion Design](#462-Upgrade-and-Capacity-Expansion-Design)
-    * [4.6.3 Exception Handling Design](#463-Exception-Handling-Design)
-    * [4.6.4 Resource Management Design](#464-Resource-Management-Design)
-    * [ 4.6.5 Compact Design](#465-Compact-Design)
-    * [4.6.7 Security Design](#467-Security-Design)
-      * [4.6.7.1 Security Design Confirmation](#4671-Security-Design-Confirmation)
-      * [4.6.7.2 Sensitive Data Analysis](#4672-Sensitive-Data-Analysis)
-        * [1. Sensitive Data List](#1-Sensitive-Data-List)
-        * [2. Sensitive Operation Check](#2-Sensitive-Operation-Check)
-      * [4.6.7.3 Design Implementation](#4673-Design-Implementation)
-  * [4.7 External Interfaces](#47-External-Interfaces)
-* [5. (Optional) Data Structure Design](#5 Data Structure Design)
-<!-- TOC -->
-
 # 1. Feature Overview
 
 The MindStudio Profiling Tools Interface (msPTI) is a set of profiling APIs provided by MindStudio for Ascend devices. You can use msPTI to build tools for NPU applications to analyze the performance of the applications.
@@ -129,12 +94,12 @@ The user needs to analyze the API performance on the CANN Runtime side, and obta
 
 | Product Type                                   | Supported|
 | ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training series products                         |    ×     |
+| Ascend 950PR&950DT Products                  |    √     |
+| Ascend A3 Products|    √     |
+| Ascend A2 Products|    √     |
+| Ascend 310B Products                 |    √     |
+| Ascend 310P Products                         |    ×     |
+| Ascend 910 Products                         |    ×     |
 
 ### 2.3.2 Technical Restrictions
 
@@ -152,11 +117,7 @@ _Describe the specifications and objectives of the feature in different scenario
 
 Profiling scenario: The system measures the time consumed by key functions, key computing, and communication, collects data, flushes the data to disks, and performs offline parsing and visualized display.
 
-![image_1](image_1.png)
-
-Figure 1: Overall implementation principle of the msPTI solution
-
-# 4. Supports the collection capability of CANN Runtime APIs.
+# 4. Supports the collection capability of CANN Runtime APIs
 
 ## 4.1 Design Rationale
 

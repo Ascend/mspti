@@ -11,12 +11,12 @@ This document provides msPTI sample sets to help you understand and use the msPT
 
 | Product Type| Supported|
 | ------------ | :------: |
-| Ascend 950 products| √ |
-| Atlas A3 training products/Atlas A3 inference products |    √     |
-| Atlas A2 training products/Atlas A2 inference products |    √     |
-| Atlas 200I/500 A2 inference products |    √     |
-| Atlas inference products |    ×     |
-| Atlas training series products  |    ×     |
+| Ascend 950PR&950DT Products| √ |
+| Ascend A3 Products |    √     |
+| Ascend A2 Products |    √     |
+| Ascend 310B Products |    √     |
+| Ascend 310P Products |    ×     |
+| Ascend 910 Products  |    ×     |
 
 ## Preparations
 
