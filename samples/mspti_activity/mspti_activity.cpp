@@ -240,8 +240,8 @@ int main()
     ShowMsptiApiCallResult();
     DoAclAdd(context, stream);
     ShowMsptiApiCallResult();
-    DeInit(deviceId, &context, &stream);
-
     DeInitMspti();
+
+    DeInit(deviceId, &context, &stream);
     return 0;
 }

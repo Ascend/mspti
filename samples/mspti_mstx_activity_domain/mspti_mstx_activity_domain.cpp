@@ -76,9 +76,8 @@ int main(int argc, const char **argv)
 
     MstxDomainInit();
     TestMstx();
+    DeInitMspti();
     DeInit(deviceId, &context, &stream);
     MstxDomainDeInit();
-
-    DeInitMspti();
     return 0;
 }

@@ -271,9 +271,9 @@ int main()
     ACL_CALL(Init(deviceId, &context, &stream));
     SetUpMspti(&context, &stream);
     DoAclAdd(context, stream);
-    DeInit(deviceId, &context, &stream);
-
     DeInitMspti();
+
+    DeInit(deviceId, &context, &stream);
 
     PrintCorrelationTrace();
     FreeMapData();
