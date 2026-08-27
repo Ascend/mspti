@@ -12,6 +12,8 @@
 
 </div>
 
+简体中文 | [English](./README_EN.md)
+
 ## ✨ 最新消息
 
 🔹 [2026.02.06]：版本说明新增 `26.0.0-alpha.1` 发布记录，兼容 CANN `> 8.5.0`，详情请参见 《[版本说明](https://gitcode.com/Ascend/mspti/releases)》。
