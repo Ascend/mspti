@@ -185,6 +185,7 @@ msptiResult CallbackManager::Init(msptiSubscriberHandle* subscriber, msptiCallba
     Mspti::Common::ContextManager::GetInstance()->StartSyncTime();
     MsptiMstxApi::MsptiEnableMstxFunc();
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+    Mspti::Activity::ActivityManager::GetInstance()->StartActivityMgrThread();
     MSPTI_LOGI("CallbackManager Init success.");
     return MSPTI_SUCCESS;
 }
@@ -211,6 +212,7 @@ msptiResult CallbackManager::UnInit(msptiSubscriberHandle subscriber)
     Mspti::Common::ContextManager::GetInstance()->StopSyncTime();
     Mspti::Ascend::DevTaskManager::GetInstance()->UnRegisterReportCallback();
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+    Mspti::Activity::ActivityManager::GetInstance()->StopActivityMgrThread();
     init_.store(false);
     MSPTI_LOGI("CallbackManager UnInit success.");
     return MSPTI_SUCCESS;

@@ -13,26 +13,22 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
+
 #include "csrc/activity/ascend/parser/hccl_reporter.h"
+
 #include "csrc/activity/activity_manager.h"
+#include "csrc/activity/ascend/parser/hccl_calculator.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/utils.h"
-#include "csrc/activity/ascend/parser/hccl_calculator.h"
 #include "securec.h"
 
-namespace Mspti {
-namespace Parser {
-namespace {
-msptiActivityHccl CreateDefaultHcclActivityStruct()
+namespace Mspti
 {
-    msptiActivityHccl activityHccl{};
-    activityHccl.kind = MSPTI_ACTIVITY_KIND_HCCL;
-    return activityHccl;
-}
-}
+namespace Parser
+{
 
-std::unordered_map<std::string, std::string> HcclReporter::commNameCache_;   // 缓存通信域名称，用于延长生命周期
+std::unordered_map<std::string, std::string> HcclReporter::commNameCache_;  // 缓存通信域名称，用于延长生命周期
 std::unordered_map<uint64_t, std::shared_ptr<HcclOpDesc>> HcclReporter::markId2HcclOp_;
 
 HcclReporter* HcclReporter::GetInstance()
@@ -41,9 +37,10 @@ HcclReporter* HcclReporter::GetInstance()
     return &instance;
 }
 
-msptiResult HcclReporter::RecordHcclMarker(const msptiActivityMarker *markActivity)
+msptiResult HcclReporter::RecordHcclMarker(const msptiActivityMarker* markActivity)
 {
-    if (markActivity == nullptr) {
+    if (markActivity == nullptr)
+    {
         MSPTI_LOGE("markActivity is nullptr, record fail");
         return MSPTI_ERROR_INNER;
     }
@@ -51,11 +48,13 @@ msptiResult HcclReporter::RecordHcclMarker(const msptiActivityMarker *markActivi
     {
         std::lock_guard<std::mutex> lock(markMutex_);
         // 如果markId2HcclOp_中没有这个算子, 认为是新增的, 需要补充start,
-        if (markActivity->flag == MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE) {
+        if (markActivity->flag == MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE)
+        {
             return RecordStartMarker(markActivity);
         }
 
-        if (markActivity->flag == MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE) {
+        if (markActivity->flag == MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE)
+        {
             return ReportHcclData(markActivity);
         }
     }
@@ -72,7 +71,8 @@ msptiResult HcclReporter::RecordHcclOp(uint32_t markId, std::shared_ptr<HcclOpDe
 
 msptiResult HcclReporter::ReportHcclActivity(std::shared_ptr<HcclOpDesc> hcclOpDesc)
 {
-    static thread_local msptiActivityHccl activityHccl = CreateDefaultHcclActivityStruct();
+    msptiActivityHccl activityHccl{};
+    activityHccl.kind = MSPTI_ACTIVITY_KIND_HCCL;
     activityHccl.name = GetSharedHcclName(hcclOpDesc->opName);
     activityHccl.ds.streamId = hcclOpDesc->streamId;
     activityHccl.ds.deviceId = hcclOpDesc->deviceId;
@@ -80,18 +80,20 @@ msptiResult HcclReporter::ReportHcclActivity(std::shared_ptr<HcclOpDesc> hcclOpD
     activityHccl.start = hcclOpDesc->start;
     activityHccl.end = hcclOpDesc->end;
     activityHccl.commName = GetSharedHcclName(hcclOpDesc->commName);
-    if (Mspti::Activity::ActivityManager::GetInstance()->Record(
-        reinterpret_cast<msptiActivity *>(&activityHccl), sizeof(msptiActivityHccl)) != MSPTI_SUCCESS) {
+    if (Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&activityHccl),
+                                                         sizeof(msptiActivityHccl)) != MSPTI_SUCCESS)
+    {
         MSPTI_LOGE("ReportHcclActivity fail, please check buffer");
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
 }
 
-msptiResult HcclReporter::RecordStartMarker(const msptiActivityMarker *markActivity)
+msptiResult HcclReporter::RecordStartMarker(const msptiActivityMarker* markActivity)
 {
     auto it = markId2HcclOp_.find(markActivity->id);
-    if (it == markId2HcclOp_.end()) {
+    if (it == markId2HcclOp_.end())
+    {
         MSPTI_LOGW("The corresponding start mark is not cached, id is %lu", markActivity->id);
         return MSPTI_ERROR_INNER;
     }
@@ -101,10 +103,11 @@ msptiResult HcclReporter::RecordStartMarker(const msptiActivityMarker *markActiv
     return MSPTI_SUCCESS;
 }
 
-msptiResult HcclReporter::ReportHcclData(const msptiActivityMarker *markActivity)
+msptiResult HcclReporter::ReportHcclData(const msptiActivityMarker* markActivity)
 {
     auto it = markId2HcclOp_.find(markActivity->id);
-    if (it == markId2HcclOp_.end()) {
+    if (it == markId2HcclOp_.end())
+    {
         MSPTI_LOGW("The corresponding end mark is not cached, id is %lu", markActivity->id);
         return MSPTI_ERROR_INNER;
     }
@@ -118,10 +121,11 @@ msptiResult HcclReporter::ReportHcclData(const msptiActivityMarker *markActivity
 const char* HcclReporter::GetSharedHcclName(const std::string& hcclName)
 {
     std::lock_guard<std::mutex> lock(nameMutex_);
-    if (!commNameCache_.count(hcclName)) {
+    if (!commNameCache_.count(hcclName))
+    {
         commNameCache_[hcclName] = hcclName;
     }
     return commNameCache_[hcclName].c_str();
 }
-}
-}
+}  // namespace Parser
+}  // namespace Mspti

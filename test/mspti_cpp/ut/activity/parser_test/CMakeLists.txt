@@ -9,6 +9,7 @@ add_executable(mspti_parser_utest
     cann_api_parser_utest.cpp
     mstx_parser_utest.cpp
     memory_parser_utest.cpp
+    cann_track_cache_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
     ${TOP_DIR}/csrc/activity/activity_manager.cpp

@@ -21,6 +21,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <deque>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -74,6 +75,8 @@ class ActivityManager
     size_t GetAndResetDroppedCount() { return cur_drop_num_.exchange(0, std::memory_order_relaxed); }
 
     const std::unordered_set<uint32_t> GetAllValidDevice();  // 仅返回当前device快照
+    void StartActivityMgrThread();
+    void StopActivityMgrThread();
 
    private:
     ActivityManager();
@@ -83,6 +86,7 @@ class ActivityManager
     explicit ActivityManager(ActivityManager &&obj) = delete;
     ActivityManager &operator=(ActivityManager &&obj) = delete;
     void Run();
+    void ResetActivitySwitch();
     void JoinWorkThreads();
 
    private:
@@ -93,10 +97,11 @@ class ActivityManager
     std::unordered_set<uint32_t> devices_;
     std::mutex devices_mtx_;
 
-    std::thread t_;
+    std::unique_ptr<std::thread> activity_mgr_thread_{nullptr};
     std::atomic<bool> thread_run_{false};
     std::condition_variable cv_;
     std::mutex cv_mtx_;
+    std::mutex thread_mtx_;  // 保护 Start/Stop 线程的临界区
     bool buf_full_{false};
     bool flush_period_{false};
     uint32_t flush_period_time_{DEFAULT_PERIOD_FLUSH_TIME};

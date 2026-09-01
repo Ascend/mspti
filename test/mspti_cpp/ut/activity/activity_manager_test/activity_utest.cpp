@@ -15,6 +15,8 @@
  * -------------------------------------------------------------------------
  */
 #include <atomic>
+#include <thread>
+#include <vector>
 
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
@@ -187,7 +189,6 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenSetAllKindWithCorrectApiInvocationSequ
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
     auto instance = Mspti::Activity::ActivityManager::GetInstance();
     EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
-    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
     msptiActivityMarker activity;
     constexpr uint64_t timeStamp = 1614659207688700;
     constexpr uint32_t markNum = 10;
@@ -211,6 +212,7 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenSetAllKindWithCorrectApiInvocationSequ
     totalActivitys += 1;
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
     EXPECT_EQ(totalActivitys, g_records.load());
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
 }
 
 TEST_F(ActivityUtest, ShouldRetInvalidParameterErrorWhenSetWrongParam)
@@ -601,5 +603,310 @@ TEST_F(ActivityUtest, MsptiActivityGetAttributeReturnsDefaultChannelSize)
     EXPECT_EQ(MSPTI_SUCCESS,
               msptiActivityGetAttribute(MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE, &valueSize, &channelSize));
     EXPECT_EQ(2 * 1024 * 1024, channelSize);
+}
+
+std::atomic<uint64_t> g_thread_test_records{0};
+void ThreadTestBufferComplete(uint8_t *buffer, size_t size, size_t validSize)
+{
+    if (validSize > 0)
+    {
+        msptiActivity *pRecord = NULL;
+        msptiResult status = MSPTI_SUCCESS;
+        do
+        {
+            status = msptiActivityGetNextRecord(buffer, validSize, &pRecord);
+            if (status == MSPTI_SUCCESS)
+            {
+                g_thread_test_records++;
+            }
+            else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+            {
+                break;
+            }
+        } while (true);
+    }
+    free(buffer);
+}
+
+void RecordThreadTestMarkers(uint32_t num)
+{
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    msptiActivityMarker activity;
+    constexpr uint64_t timeStamp = 1614659207688700;
+    for (uint32_t i = 0; i < num; ++i)
+    {
+        activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
+        activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
+        activity.timestamp = timeStamp;
+        activity.id = i;
+        activity.objectId.pt.processId = 0;
+        activity.objectId.pt.threadId = 0;
+        activity.name = "ThreadTestMark";
+        instance->Record(reinterpret_cast<msptiActivity *>(&activity), sizeof(activity));
+    }
+}
+
+TEST_F(ActivityUtest, ThreadStartIsIdempotentAndDeliversRecords)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    g_thread_test_records.store(0);
+    // 首次注册回调：启动管理线程
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    // 重复注册回调：StartActivityMgrThread 内部已通过 thread_run_ 去重，不得再次构造线程/崩溃
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
+    constexpr uint32_t num = 5;
+    RecordThreadTestMarkers(num);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    // 仅一个线程在运行，记录被正确投递
+    EXPECT_EQ(static_cast<uint64_t>(num), g_thread_test_records.load());
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
+}
+
+TEST_F(ActivityUtest, ResetAllDeviceDoesNotResetActivitySwitches)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    // 职责澄清：ResetAllDevice 仅负责 StopDevProfTask，不负责停止管理线程或清零开关；
+    // 清零开关与线程生命周期归 CallbackManager::UnInit -> StopActivityMgrThread
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    // 验证 StopActivityMgrThread 才会清零开关
+    instance->StopActivityMgrThread();
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    // 为后续用例恢复现场：重新启动线程
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+}
+
+TEST_F(ActivityUtest, RestartAfterStopDeliversRecords)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    g_thread_test_records.store(0);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
+    RecordThreadTestMarkers(3);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    EXPECT_EQ(3ull, g_thread_test_records.load());
+
+    // 通过 StopActivityMgrThread 停止管理线程（职责归 CallbackManager::UnInit），而非 ResetAllDevice
+    instance->StopActivityMgrThread();
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    // 重新注册应再次启动线程（验证 Start 幂等与先置标志后构造的修复）
+    g_thread_test_records.store(0);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
+    RecordThreadTestMarkers(4);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    EXPECT_EQ(4ull, g_thread_test_records.load());
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, DoubleResetAllDeviceIsSafe)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    // 连续两次 ResetAllDevice：仅 StopDevProfTask，不得崩溃，且不影响开关（开关由 Stop 负责）
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, StartStopThreadIsIdempotentAndResetClearsBothSwitchArrays)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    instance->StopActivityMgrThread();
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+
+    // 首次 Start：通过 RegisterCallbacks 间接触发
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+
+    // 二次 Stop 幂等：第一次清开关，第二次走 early-return 分支不崩溃
+    instance->StopActivityMgrThread();
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+    instance->StopActivityMgrThread();
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    // 重启后再次幂等 Start
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    instance->StartActivityMgrThread();  // 已运行应直接 return
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, ConcurrentStopIsSafeAndDoesNotDeadlock)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    constexpr int kThreads = 8;
+    std::vector<std::thread> workers;
+    workers.reserve(kThreads);
+    for (int i = 0; i < kThreads; ++i)
+    {
+        workers.emplace_back([instance]() { instance->StopActivityMgrThread(); });
+    }
+    for (auto &t : workers)
+    {
+        if (t.joinable())
+        {
+            t.join();
+        }
+    }
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    // 再次启动应成功：验证 Stop 后线程资源已释放，不残留 joinable
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_TRUE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, ConcurrentStartIsSafe)
+{
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    instance->StopActivityMgrThread();
+    constexpr int kThreads = 8;
+    std::vector<std::thread> workers;
+    workers.reserve(kThreads);
+    for (int i = 0; i < kThreads; ++i)
+    {
+        workers.emplace_back([instance]() { instance->StartActivityMgrThread(); });
+    }
+    for (auto &t : workers)
+    {
+        if (t.joinable())
+        {
+            t.join();
+        }
+    }
+    // 仅一个线程实际创建，回调链仍可投递
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    g_thread_test_records.store(0);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
+    RecordThreadTestMarkers(2);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    EXPECT_EQ(2ull, g_thread_test_records.load());
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetAllDevice());
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, GetAllValidDeviceReturnsSnapshotIsolation)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    // 清理残留 device，再设置 0/1
+    instance->ResetAllDevice();
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(0));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(1));
+    auto snapshot = instance->GetAllValidDevice();
+    EXPECT_EQ(2u, snapshot.size());
+    EXPECT_TRUE(snapshot.find(0) != snapshot.end());
+    EXPECT_TRUE(snapshot.find(1) != snapshot.end());
+    // 篡改快照不应影响内部
+    snapshot.insert(99);
+    auto snapshot2 = instance->GetAllValidDevice();
+    EXPECT_EQ(2u, snapshot2.size());
+    EXPECT_TRUE(snapshot2.find(99) == snapshot2.end());
+
+    instance->ResetAllDevice();
+    // ResetAllDevice 在新语义下不清空 devices_，仅 StopDevProfTask；此处仅验证不崩溃
+    auto snapshot3 = instance->GetAllValidDevice();
+    EXPECT_GE(snapshot3.size(), 0u);
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, FlushAllWithNoBufferDoesNotCrashAndJoinWorkThreads)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    // 未 Record 直接 Flush 不应崩溃，且 JoinWorkThreads 清空 work_thread_
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    instance->StopActivityMgrThread();
+}
+
+TEST_F(ActivityUtest, CallbackManagerInitUnInitDrivesActivityThreadLifecycle)
+{
+    // 验证 callback_manager.cpp 新增的 Init->Start / UnInit->Stop 链路
+    auto am = Mspti::Activity::ActivityManager::GetInstance();
+    am->StopActivityMgrThread();
+    EXPECT_FALSE(am->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    msptiSubscriberHandle sub = nullptr;
+    setenv("LD_PRELOAD", "libmspti.so", 1);
+    auto cb = [](void *, msptiCallbackDomain, msptiCallbackId, const msptiCallbackData *) {};
+    EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&sub, cb, nullptr));
+    // Init 已 Start 线程：此时 Register 回调应走幂等分支
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserBufferRequest, ThreadTestBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    EXPECT_TRUE(am->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(sub));
+    // UnInit 已 Stop 线程并 Reset 开关
+    EXPECT_FALSE(am->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    // 二次 UnInit 幂等
+    EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(sub));
+    am->StopActivityMgrThread();
 }
 }  // namespace

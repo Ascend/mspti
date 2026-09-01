@@ -24,7 +24,6 @@
 #include "csrc/activity/ascend/parser/cann_hash_cache.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
-#include "csrc/common/thread_local.h"
 
 namespace Mspti
 {

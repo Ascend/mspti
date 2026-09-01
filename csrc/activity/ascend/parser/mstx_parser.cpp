@@ -23,7 +23,6 @@
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
-#include "csrc/common/thread_local.h"
 #include "csrc/common/utils.h"
 #include "csrc/include/mspti_activity.h"
 
@@ -31,28 +30,6 @@ namespace Mspti
 {
 namespace Parser
 {
-namespace
-{
-inline Mspti::Common::ThreadLocal<msptiActivityMarker> GetDefaultMarkActivity()
-{
-    static Mspti::Common::ThreadLocal<msptiActivityMarker> instance(
-        []()
-        {
-            auto* marker = new (std::nothrow) msptiActivityMarker();
-            if (UNLIKELY(marker == nullptr))
-            {
-                MSPTI_LOGE("create default marker activity failed");
-                return marker;
-            }
-            marker->kind = MSPTI_ACTIVITY_KIND_MARKER;
-            marker->objectId.pt.processId = Mspti::Common::Utils::GetPid();
-            marker->objectId.pt.threadId = Mspti::Common::Utils::GetTid();
-            return marker;
-        });
-    return instance;
-}
-}  // namespace
-
 std::unordered_map<uint64_t, std::string> MstxParser::hashMarkMsg_;
 std::mutex MstxParser::markMsgMtx_;
 
@@ -101,24 +78,19 @@ msptiResult MstxParser::ReportMark(const char* msg, AclrtStream stream, const ch
         MSPTI_LOGE("Failed to run markA func.");
         return MSPTI_ERROR_INNER;
     }
-    msptiActivityMarker* activity = GetDefaultMarkActivity().Get();
-    if (UNLIKELY(activity == nullptr))
-    {
-        MSPTI_LOGE("Get Default MarkActivity is nullptr");
-        return MSPTI_ERROR_INNER;
-    }
-    activity->kind = MSPTI_ACTIVITY_KIND_MARKER;
-    activity->flag = (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE
-                                         : MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS;
-    activity->sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
-    activity->id = markId;
-    activity->objectId.pt.processId = Mspti::Common::Utils::GetPid();
-    activity->objectId.pt.threadId = Mspti::Common::Utils::GetTid();
-    activity->name = msgPtr->c_str();
-    activity->domain = domain;
-    activity->timestamp = timestamp;
-    return Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activity),
-                                                                   sizeof(msptiActivityMarker));
+    msptiActivityMarker activity{};
+    activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
+    activity.flag = (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS_WITH_DEVICE
+                                        : MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS;
+    activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
+    activity.id = markId;
+    activity.objectId.pt.processId = Mspti::Common::Utils::GetPid();
+    activity.objectId.pt.threadId = Mspti::Common::Utils::GetTid();
+    activity.name = msgPtr->c_str();
+    activity.domain = domain;
+    activity.timestamp = timestamp;
+    return Mspti::Activity::ActivityManager::GetInstance()->Record(
+        Common::ReinterpretConvert<msptiActivity*>(&activity), sizeof(msptiActivityMarker));
 }
 
 msptiResult MstxParser::ReportRangeStartA(const char* msg, AclrtStream stream, uint64_t& markId, const char* domain)
@@ -149,24 +121,19 @@ msptiResult MstxParser::ReportRangeStartA(const char* msg, AclrtStream stream, u
         MSPTI_LOGE("Failed to run range startA func.");
         return MSPTI_ERROR_INNER;
     }
-    msptiActivityMarker* activity = GetDefaultMarkActivity().Get();
-    if (UNLIKELY(activity == nullptr))
-    {
-        MSPTI_LOGE("Get Default MarkActivity is nullptr");
-        return MSPTI_ERROR_INNER;
-    }
-    activity->kind = MSPTI_ACTIVITY_KIND_MARKER;
-    activity->flag =
+    msptiActivityMarker activity{};
+    activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
+    activity.flag =
         (stream != nullptr) ? MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE : MSPTI_ACTIVITY_FLAG_MARKER_START;
-    activity->sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
-    activity->id = markId;
-    activity->objectId.pt.processId = Mspti::Common::Utils::GetPid();
-    activity->objectId.pt.threadId = Mspti::Common::Utils::GetTid();
-    activity->name = msgPtr->c_str();
-    activity->domain = domain;
-    activity->timestamp = timestamp;
+    activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
+    activity.id = markId;
+    activity.objectId.pt.processId = Mspti::Common::Utils::GetPid();
+    activity.objectId.pt.threadId = Mspti::Common::Utils::GetTid();
+    activity.name = msgPtr->c_str();
+    activity.domain = domain;
+    activity.timestamp = timestamp;
     auto ret = Mspti::Activity::ActivityManager::GetInstance()->Record(
-        Common::ReinterpretConvert<msptiActivity*>(activity), sizeof(msptiActivityMarker));
+        Common::ReinterpretConvert<msptiActivity*>(&activity), sizeof(msptiActivityMarker));
     {
         std::lock_guard<std::mutex> lock(rangeInfoMtx_);
         markId2Context_.emplace(markId, mstxContext);
@@ -200,23 +167,18 @@ msptiResult MstxParser::ReportRangeEnd(uint64_t rangeId)
         }
         markId2Context_.erase(iter);
     }
-    msptiActivityMarker* activity = GetDefaultMarkActivity().Get();
-    if (UNLIKELY(activity == nullptr))
-    {
-        MSPTI_LOGE("Get Default MarkActivity is nullptr");
-        return MSPTI_ERROR_INNER;
-    }
-    activity->kind = MSPTI_ACTIVITY_KIND_MARKER;
-    activity->flag = withStream ? MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE : MSPTI_ACTIVITY_FLAG_MARKER_END;
-    activity->sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
-    activity->id = rangeId;
-    activity->objectId.pt.processId = Mspti::Common::Utils::GetPid();
-    activity->objectId.pt.threadId = Mspti::Common::Utils::GetTid();
-    activity->name = "";
-    activity->domain = "";
-    activity->timestamp = timestamp;
-    return Mspti::Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(activity),
-                                                                   sizeof(msptiActivityMarker));
+    msptiActivityMarker activity{};
+    activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
+    activity.flag = withStream ? MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE : MSPTI_ACTIVITY_FLAG_MARKER_END;
+    activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
+    activity.id = rangeId;
+    activity.objectId.pt.processId = Mspti::Common::Utils::GetPid();
+    activity.objectId.pt.threadId = Mspti::Common::Utils::GetTid();
+    activity.name = "";
+    activity.domain = "";
+    activity.timestamp = timestamp;
+    return Mspti::Activity::ActivityManager::GetInstance()->Record(
+        Common::ReinterpretConvert<msptiActivity*>(&activity), sizeof(msptiActivityMarker));
 }
 
 void MstxParser::ReportMarkDataToActivity(uint32_t deviceId, const StepTraceBasic* stepTrace)

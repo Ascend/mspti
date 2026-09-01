@@ -202,8 +202,61 @@ ActivityManager *ActivityManager::GetInstance()
 
 ActivityManager::~ActivityManager()
 {
-    if (thread_run_.load() || t_.joinable())
+    StopActivityMgrThread();
+    devices_.clear();
+    MSPTI_LOGI("Total activity record: %lu. Total activity drop: %lu", total_record_num_.load(),
+               total_drop_num_.load());
+}
+
+void ActivityManager::ResetActivitySwitch()
+{
+    for (auto &kindSwitch : activity_switch_)
     {
+        kindSwitch.store(false);
+    }
+    for (auto &kindSwitch : append_only_activity_switch_)
+    {
+        kindSwitch.store(false);
+    }
+}
+
+void ActivityManager::StartActivityMgrThread()
+{
+    std::lock_guard<std::mutex> lk(thread_mtx_);
+    if (thread_run_.load())
+    {
+        return;
+    }
+    if (activity_mgr_thread_ && activity_mgr_thread_->joinable())
+    {
+        MSPTI_LOGW("ActivityManager thread is already running.");
+        thread_run_.store(true);
+        return;
+    }
+    thread_run_.store(true);
+    try
+    {
+        activity_mgr_thread_ = std::make_unique<std::thread>(&ActivityManager::Run, this);
+        MSPTI_LOGI("ActivityManager thread started.");
+    }
+    catch (const std::exception &e)
+    {
+        MSPTI_LOGE("Failed to start ActivityManager thread: %s", e.what());
+        thread_run_.store(false);
+        activity_mgr_thread_.reset();
+    }
+}
+
+void ActivityManager::StopActivityMgrThread()
+{
+    std::unique_ptr<std::thread> threadToJoin;
+    {
+        std::lock_guard<std::mutex> lk(thread_mtx_);
+        if (!thread_run_.load() && !(activity_mgr_thread_ && activity_mgr_thread_->joinable()))
+        {
+            MSPTI_LOGW("ActivityManager thread is not running.");
+            return;
+        }
         thread_run_.store(false);
         {
             std::unique_lock<std::mutex> lck(cv_mtx_);
@@ -216,9 +269,20 @@ ActivityManager::~ActivityManager()
                 // Exception occurred during destruction of ActivityManager
             }
         }
+        if (activity_mgr_thread_ && activity_mgr_thread_->joinable())
+        {
+            threadToJoin = std::move(activity_mgr_thread_);
+        }
+        else
+        {
+            activity_mgr_thread_.reset();
+        }
+    }
+    if (threadToJoin && threadToJoin->joinable())
+    {
         try
         {
-            t_.join();
+            threadToJoin->join();
         }
         catch (...)
         {
@@ -226,13 +290,8 @@ ActivityManager::~ActivityManager()
         }
     }
     JoinWorkThreads();
-    for (int kindIndex = 0; kindIndex < MSPTI_ACTIVITY_KIND_COUNT; kindIndex++)
-    {
-        activity_switch_[kindIndex] = false;
-    }
-    devices_.clear();
-    MSPTI_LOGI("Total activity record: %lu. Total activity drop: %lu", total_record_num_.load(),
-               total_drop_num_.load());
+    ResetActivitySwitch();
+    MSPTI_LOGI("ActivityManager thread stopped.");
 }
 
 void ActivityManager::JoinWorkThreads()
@@ -257,11 +316,7 @@ msptiResult ActivityManager::RegisterCallbacks(msptiBuffersCallbackRequestFunc f
     }
     bufferRequested_handle_ = funcBufferRequested;
     bufferCompleted_handle_ = funcBufferCompleted;
-    if (!t_.joinable())
-    {
-        t_ = std::thread(std::bind(&ActivityManager::Run, this));
-        thread_run_.store(true);
-    }
+    StartActivityMgrThread();
     return MSPTI_SUCCESS;
 }
 
@@ -479,6 +534,7 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
 void ActivityManager::Run()
 {
     pthread_setname_np(pthread_self(), "ActivityManager");
+    MSPTI_LOGI("ActivityManager thread start running.");
     while (true)
     {
         {
@@ -507,6 +563,7 @@ void ActivityManager::Run()
         }
     }
     JoinWorkThreads();
+    MSPTI_LOGI("ActivityManager thread stop running.");
 }
 
 msptiResult ActivityManager::SetDevice(uint32_t deviceId)
@@ -531,30 +588,23 @@ msptiResult ActivityManager::SetDevice(uint32_t deviceId)
 msptiResult ActivityManager::ResetAllDevice()
 {
     auto ret = MSPTI_SUCCESS;
-    std::lock_guard<std::mutex> lk(devices_mtx_);
-    for (const auto &device : devices_)
     {
-        MSPTI_LOGI("Reset device: %u", device);
-        auto temp = Mspti::Ascend::DevTaskManager::GetInstance()->StopDevProfTask(device, append_only_activity_switch_);
-        if (temp != MSPTI_SUCCESS)
+        std::lock_guard<std::mutex> lk(devices_mtx_);
+        for (const auto &device : devices_)
         {
-            ret = temp;
+            MSPTI_LOGI("Reset device: %u", device);
+            auto temp =
+                Mspti::Ascend::DevTaskManager::GetInstance()->StopDevProfTask(device, append_only_activity_switch_);
+            if (temp != MSPTI_SUCCESS)
+            {
+                ret = temp;
+            }
         }
     }
     return ret;
 }
 
-ActivityManager::ActivityManager()
-{
-    for (auto &kindSwitch : activity_switch_)
-    {
-        kindSwitch.store(false);
-    }
-    for (auto &kindSwitch : append_only_activity_switch_)
-    {
-        kindSwitch.store(false);
-    }
-}
+ActivityManager::ActivityManager() { ResetActivitySwitch(); }
 
 const std::unordered_set<uint32_t> ActivityManager::GetAllValidDevice()
 {
