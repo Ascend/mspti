@@ -76,7 +76,7 @@ TEST_F(ChannelReaderUtest, HashIdShouldReturnUniqueValueForDifferentInstances)
     EXPECT_NE(reader1.HashId(), reader2.HashId());
 }
 
-// Test Uinit() function
+// Test UnInit() function
 TEST_F(ChannelReaderUtest, UinitShouldReturnSuccess)
 {
     uint32_t deviceId = 0;
@@ -84,7 +84,7 @@ TEST_F(ChannelReaderUtest, UinitShouldReturnSuccess)
     Mspti::Ascend::Channel::ChannelReader reader(deviceId, channelId);
 
     reader.Init();
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 }
 
 // Test SetSchedulingStatus() and GetSchedulingStatus() functions
@@ -118,7 +118,7 @@ TEST_F(ChannelReaderUtest, SetChannelStoppedShouldStopExecuteLoop)
 
     // Execute should return quickly since channel is stopped
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    reader.Uinit();
+    reader.UnInit();
 }
 
 // Test Execute() function with TS_FW channel
@@ -130,7 +130,7 @@ TEST_F(ChannelReaderUtest, ExecuteShouldProcessTsFwChannelData)
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    reader.Uinit();
+    reader.UnInit();
 }
 
 // Test Execute() function with STARS_SOC_LOG channel
@@ -142,7 +142,7 @@ TEST_F(ChannelReaderUtest, ExecuteShouldProcessStarsSocLogChannelData)
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    reader.Uinit();
+    reader.UnInit();
 }
 
 // Test Execute() function with invalid channel ID
@@ -155,7 +155,7 @@ TEST_F(ChannelReaderUtest, ExecuteShouldBreakWhenChannelIdIsInvalid)
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    reader.Uinit();
+    reader.UnInit();
 }
 
 // Test FlushDrvBuff() function
@@ -167,7 +167,7 @@ TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnSuccess)
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
     EXPECT_EQ(MSPTI_SUCCESS, reader.FlushDrvBuff());
-    reader.Uinit();
+    reader.UnInit();
 }
 
 TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnSuccessWhenDriverDoesNotSupportFlush)
@@ -180,7 +180,7 @@ TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnSuccessWhenDriverDoesNotSuppo
     std::thread flushThread([&reader, &flushResult]() { flushResult = reader.FlushDrvBuff(); });
     flushThread.join();
     EXPECT_EQ(MSPTI_SUCCESS, flushResult);
-    reader.Uinit();
+    reader.UnInit();
     GlobalMockObject::verify();
 }
 
@@ -195,7 +195,7 @@ TEST_F(ChannelReaderUtest, FlushDrvBuffShouldReturnInnerErrorWhenDriverFlushFail
     std::thread flushThread([&reader, &flushResult]() { flushResult = reader.FlushDrvBuff(); });
     flushThread.join();
     EXPECT_EQ(MSPTI_ERROR_INNER, flushResult);
-    reader.Uinit();
+    reader.UnInit();
     GlobalMockObject::verify();
 }
 
@@ -224,10 +224,10 @@ TEST_F(ChannelReaderUtest, FlushDrvBuffShouldHandleFlushWithData)
         flushThread.join();
     }
 
-    reader.Uinit();
+    reader.UnInit();
 }
 
-// Test complete lifecycle: Init -> Execute -> Uinit
+// Test complete lifecycle: Init -> Execute -> UnInit
 TEST_F(ChannelReaderUtest, LifecycleShouldWorkCorrectly)
 {
     uint32_t deviceId = 0;
@@ -247,10 +247,10 @@ TEST_F(ChannelReaderUtest, LifecycleShouldWorkCorrectly)
     reader.SetChannelStopped();
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
 
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 }
 
-// Test multiple Init/Uinit cycles (guards buffer reallocation and curPos_ reset)
+// Test multiple Init/UnInit cycles (guards buffer reallocation and curPos_ reset)
 TEST_F(ChannelReaderUtest, MultipleLifecycleCyclesShouldWork)
 {
     uint32_t deviceId = 0;
@@ -258,13 +258,13 @@ TEST_F(ChannelReaderUtest, MultipleLifecycleCyclesShouldWork)
     Mspti::Ascend::Channel::ChannelReader reader(deviceId, channelId);
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 }
 
-// Test Init/Execute/Uinit followed by re-Init/Execute/Uinit
+// Test Init/Execute/UnInit followed by re-Init/Execute/UnInit
 // (guards curPos_ reset and buffer reallocation across lifecycle boundaries)
 TEST_F(ChannelReaderUtest, ExecuteAfterReInitShouldSucceed)
 {
@@ -275,11 +275,11 @@ TEST_F(ChannelReaderUtest, ExecuteAfterReInitShouldSucceed)
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
     reader.SetChannelStopped();
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 }
 
 // Test that Execute can process multiple channels in sequence
@@ -299,7 +299,7 @@ TEST_F(ChannelReaderUtest, MultipleReadersExecuteShouldWorkIndependently)
     EXPECT_EQ(MSPTI_SUCCESS, reader1.Execute());
     EXPECT_EQ(MSPTI_SUCCESS, reader2.Execute());
 
-    EXPECT_EQ(MSPTI_SUCCESS, reader1.Uinit());
-    EXPECT_EQ(MSPTI_SUCCESS, reader2.Uinit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader1.UnInit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader2.UnInit());
 }
 }  // namespace

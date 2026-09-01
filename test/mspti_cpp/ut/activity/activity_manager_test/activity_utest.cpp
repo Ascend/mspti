@@ -35,6 +35,7 @@ std::atomic<uint64_t> g_records{0};
 
 std::atomic<uint64_t> g_massive_records{0};
 std::atomic<uint64_t> g_total_records{0};
+int g_nullBufferRecords = 0;
 
 class ActivityUtest : public testing::Test
 {
@@ -59,6 +60,49 @@ void UserLittleBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecor
     *buffer = static_cast<uint8_t *>(malloc(bufSize));
     *size = bufSize;
     *maxNumRecords = 0;
+}
+
+void UserNullBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecords)
+{
+    printf("========== UserBufferRequest ============\n");
+    static int callCount = 0;
+    if (callCount < 1)
+    {
+        *buffer = nullptr;
+        *size = 0;
+        *maxNumRecords = 0;
+    }
+    else
+    {
+        constexpr uint32_t bufSize = 2 * 1024 * 1024;
+        *buffer = static_cast<uint8_t *>(malloc(bufSize));
+        *size = bufSize;
+        *maxNumRecords = 0;
+    }
+    callCount++;
+}
+
+void UserNullBufferComplete(uint8_t *buffer, size_t size, size_t validSize)
+{
+    printf("========== UserBufferComplete ============\n");
+    if (validSize > 0)
+    {
+        msptiActivity *pRecord = NULL;
+        msptiResult status = MSPTI_SUCCESS;
+        do
+        {
+            status = msptiActivityGetNextRecord(buffer, validSize, &pRecord);
+            if (status == MSPTI_SUCCESS)
+            {
+                g_nullBufferRecords++;
+            }
+            else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+            {
+                break;
+            }
+        } while (true);
+    }
+    free(buffer);
 }
 
 static void ActivityParser(msptiActivity *pRecord)
@@ -368,6 +412,30 @@ TEST_F(ActivityUtest, MultThreadFlushAll)
     }
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
     EXPECT_EQ(g_total_records.load(), g_massive_records.load());
+}
+
+TEST_F(ActivityUtest, RecordWillRepeatInitActivityBufferWhenRequestBufferIsNull)
+{
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserNullBufferRequest, UserNullBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+    msptiActivityMarker activity;
+    activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
+    activity.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_HOST;
+    activity.timestamp = 0;
+    activity.id = 0;
+    activity.objectId.pt.processId = 0;
+    activity.objectId.pt.threadId = 0;
+    activity.name = "UserMark";
+    // Record activity twice, the first time will request buffer and return null, the activity will be dropped
+    Mspti::Activity::ActivityManager::GetInstance()->Record(reinterpret_cast<msptiActivity *>(&activity),
+                                                            sizeof(activity));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    EXPECT_EQ(0, g_nullBufferRecords);
+    // Record activity again, the second time will request buffer and return valid buffer, the activity will be recorded
+    Mspti::Activity::ActivityManager::GetInstance()->Record(reinterpret_cast<msptiActivity *>(&activity),
+                                                            sizeof(activity));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    EXPECT_EQ(1, g_nullBufferRecords);
 }
 
 TEST_F(ActivityUtest, MsptiGetVersionReturnsInvalidParameterWhenVersionNull)

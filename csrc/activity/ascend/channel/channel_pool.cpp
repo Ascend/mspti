@@ -66,7 +66,7 @@ msptiResult ChannelPool::RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId)
     if (channel_iter != readers_map_.end())
     {
         channel_iter->second->SetChannelStopped();
-        channel_iter->second->Uinit();
+        channel_iter->second->UnInit();
         readers_map_.erase(channel_index);
     }
     return MSPTI_SUCCESS;

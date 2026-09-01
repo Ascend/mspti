@@ -50,11 +50,11 @@ msptiResult ChannelReader::Init()
     return MSPTI_SUCCESS;
 }
 
-msptiResult ChannelReader::Uinit()
+msptiResult ChannelReader::UnInit()
 {
     isInited_ = false;
     curPos_ = 0;
-    MSPTI_LOGI("Uinit channel reader, deviceId=%u, channelId=%d, totalSize=%lu", deviceId_, channelId_, totalSize_);
+    MSPTI_EVENT("UnInit channel reader, deviceId=%u, channelId=%d, totalSize=%lu", deviceId_, channelId_, totalSize_);
     return MSPTI_SUCCESS;
 }
 

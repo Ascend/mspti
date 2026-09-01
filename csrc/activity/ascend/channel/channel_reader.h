@@ -41,7 +41,7 @@ class ChannelReader : public Mspti::Common::Task
     virtual msptiResult Execute();
     virtual size_t HashId();
     msptiResult Init();
-    msptiResult Uinit();
+    msptiResult UnInit();
     msptiResult FlushDrvBuff();
 
     void SetChannelStopped();

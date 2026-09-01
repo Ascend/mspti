@@ -494,7 +494,14 @@ msptiResult CallbackManager::GetEnabledCallbacks(msptiSubscriberHandle subscribe
 
 msptiResult msptiSubscribe(msptiSubscriberHandle* subscriber, msptiCallbackFunc callback, void* userdata)
 {
-    return Mspti::Callback::CallbackManager::GetInstance()->Init(subscriber, callback, userdata);
+    msptiResult ret = Mspti::Callback::CallbackManager::GetInstance()->Init(subscriber, callback, userdata);
+    if (ret != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("msptiSubscribe failed, ret: %d.", ret);
+        return ret;
+    }
+    MSPTI_EVENT("msptiSubscribe success.");
+    return ret;
 }
 
 msptiResult msptiUnsubscribe(msptiSubscriberHandle subscriber)
@@ -503,7 +510,14 @@ msptiResult msptiUnsubscribe(msptiSubscriberHandle subscriber)
     {
         MSPTI_LOGE("Reset all device failed.");
     }
-    return Mspti::Callback::CallbackManager::GetInstance()->UnInit(subscriber);
+    msptiResult ret = Mspti::Callback::CallbackManager::GetInstance()->UnInit(subscriber);
+    if (ret != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("msptiUnsubscribe failed, ret: %d.", ret);
+        return ret;
+    }
+    MSPTI_EVENT("msptiUnsubscribe success.");
+    return ret;
 }
 
 msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain,

@@ -72,6 +72,11 @@ class KernelParser::KernelParserImpl
             MSPTI_LOGW("Release kernel: deviceId:%u, streamId:%u, taskId:%u, kernelCount:%lu", std::get<0>(dstKey),
                        std::get<1>(dstKey), std::get<2>(dstKey), kernelList.size());
         }
+        if (kernelLackEndCount_ > 0 || kernelLackStartCount_ > 0)
+        {
+            MSPTI_LOGW("There are %lu task lack end and %lu task lack start", kernelLackEndCount_,
+                       kernelLackStartCount_);
+        }
     }
     msptiResult ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data);
     // 驱动数据均为单线程读取，函数内数据无需额外加锁
@@ -95,6 +100,9 @@ class KernelParser::KernelParserImpl
     std::unordered_map<uint64_t, std::queue<msptiActivityKernelPtr>> kernel_map_{};
     std::unordered_map<uint64_t, msptiActivityKernelPtr> unaging_kernel_map_{};
     std::unordered_map<uint64_t, DeviceTaskPtr> device_kernel_map_{};
+
+    uint64_t kernelLackEndCount_{0};
+    uint64_t kernelLackStartCount_{0};
 };
 
 msptiResult KernelParser::KernelParserImpl::ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data)
@@ -252,7 +260,16 @@ bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const So
         temp->streamId = streamId;
         temp->taskId = taskId;
         temp->deviceId = deviceId;
-        device_kernel_map_.emplace(dstKey, std::move(temp));
+        auto it = device_kernel_map_.find(dstKey);
+        if (it != device_kernel_map_.end())
+        {
+            kernelLackEndCount_++;
+            it->second = std::move(temp);
+        }
+        else
+        {
+            device_kernel_map_.emplace(dstKey, std::move(temp));
+        }
         return false;
     }
     else if (socLog.funcType == STARS_FUNC_TYPE_END)
@@ -260,6 +277,7 @@ bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const So
         auto it = device_kernel_map_.find(dstKey);
         if (it == device_kernel_map_.end())
         {
+            kernelLackStartCount_++;
             return false;
         }
         task = std::move(it->second);  // copy

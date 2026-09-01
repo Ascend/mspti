@@ -180,6 +180,8 @@ msptiResult ActivityBuffer::Record(msptiActivity *activity, size_t size)
     return MSPTI_SUCCESS;
 }
 
+bool ActivityBuffer::BufValid() { return buf_ != nullptr; }
+
 size_t ActivityBuffer::BufSize() { return buf_size_; }
 
 size_t ActivityBuffer::ValidSize() { return valid_size_; }
@@ -204,8 +206,8 @@ ActivityManager::~ActivityManager()
 {
     StopActivityMgrThread();
     devices_.clear();
-    MSPTI_LOGI("Total activity record: %lu. Total activity drop: %lu", total_record_num_.load(),
-               total_drop_num_.load());
+    MSPTI_EVENT("Total activity record: %lu. Total activity drop: %lu", total_record_num_.load(),
+                total_drop_num_.load());
 }
 
 void ActivityManager::ResetActivitySwitch()
@@ -294,6 +296,24 @@ void ActivityManager::StopActivityMgrThread()
     MSPTI_LOGI("ActivityManager thread stopped.");
 }
 
+msptiResult ActivityManager::TryInitActivityBuffer()
+{
+    Mspti::Common::MsptiMakeUniquePtr(cur_buf_);
+    if (!cur_buf_)
+    {
+        MSPTI_LOGE("Failed to create cur buf object.");
+        return MSPTI_ERROR_INNER;
+    }
+    cur_buf_->Init(bufferRequested_handle_);
+    if (!cur_buf_->BufValid())
+    {
+        MSPTI_LOGE("Failed to init activity buffer.");
+        cur_buf_.reset();
+        return MSPTI_ERROR_INNER;
+    }
+    return MSPTI_SUCCESS;
+}
+
 void ActivityManager::JoinWorkThreads()
 {
     for (auto &thread : work_thread_)
@@ -333,7 +353,6 @@ msptiResult ActivityManager::Register(msptiActivityKind kind)
     }
     activity_switch_[kind] = true;
     append_only_activity_switch_[kind] = true;
-    MSPTI_LOGI("Register Activity kind: %d", static_cast<int>(kind));
 
     auto localDevices = GetAllValidDevice();
     ActivitySwitchType curOpenSwitch{};
@@ -343,6 +362,7 @@ msptiResult ActivityManager::Register(msptiActivityKind kind)
         Ascend::DevTaskManager::GetInstance()->StartDevProfTask(device, curOpenSwitch);
     }
     Parser::ParserManager::GetInstance()->StartAnalysisTask(kind);
+    MSPTI_LOGI("Register Activity kind: %d", static_cast<int>(kind));
     return MSPTI_SUCCESS;
 }
 
@@ -496,13 +516,11 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
     std::lock_guard<std::recursive_mutex> lk(buf_mtx_);
     if (!cur_buf_)
     {
-        Mspti::Common::MsptiMakeUniquePtr(cur_buf_);
-        if (!cur_buf_)
+        if (TryInitActivityBuffer() != MSPTI_SUCCESS)
         {
-            MSPTI_LOGE("Failed to init Activity Buffer.");
+            MSPTI_LOGE("Failed to record activity, kind %d.", static_cast<int>(activity->kind));
             return MSPTI_ERROR_INNER;
         }
-        cur_buf_->Init(bufferRequested_handle_);
     }
     else if (cur_buf_->ValidSize() >= ACTIVITY_BUFFER_THRESHOLD * cur_buf_->BufSize())
     {
@@ -512,17 +530,15 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
             co_activity_buffers_.emplace_back(std::move(cur_buf_));
             cv_.notify_one();
         }
-        Mspti::Common::MsptiMakeUniquePtr(cur_buf_);
-        if (!cur_buf_)
+        if (TryInitActivityBuffer() != MSPTI_SUCCESS)
         {
-            MSPTI_LOGE("Failed to init Activity Buffer.");
+            MSPTI_LOGE("Failed to record activity, kind %d.", static_cast<int>(activity->kind));
             return MSPTI_ERROR_INNER;
         }
-        cur_buf_->Init(bufferRequested_handle_);
     }
     if (cur_buf_->Record(activity, size) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Failed to record activity.");
+        MSPTI_LOGE("Failed to record activity, kind %d.", static_cast<int>(activity->kind));
         cur_drop_num_++;
         total_drop_num_++;
         return MSPTI_ERROR_INNER;

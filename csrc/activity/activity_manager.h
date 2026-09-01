@@ -44,6 +44,7 @@ class ActivityBuffer
     void Init(msptiBuffersCallbackRequestFunc func);
     void UnInit(msptiBuffersCallbackCompleteFunc func);
     msptiResult Record(msptiActivity *activity, size_t size);
+    bool BufValid();
     size_t BufSize();
     size_t ValidSize();
 
@@ -88,6 +89,7 @@ class ActivityManager
     void Run();
     void ResetActivitySwitch();
     void JoinWorkThreads();
+    msptiResult TryInitActivityBuffer();
 
    private:
     const static std::set<msptiActivityKind> supportActivityKinds_;
