@@ -249,4 +249,61 @@ TEST_F(DevProfTaskUtest, DevProfTaskTsFwShouldReturnInnerErrorWhenDrvStartChanne
 
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
 }
+
+TEST_F(DevProfTaskUtest, StartShouldSwallowStartTaskErrorAndPairWithStop)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskStars> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+
+    // set drv start channel fail: public Start() swallows the error by design,
+    // the task is still tracked so the paired Stop() balances refcnt (no leak).
+    MOCKER_CPP(&ProfDrvStart).stubs().will(returnValue(-1));
+    EXPECT_EQ(MSPTI_SUCCESS, task->Start());
+    EXPECT_TRUE(task->CanFlush());
+
+    EXPECT_EQ(MSPTI_SUCCESS, task->Stop());
+    EXPECT_FALSE(task->CanFlush());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
+
+TEST_F(DevProfTaskUtest, DoubleStartShouldRunStartTaskOnceAndStopShouldBalanceRefCnt)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskStars> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+
+    // set drv start channel fail to observe refcnt transitions deterministically
+    MOCKER_CPP(&ProfDrvStart).stubs().will(returnValue(-1));
+    EXPECT_EQ(MSPTI_SUCCESS, task->Start());
+    EXPECT_TRUE(task->CanFlush());
+    // second Start must be skipped by the started_ guard (refcnt stays 1, not 2)
+    EXPECT_EQ(MSPTI_SUCCESS, task->Start());
+    EXPECT_TRUE(task->CanFlush());
+
+    EXPECT_EQ(MSPTI_SUCCESS, task->Stop());
+    EXPECT_FALSE(task->CanFlush());
+
+    // stop without a matching start is harmless
+    EXPECT_EQ(MSPTI_SUCCESS, task->Stop());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
 }  // namespace

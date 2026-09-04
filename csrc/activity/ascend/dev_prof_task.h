@@ -18,12 +18,10 @@
 #ifndef MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 #define MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 
-#include <condition_variable>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
-#include <thread>
 #include <vector>
 
 #include "csrc/common/context_manager.h"
@@ -31,79 +29,83 @@
 #include "csrc/include/mspti_activity.h"
 #include "csrc/include/mspti_result.h"
 
-namespace Mspti {
-namespace Ascend {
+namespace Mspti
+{
+namespace Ascend
+{
 
-class DevProfTask {
-public:
+class DevProfTask
+{
+   public:
     DevProfTask(uint32_t deviceId, AI_DRV_CHANNEL channelId) : deviceId_(deviceId), channelId_(channelId) {}
     virtual ~DevProfTask() = default;
     msptiResult Start();
     msptiResult Stop();
     virtual msptiResult Flush();
 
-private:
-    void Run();
+   private:
     virtual msptiResult StartTask() = 0;
     virtual msptiResult StopTask() = 0;
     virtual bool CanFlush() { return false; }
 
-protected:
+   protected:
     uint32_t deviceId_;
     AI_DRV_CHANNEL channelId_;
 
-private:
-    std::thread t_;
-    std::condition_variable cv_;
-    std::mutex cv_mtx_;
-    bool task_run_{false};
+   private:
+    // Start/Stop 调用幂等保护（替代原来用 thread 是否 joinable 做的隐式保护）
+    bool started_{false};
 };
 
-class DevProfTaskDefault : public DevProfTask {
-public:
+class DevProfTaskDefault : public DevProfTask
+{
+   public:
     DevProfTaskDefault(uint32_t deviceId) : DevProfTask(deviceId, PROF_CHANNEL_UNKNOWN) {}
 
-private:
+   private:
     msptiResult StartTask() override { return MSPTI_SUCCESS; }
     msptiResult StopTask() override { return MSPTI_SUCCESS; }
 };
 
-class DevProfTaskTsFw : public DevProfTask {
-public:
+class DevProfTaskTsFw : public DevProfTask
+{
+   public:
     DevProfTaskTsFw(uint32_t deviceId) : DevProfTask(deviceId, PROF_CHANNEL_TS_FW) {}
 
-private:
+   private:
     msptiResult StartTask() override;
     msptiResult StopTask() override;
     bool CanFlush() override;
 
-private:
+   private:
     static std::map<uint32_t, uint32_t> ref_cnts_;
     static std::mutex cnt_mtx_;
 };
 
-class DevProfTaskStars : public DevProfTask {
-public:
+class DevProfTaskStars : public DevProfTask
+{
+   public:
     DevProfTaskStars(uint32_t deviceId) : DevProfTask(deviceId, PROF_CHANNEL_STARS_SOC_LOG) {}
 
-private:
+   private:
     msptiResult StartTask() override;
     msptiResult StopTask() override;
     bool CanFlush() override;
 
-private:
+   private:
     static std::map<uint32_t, uint32_t> ref_cnts_;
     static std::mutex cnt_mtx_;
 };
 
-class DevProfTaskFactory {
-public:
+class DevProfTaskFactory
+{
+   public:
     static std::vector<std::unique_ptr<DevProfTask>> CreateTasks(uint32_t deviceId, msptiActivityKind kind);
 
-private:
+   private:
     static std::unique_ptr<DevProfTask> CreateDevChannelTask(uint32_t deviceId, AI_DRV_CHANNEL channelId);
 
-private:
+   private:
     // <deviceId, ChannelID>
     const static std::map<Mspti::Common::PlatformType, std::map<msptiActivityKind, std::set<AI_DRV_CHANNEL>>>
         kindToChannel_map_;
