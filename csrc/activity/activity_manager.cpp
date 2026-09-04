@@ -601,6 +601,22 @@ msptiResult ActivityManager::SetDevice(uint32_t deviceId)
     return Mspti::Ascend::DevTaskManager::GetInstance()->StartDevProfTask(deviceId, activity_switch_);
 }
 
+msptiResult ActivityManager::ResetDevice(uint32_t deviceId)
+{
+    MSPTI_LOGI("Reset device: %u", deviceId);
+    {
+        std::lock_guard<std::mutex> lk(devices_mtx_);
+        auto iter = devices_.find(deviceId);
+        if (iter == devices_.end())
+        {
+            MSPTI_LOGW("Device: %u is not set, nothing to reset.", deviceId);
+            return MSPTI_SUCCESS;
+        }
+        devices_.erase(iter);
+    }
+    return Mspti::Ascend::DevTaskManager::GetInstance()->StopDevProfTask(deviceId, append_only_activity_switch_);
+}
+
 msptiResult ActivityManager::ResetAllDevice()
 {
     auto ret = MSPTI_SUCCESS;

@@ -312,6 +312,10 @@ int32_t MsprofDeviceStateImpl(VOID_PTR deviceState, uint32_t len)
     {
         Mspti::Activity::ActivityManager::GetInstance()->SetDevice(devPara->devId);
     }
+    else
+    {
+        Mspti::Activity::ActivityManager::GetInstance()->ResetDevice(devPara->devId);
+    }
     return MSPTI_SUCCESS;
 }
 }  // namespace Detail

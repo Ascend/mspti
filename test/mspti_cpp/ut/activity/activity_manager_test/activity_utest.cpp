@@ -977,4 +977,74 @@ TEST_F(ActivityUtest, CallbackManagerInitUnInitDrivesActivityThreadLifecycle)
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(sub));
     am->StopActivityMgrThread();
 }
+
+TEST_F(ActivityUtest, ResetDeviceRemovesSingleDeviceAndStopsProfTask)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    constexpr uint32_t kDev = 7;
+    // 前置清理，保证用例独立
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(kDev));
+    EXPECT_TRUE(instance->GetAllValidDevice().find(kDev) != instance->GetAllValidDevice().end());
+
+    // 对应 MsprofDeviceStateImpl isOpen=false 分支：关闭该 device 的采集
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    EXPECT_TRUE(instance->GetAllValidDevice().find(kDev) == instance->GetAllValidDevice().end());
+}
+
+TEST_F(ActivityUtest, ResetDeviceKeepsOtherDevicesRunning)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    constexpr uint32_t kDevA = 9;
+    constexpr uint32_t kDevB = 10;
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDevA));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDevB));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(kDevA));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(kDevB));
+
+    // 只关闭其中一个，另一个不受影响
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDevA));
+    auto snapshot = instance->GetAllValidDevice();
+    EXPECT_TRUE(snapshot.find(kDevA) == snapshot.end());
+    EXPECT_TRUE(snapshot.find(kDevB) != snapshot.end());
+
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDevB));
+}
+
+TEST_F(ActivityUtest, ResetDeviceOnUnknownDeviceIsSafe)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    constexpr uint32_t kUnknown = 9999;
+    auto snapshotBefore = instance->GetAllValidDevice();
+    EXPECT_TRUE(snapshotBefore.find(kUnknown) == snapshotBefore.end());
+
+    // 未 Set 过的 device 直接 Reset 应幂等成功，且不影响已有快照
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kUnknown));
+    auto snapshotAfter = instance->GetAllValidDevice();
+    EXPECT_EQ(snapshotBefore.size(), snapshotAfter.size());
+    EXPECT_TRUE(snapshotAfter.find(kUnknown) == snapshotAfter.end());
+}
+
+TEST_F(ActivityUtest, DoubleResetDeviceIsSafe)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    constexpr uint32_t kDev = 8;
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    // 第二次 Reset 走 device 不存在分支，不得崩溃
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    EXPECT_TRUE(instance->GetAllValidDevice().find(kDev) == instance->GetAllValidDevice().end());
+}
 }  // namespace

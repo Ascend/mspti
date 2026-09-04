@@ -68,6 +68,7 @@ class ActivityManager
     static msptiResult GetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record);
     msptiResult FlushAll();
     msptiResult SetDevice(uint32_t deviceId);
+    msptiResult ResetDevice(uint32_t deviceId);
     msptiResult ResetAllDevice();
     msptiResult Register(msptiActivityKind kind);
     msptiResult UnRegister(msptiActivityKind kind);
