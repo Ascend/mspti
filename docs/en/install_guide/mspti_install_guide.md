@@ -4,7 +4,7 @@
 
 This tool is integrated into CANN. If CANN is installed and you do not need to update this tool, you can use it directly without performing the installation described in this document.
 
-If CANN is not installed in your environment, install the Ascend NPU driver and CANN software (including the Toolkit and ops packages) by following the [CANN Quick Installation](https://www.hiascend.com/cann/download) guide, and configure the environment variables.
+If CANN is not installed in your environment, install the Ascend NPU driver and CANN software (including the Toolkit and ops packages) by following the [CANN Quick Installation](https://www.hiascend.com/en/cann/download) guide, and configure the environment variables.
 
 If you need to upgrade this tool separately or use the latest version, you can install it in any of the following ways: [online installation](#21-online-installation), [offline installation](#22-offline-installation), or [source code installation](#23-source-code-installation).
 
@@ -12,11 +12,11 @@ If you need to upgrade this tool separately or use the latest version, you can i
 
 ### 2.1 Online Installation
 
-If your device has Internet access, you can automatically download and install the tool with a single command. See the MindStudio [Download](https://www.hiascend.com/developer/software/mindstudio/download) page on the Ascend community, select the corresponding CANN version, choose "Online Installation" as the installation mode, and the system will guide you through the rest of the process.
+If your device has Internet access, you can automatically download and install the tool with a single command. See the MindStudio [Download](https://www.hiascend.com/en/developer/software/mindstudio/download) page on the Ascend community, select the corresponding CANN version, choose "Online Installation" as the installation mode, and the system will guide you through the rest of the process.
 
 ### 2.2 Offline Installation
 
-For devices in an environment without Internet access, such as an enterprise intranet, download the complete offline installation package on a machine with Internet access first, and then transfer it to the target device for installation. See the MindStudio [Download](https://www.hiascend.com/developer/software/mindstudio/download) page on the Ascend community, select the corresponding CANN version, choose "Offline Installation" as the installation mode, and obtain the corresponding installation package and operation guide.
+For devices in an environment without Internet access, such as an enterprise intranet, download the complete offline installation package on a machine with Internet access first, and then transfer it to the target device for installation. See the MindStudio [Download](https://www.hiascend.com/en/developer/software/mindstudio/download) page on the Ascend community, select the corresponding CANN version, choose "Offline Installation" as the installation mode, and obtain the corresponding installation package and operation guide.
 
 ### 2.3 Source Code Installation
 
@@ -110,7 +110,7 @@ You can uninstall the tool by performing the following steps:
 
 An upgrade is performed by uninstalling first and then installing. If you run the installation command directly, the tool automatically uninstalls the old version and guides you through the overlay installation.
 
-You can run the `pip show mspti` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, pay attention to the version compatibility. For details, see the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes.md).
+You can run the `pip show mspti` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, pay attention to the version compatibility. For details, see the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes_en.md).
 
 ## 6. Appendixes
 

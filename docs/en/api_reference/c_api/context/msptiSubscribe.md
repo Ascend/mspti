@@ -65,7 +65,6 @@ User-defined data address of the <td class="cellrowborder" valign="top" width="5
 </tbody>
 </table>
 
-
 ## Returns<a name="section16621124213476"></a>
 
 `MSPTI_SUCCESS` indicates that the initialization is successful. `MSPTI_ERROR_INNER` is returned if msPTI cannot be initialized, `MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED` is returned if there are already msPTI subscribers, or `MSPTI_ERROR_INVALID_PARAMETER` is returned if the subscriber is empty. In this case, the initialization fails.

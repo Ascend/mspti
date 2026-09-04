@@ -72,7 +72,6 @@ Indicates the additional information triggered by the current callback of the <t
 </tbody>
 </table>
 
-
 ## Returns<a name="section16621124213476"></a>
 
 None
