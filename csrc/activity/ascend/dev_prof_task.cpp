@@ -95,27 +95,36 @@ std::vector<std::unique_ptr<DevProfTask>> DevProfTaskFactory::CreateTasks(uint32
 
 msptiResult DevProfTask::Start()
 {
-    if (started_)
+    if (!t_.joinable())
     {
-        MSPTI_LOGW("DevProfTask has already started, deviceId: %u, channel: %d.", deviceId_, channelId_);
-        return MSPTI_SUCCESS;
+        StartTask();
+        t_ = std::thread(std::bind(&DevProfTask::Run, this));
     }
-    started_ = true;
-    // StartTask 的错误不上报：调用方（DevTaskManager）按全部成功管理 task，
-    // 保证每一次 Start 都有配对的 Stop 来平衡 ref_cnt 和 reader，不过多引入错误分支
-    (void)StartTask();
     return MSPTI_SUCCESS;
 }
 
 msptiResult DevProfTask::Stop()
 {
-    if (!started_)
     {
-        return MSPTI_SUCCESS;
+        std::unique_lock<std::mutex> lck(cv_mtx_);
+        task_run_ = true;
+        cv_.notify_one();
     }
-    started_ = false;
-    (void)StopTask();
+    if (t_.joinable())
+    {
+        t_.join();
+    }
     return MSPTI_SUCCESS;
+}
+
+void DevProfTask::Run()
+{
+    pthread_setname_np(pthread_self(), "DevProfTask");
+    {
+        std::unique_lock<std::mutex> lk(cv_mtx_);
+        cv_.wait(lk, [&]() { return task_run_; });
+    }
+    StopTask();
 }
 
 msptiResult DevProfTask::Flush()

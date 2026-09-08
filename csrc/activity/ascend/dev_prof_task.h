@@ -18,10 +18,12 @@
 #ifndef MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 #define MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 
+#include <condition_variable>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
+#include <thread>
 #include <vector>
 
 #include "csrc/common/context_manager.h"
@@ -44,6 +46,7 @@ class DevProfTask
     virtual msptiResult Flush();
 
    private:
+    void Run();
     virtual msptiResult StartTask() = 0;
     virtual msptiResult StopTask() = 0;
     virtual bool CanFlush() { return false; }
@@ -53,8 +56,10 @@ class DevProfTask
     AI_DRV_CHANNEL channelId_;
 
    private:
-    // Start/Stop 调用幂等保护（替代原来用 thread 是否 joinable 做的隐式保护）
-    bool started_{false};
+    std::thread t_;
+    std::condition_variable cv_;
+    std::mutex cv_mtx_;
+    bool task_run_{false};
 };
 
 class DevProfTaskDefault : public DevProfTask
