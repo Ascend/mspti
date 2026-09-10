@@ -15,14 +15,24 @@ msPTI 提供两大核心能力：
 
 ### Q3: msPTI 支持哪些产品型号？
 
-| 产品类型 | 是否支持 |
-| --- | :---: |
-| 昇腾950PR&950DT系列产品 | √ |
-| 昇腾A3系列产品 | √ |
-| 昇腾A2系列产品 | √ |
-| 昇腾310B系列产品 | √ |
-| 昇腾310P系列产品 | × |
-| 昇腾910系列产品 | × |
+<!-- npu="950" id1 -->
+- 昇腾950PR&950DT系列产品：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- 昇腾A3系列产品：支持
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- 昇腾A2系列产品：支持
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- 昇腾310B系列产品：支持
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- 昇腾310P系列产品：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- 昇腾910系列产品：不支持
+<!-- end id6 -->
 
 ### Q4: msPTI 是否支持 Windows 环境？
 
@@ -138,7 +148,7 @@ msPTI 提供两类 API：
 
 ### Q16: Python 样例需要额外安装什么？
 
-Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/quick_install.md)》。
+Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/building_from_source.md)》。
 
 ### Q17: 什么是 Activity Buffer？如何管理？
 
