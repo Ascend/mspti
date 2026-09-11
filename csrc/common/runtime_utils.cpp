@@ -17,8 +17,11 @@
 
 #include "csrc/common/runtime_utils.h"
 
-#include <regex>
+#include <cctype>
+#include <cstdint>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "csrc/common/inject/acl_inject.h"
 #include "csrc/common/plog_manager.h"
@@ -39,6 +42,58 @@ struct TraceData
     uint64_t modelId;
     uint16_t tagId;
 };
+
+inline bool IsAsciiDigit(char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; }
+
+// Parse one run of ASCII digits starting at pos; advances pos past the digits.
+bool ParseNumericPart(const std::string& str, size_t& pos, std::string& part)
+{
+    const size_t start = pos;
+    while (pos < str.size() && IsAsciiDigit(str[pos]))
+    {
+        ++pos;
+    }
+    if (pos == start)
+    {
+        return false;
+    }
+    part.assign(str, start, pos - start);
+    return true;
+}
+
+// Parse leading dot-separated numeric parts at string start, e.g. "9.2.0" with
+// partCount == 3 fills parts with {"9", "2", "0"}.
+// partCount explicitly specifies how many parts to parse; parts is an out-param
+// resized internally, so the caller only declares an empty vector and does not
+// need to pre-allocate its size. Returns false when partCount is 0 or the
+// prefix does not contain that many numeric parts.
+bool ParseLeadingNumericParts(const std::string& str, std::vector<std::string>& parts, size_t partCount)
+{
+    if (partCount == 0)
+    {
+        parts.clear();
+        return false;
+    }
+    parts.clear();
+    parts.resize(partCount);
+    size_t pos = 0;
+    for (size_t i = 0; i < partCount; ++i)
+    {
+        if (!ParseNumericPart(str, pos, parts[i]))
+        {
+            return false;
+        }
+        if (i + 1 < partCount)
+        {
+            if (pos >= str.size() || str[pos] != '.')
+            {
+                return false;
+            }
+            ++pos;
+        }
+    }
+    return true;
+}
 }  // namespace
 
 uint32_t GetDeviceId()
@@ -92,11 +147,10 @@ bool IsRuntimeSupportMemoryReport()
         {
             return false;
         }
-        static const std::regex reg(R"(^(\d+)\.(\d+))");
-        std::smatch match;
+        std::vector<std::string> parts(2);
         std::pair<int32_t, int32_t> version = {0, 0};
-        if (std::regex_search(versionStr, match, reg) && Utils::StrToI32(version.first, match[1].str()) &&
-            Utils::StrToI32(version.second, match[2].str()))
+        if (ParseLeadingNumericParts(versionStr, parts, parts.size()) && Utils::StrToI32(version.first, parts[0]) &&
+            Utils::StrToI32(version.second, parts[1]))
         {
             constexpr std::pair<int32_t, int32_t> MIN_VERSION = {9, 2};
             return version >= MIN_VERSION;
@@ -113,9 +167,8 @@ uint32_t ParseMsptiVersion(const std::string& versionStr)
     {
         return INVALID_VERSION;
     }
-    static const std::regex reg(R"(^(\d+)\.(\d+)\.(\d+))");
-    std::smatch match;
-    if (!std::regex_search(versionStr, match, reg) || match.size() < 4)
+    std::vector<std::string> parts(3);
+    if (!ParseLeadingNumericParts(versionStr, parts, parts.size()))
     {
         MSPTI_LOGE("mspti version str: %s is invalid.", versionStr.c_str());
         return INVALID_VERSION;
@@ -123,13 +176,21 @@ uint32_t ParseMsptiVersion(const std::string& versionStr)
     uint32_t major{0};
     uint32_t minor{0};
     uint32_t patch{0};
-    if (!Common::Utils::StrToU32(major, match[1].str()) || !Common::Utils::StrToU32(minor, match[2].str()) ||
-        !Common::Utils::StrToU32(patch, match[3].str()))
+    if (!Common::Utils::StrToU32(major, parts[0]) || !Common::Utils::StrToU32(minor, parts[1]) ||
+        !Common::Utils::StrToU32(patch, parts[2]))
     {
         MSPTI_LOGE("mspti version str: %s is invalid.", versionStr.c_str());
         return INVALID_VERSION;
     }
-    return major * 10000 + minor * 100 + patch;
+    // major * 10000 + minor * 100 + patch is computed in uint32_t; e.g. major = UINT32_MAX
+    // would silently wrap around. Compute in 64 bits and reject on overflow.
+    const uint64_t version = static_cast<uint64_t>(major) * 10000 + static_cast<uint64_t>(minor) * 100 + patch;
+    if (version > UINT32_MAX)
+    {
+        MSPTI_LOGE("mspti version str: %s is invalid.", versionStr.c_str());
+        return INVALID_VERSION;
+    }
+    return static_cast<uint32_t>(version);
 }
 }  // namespace Common
 }  // namespace Mspti

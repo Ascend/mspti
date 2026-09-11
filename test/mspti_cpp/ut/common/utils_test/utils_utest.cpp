@@ -329,4 +329,45 @@ TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenModuleVersionEmpty)
 {
     EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion(""));
 }
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenSegmentsMissing)
+{
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("9.2"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("9.2."));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("9..0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("9"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenPrefixNotNumeric)
+{
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion(".9.2.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion(" 9.2.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("v9.2.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("9.2a.0"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionIgnoresTrailingContentAfterPatch)
+{
+    constexpr uint32_t EXPECTED_VERSION = 9 * 10000 + 2 * 100 + 0;
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("9.2.0.1"));
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("9.2.0a"));
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("9.2.0 "));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionSupportsLeadingZeros)
+{
+    constexpr uint32_t EXPECTED_VERSION = 9 * 10000 + 2 * 100 + 3;
+    EXPECT_EQ(EXPECTED_VERSION, Mspti::Common::ParseMsptiVersion("09.02.003"));
+}
+
+TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenNumericOverflow)
+{
+    EXPECT_EQ(4294967295U, Mspti::Common::ParseMsptiVersion("429496.72.95"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("999999999999.0.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("4294967296.0.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("4294967295.0.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("429497.0.0"));
+    EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("429496.73.0"));
+}
+
 }  // namespace
