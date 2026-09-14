@@ -18,6 +18,7 @@
 #include "csrc/activity/ascend/parser/communication_calculator.h"
 
 #include <algorithm>
+#include <unordered_set>
 
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/channel/stars_common.h"
@@ -39,7 +40,7 @@ CommunicationCalculator& CommunicationCalculator::GetInstance()
 
 msptiResult CommunicationCalculator::AppendCompactInfo(bool agingFlag, const MsprofCompactInfo* data)
 {
-    if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_COMMUNICATION))
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_COMMUNICATION))
     {
         return MSPTI_SUCCESS;
     }
@@ -109,6 +110,10 @@ std::unique_ptr<CommunicationOpDesc> TransApiEvent2CommOpDesc(const ApiEvent& ap
 
 msptiResult CommunicationCalculator::AppendApi2TaskInfo(const ApiEvent& api2TaskInfo)
 {
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_COMMUNICATION))
+    {
+        return MSPTI_SUCCESS;
+    }
     if (api2TaskInfo.children.empty())
     {
         MSPTI_LOGW("target Api has not communication tasks");
@@ -130,7 +135,11 @@ msptiResult CommunicationCalculator::AppendApi2TaskInfo(const ApiEvent& api2Task
         Common::ContextManager::EncodeDstKey(lastTask->deviceId, lastTask->streamId, lastTask->taskId);
 
     std::lock_guard<std::mutex> lk(hcclTaskMutex_);
-    communicationTask2Op_[lastTaskDstKey].second = true;
+    auto taskIter = communicationTask2Op_.find(lastTaskDstKey);
+    if (taskIter != communicationTask2Op_.end())
+    {
+        taskIter->second.isLast = true;
+    }
     commOp->startTime = UINT64_MAX;
     eventId2Communication_[api2TaskInfo.eventId] = std::move(commOp);
     return MSPTI_SUCCESS;
@@ -203,6 +212,35 @@ msptiResult CommunicationCalculator::ReportCommunication(uint64_t dstKey,
     return MSPTI_SUCCESS;
 }
 
+int64_t CommunicationCalculator::GetPendingCommunicationCount()
+{
+    return pendingCommunicationCount_.load(std::memory_order_relaxed);
+}
+
+void CommunicationCalculator::Clear()
+{
+    {
+        std::lock_guard<std::mutex> hcclLk(hcclTaskMutex_);
+        Common::EraseIf(communicationTask2Op_, [](const auto& taskRef) { return taskRef.second.agingFlag; });
+        std::unordered_set<uint64_t> liveEvents;
+        std::for_each(communicationTask2Op_.begin(), communicationTask2Op_.end(),
+                      [&liveEvents](const auto& taskRef) { liveEvents.insert(taskRef.second.eventId); });
+        Common::EraseIf(
+            eventId2Communication_, [&liveEvents](const auto& commOp)
+            { return liveEvents.count(commOp.first) == 0 && (commOp.second == nullptr || commOp.second->agingFlag); });
+    }
+    {
+        std::lock_guard<std::mutex> opInfoLk(communicationOpInfoMutex_);
+        std::for_each(communicationOpInfoQueue_.begin(), communicationOpInfoQueue_.end(),
+                      [](auto& threadQueue)
+                      {
+                          Common::EraseIf(threadQueue.second, [](const auto& desc)
+                                          { return desc.second != nullptr && desc.second->agingFlag; });
+                      });
+    }
+    pendingCommunicationCount_.store(0, std::memory_order_relaxed);
+}
+
 msptiResult CommunicationCalculator::Record(const DeviceTask& taskTime)
 {
     auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(taskTime.deviceId),
@@ -214,10 +252,27 @@ msptiResult CommunicationCalculator::Record(const DeviceTask& taskTime)
         return MSPTI_SUCCESS;
     }
 
-    auto commEventIter = eventId2Communication_.find(iter->second.first);
+    auto commEventIter = eventId2Communication_.find(iter->second.eventId);
     if (commEventIter == eventId2Communication_.end())
     {
+        if (taskTime.agingFlag)
+        {
+            // Return the count only if still held; repeat consumes must not fetch_sub again.
+            if (iter->second.pendingCounted)
+            {
+                pendingCommunicationCount_.fetch_sub(1, std::memory_order_relaxed);
+            }
+            communicationTask2Op_.erase(iter);
+        }
         return MSPTI_SUCCESS;
+    }
+    // The last task releases its count only after its report completes (see below).
+    // Other hits release here since no report will ever follow (one-shot device callback).
+    const bool isLastTask = iter->second.isLast;
+    if (taskTime.agingFlag && iter->second.pendingCounted && !isLastTask)
+    {
+        pendingCommunicationCount_.fetch_sub(1, std::memory_order_relaxed);
+        iter->second.pendingCounted = false;
     }
     auto& commOp = commEventIter->second;
     commOp->agingFlag = taskTime.agingFlag;
@@ -235,7 +290,7 @@ msptiResult CommunicationCalculator::Record(const DeviceTask& taskTime)
     }
     commOp->startTime = std::min(commOp->startTime, startTime);
 
-    if (iter->second.second)
+    if (isLastTask)
     {
         if (taskTime.isFfts && !taskTime.subTasks.empty())
         {
@@ -248,6 +303,15 @@ msptiResult CommunicationCalculator::Record(const DeviceTask& taskTime)
             commOp->endTime = taskTime.end;
         }
         ReportCommunication(dstKey, commOp);
+        // Release the count only after the report attempt: pending==0 then implies no
+        // report is still in flight, so UnRegister/Clear cannot cut in and wipe the
+        // addition info it needs. Settle even on report failure (already warned inside):
+        // the entry is consumed either way and must not stall UnRegister retries.
+        if (taskTime.agingFlag && iter->second.pendingCounted)
+        {
+            pendingCommunicationCount_.fetch_sub(1, std::memory_order_relaxed);
+            iter->second.pendingCounted = false;
+        }
         if (commOp->agingFlag)
         {
             eventId2Communication_.erase(commEventIter);
@@ -264,14 +328,29 @@ msptiResult CommunicationCalculator::Record(const DeviceTask& taskTime)
 
 void CommunicationCalculator::AppendCommunicationTask(ApiEvent& apiEvent)
 {
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_COMMUNICATION))
+    {
+        return;
+    }
     CommunicationTask commTask;
     TransApiEvent2CommTask(apiEvent, commTask);
+    if (commTask.agingFlag)
+    {
+        pendingCommunicationCount_.fetch_add(1, std::memory_order_relaxed);
+    }
 
     auto dstKey = Common::ContextManager::EncodeDstKey(commTask.deviceId, commTask.streamId, commTask.taskId);
     DeviceTask task(0, 0, commTask.streamId, commTask.taskId, commTask.deviceId, false, commTask.agingFlag);
     DeviceTaskCalculator::GetInstance().RegisterCallBack(task, [this](const DeviceTask& task) { return Record(task); });
     std::lock_guard<std::mutex> lk(hcclTaskMutex_);
-    communicationTask2Op_[dstKey] = {apiEvent.parentEventId, false};
+    // On same-dstKey overwrite, return the old entry's count first so the counter
+    // keeps tracking the number of unconsumed aging entries.
+    auto oldIter = communicationTask2Op_.find(dstKey);
+    if (oldIter != communicationTask2Op_.end() && oldIter->second.pendingCounted)
+    {
+        pendingCommunicationCount_.fetch_sub(1, std::memory_order_relaxed);
+    }
+    communicationTask2Op_[dstKey] = {apiEvent.parentEventId, false, apiEvent.agingFlag, commTask.agingFlag};
 }
 }  // namespace Parser
 }  // namespace Mspti

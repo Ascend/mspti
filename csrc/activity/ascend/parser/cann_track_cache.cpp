@@ -114,7 +114,7 @@ msptiResult CannTrackCache::CannTrackCacheImpl::StopTask()
 
 msptiResult CannTrackCache::CannTrackCacheImpl::AppendTsTrack(bool agingFlag, const MsprofCompactInfo *data)
 {
-    if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_COMMUNICATION))
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_COMMUNICATION))
     {
         return MSPTI_SUCCESS;
     }
@@ -127,7 +127,7 @@ msptiResult CannTrackCache::CannTrackCacheImpl::AppendTsTrack(bool agingFlag, co
 // Queue的push pop的多线程放最后考虑
 msptiResult CannTrackCache::CannTrackCacheImpl::AppendNodeLunch(bool agingFlag, const MsprofApi *data)
 {
-    if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_COMMUNICATION))
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_COMMUNICATION))
     {
         return MSPTI_SUCCESS;
     }
@@ -151,7 +151,7 @@ msptiResult CannTrackCache::CannTrackCacheImpl::AppendNodeLunch(bool agingFlag, 
 
 msptiResult CannTrackCache::CannTrackCacheImpl::AppendCommunication(bool agingFlag, const MsprofApi *data)
 {
-    if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_COMMUNICATION))
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_COMMUNICATION))
     {
         return MSPTI_SUCCESS;
     }

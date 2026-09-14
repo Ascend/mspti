@@ -20,12 +20,15 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cinttypes>
 #include <cstring>
 #include <functional>
 #include <thread>
 
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
+#include "csrc/activity/ascend/parser/communication_calculator.h"
+#include "csrc/activity/ascend/parser/kernel_parser.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
 #include "csrc/activity/ascend/reporter/overhead_reporter.h"
@@ -38,6 +41,8 @@ namespace Mspti
 {
 namespace Activity
 {
+constexpr uint32_t ActivityManager::FLUSH_RETRY_MAX_COUNT;
+constexpr uint32_t ActivityManager::FLUSH_RETRY_WAIT_MS;
 namespace
 {
 msptiResult IsNeedLdPreload(msptiActivityKind kind)
@@ -75,6 +80,50 @@ inline bool IsNeededDevTask(msptiActivityKind kind)
         MSPTI_ACTIVITY_KIND_MARKER, MSPTI_ACTIVITY_KIND_KERNEL, MSPTI_ACTIVITY_KIND_HCCL,
         MSPTI_ACTIVITY_KIND_COMMUNICATION};
     return needDevTaskKinds.find(kind) != needDevTaskKinds.end();
+}
+
+// For KERNEL / COMMUNICATION: poll parser pending after the first flush and retry until drained,
+// at most FLUSH_RETRY_MAX_COUNT times. Requires the activity switch to stay on for device drain.
+void RetryFlushUntilDrained(msptiActivityKind kind, const std::unordered_set<uint32_t> &localDevices)
+{
+    if (kind != MSPTI_ACTIVITY_KIND_KERNEL && kind != MSPTI_ACTIVITY_KIND_COMMUNICATION)
+    {
+        return;
+    }
+    if (localDevices.empty())
+    {
+        return;
+    }
+    auto getPendingCount = [kind]() -> int64_t
+    {
+        return kind == MSPTI_ACTIVITY_KIND_KERNEL
+                   ? Parser::KernelParser::GetInstance().GetPendingKernelCount()
+                   : Parser::CommunicationCalculator::GetInstance().GetPendingCommunicationCount();
+    };
+    const char *parserName = (kind == MSPTI_ACTIVITY_KIND_KERNEL) ? "KernelParser" : "CommunicationCalculator";
+    const char *pendingDesc = (kind == MSPTI_ACTIVITY_KIND_KERNEL) ? "pending kernels" : "pending communications";
+    MSPTI_LOGI("RetryFlushUntilDrained, kind %d, count %" PRId64, kind, getPendingCount());
+    for (uint32_t retry = 0; retry < ActivityManager::FLUSH_RETRY_MAX_COUNT; retry++)
+    {
+        auto pendingCount = getPendingCount();
+        if (pendingCount == 0)
+        {
+            break;
+        }
+        MSPTI_LOGW("%s has %" PRId64 " %s before unregister, retry flush %u/%u", parserName, pendingCount, pendingDesc,
+                   retry + 1, ActivityManager::FLUSH_RETRY_MAX_COUNT);
+        for (auto device : localDevices)
+        {
+            Ascend::DevTaskManager::GetInstance()->FlushDevProfData(device, kind);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(ActivityManager::FLUSH_RETRY_WAIT_MS));
+    }
+    auto remainCount = getPendingCount();
+    if (remainCount > 0)
+    {
+        MSPTI_LOGW("%s still has %" PRId64 " %s after %u retries, give up.", parserName, remainCount, pendingDesc,
+                   ActivityManager::FLUSH_RETRY_MAX_COUNT);
+    }
 }
 }  // namespace
 
@@ -220,6 +269,10 @@ void ActivityManager::ResetActivitySwitch()
     {
         kindSwitch.store(false);
     }
+    for (auto &kindSwitch : unregistering_)
+    {
+        kindSwitch.store(false);
+    }
 }
 
 void ActivityManager::StartActivityMgrThread()
@@ -353,6 +406,8 @@ msptiResult ActivityManager::Register(msptiActivityKind kind)
     }
     activity_switch_[kind] = true;
     append_only_activity_switch_[kind] = true;
+    // 重新打开 host 数据上报开关（防御：上次 UnRegister 若未正常复位也在这里恢复）
+    unregistering_[kind] = false;
 
     auto localDevices = GetAllValidDevice();
     ActivitySwitchType curOpenSwitch{};
@@ -373,6 +428,8 @@ msptiResult ActivityManager::UnRegister(msptiActivityKind kind)
         MSPTI_LOGE("The ActivityKind: %d was not support.", static_cast<int>(kind));
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
+    // 先关闭 host 数据上报开关：此后 parser 只消费存量排空 pending，不再接受新 host 数据
+    unregistering_[kind] = true;
     if (IsNeededDevTask(kind))
     {
         auto localDevices = GetAllValidDevice();
@@ -386,14 +443,29 @@ msptiResult ActivityManager::UnRegister(msptiActivityKind kind)
             constexpr uint32_t sleep_ms = 20;
             std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
         }
+        RetryFlushUntilDrained(kind, localDevices);
     }
     Parser::ParserManager::GetInstance()->StopAnalysisTask(kind);
     activity_switch_[kind] = false;
+    if (kind == MSPTI_ACTIVITY_KIND_KERNEL)
+    {
+        Parser::KernelParser::GetInstance().Clear();
+    }
+    else if (kind == MSPTI_ACTIVITY_KIND_COMMUNICATION)
+    {
+        Parser::CommunicationCalculator::GetInstance().Clear();
+    }
+    unregistering_[kind] = false;
     MSPTI_LOGI("UnRegister Activity kind: %d", static_cast<int>(kind));
     return MSPTI_SUCCESS;
 }
 
 bool ActivityManager::IsActivityKindEnable(msptiActivityKind kind) { return activity_switch_[kind]; }
+
+bool ActivityManager::IsHostReportAllowed(msptiActivityKind kind)
+{
+    return activity_switch_[kind] && !unregistering_[kind];
+}
 
 msptiResult ActivityManager::GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize,
                                              uint32_t *enabledKindsCount)

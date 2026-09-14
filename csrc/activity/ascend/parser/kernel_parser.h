@@ -18,6 +18,7 @@
 #ifndef MSPTI_PARSER_KERNEL_PARSER_H
 #define MSPTI_PARSER_KERNEL_PARSER_H
 
+#include <cstdint>
 #include <memory>
 
 #include "csrc/activity/ascend/entity/soclog.h"
@@ -34,6 +35,8 @@ class KernelParser
     static KernelParser &GetInstance();
     msptiResult ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo *data);
     msptiResult ReportStarsSocLog(uint32_t deviceId, const HalLogData &originData);
+    int64_t GetPendingKernelCount();
+    void Clear();
 
    private:
     KernelParser();

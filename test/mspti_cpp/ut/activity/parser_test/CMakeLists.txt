@@ -6,6 +6,7 @@ add_executable(mspti_parser_utest
     hccl_reporter_utest.cpp
     device_task_calculator_utest.cpp
     communication_calculator_utest.cpp
+    kernel_parser_pending_utest.cpp
     cann_api_parser_utest.cpp
     mstx_parser_utest.cpp
     memory_parser_utest.cpp

@@ -17,6 +17,7 @@
 
 #include "csrc/activity/ascend/parser/kernel_parser.h"
 
+#include <atomic>
 #include <mutex>
 #include <queue>
 #include <tuple>
@@ -79,8 +80,10 @@ class KernelParser::KernelParserImpl
         }
     }
     msptiResult ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data);
-    // 驱动数据均为单线程读取，函数内数据无需额外加锁
+    // Device data may arrive on channel workers; serialized by hostTaskMutex_.
     msptiResult ReportSocLog(uint32_t deviceId, const HalLogData& originData);
+    int64_t GetPendingKernelCount();
+    void Clear();
 
    private:
     msptiResult DealUnAgingRtTaskTrack(const DeviceTask& task);
@@ -90,6 +93,9 @@ class KernelParser::KernelParserImpl
     msptiResult DealCacheHostTask();
 
    private:
+    // Guards host queues (hostTasks_/dealHostTasks_) and all device-side maps (kernel_map_,
+    // unaging_kernel_map_, device_kernel_map_). ReportSocLog holds it for its whole body so
+    // Clear() fully serializes with in-flight device data (channel workers run concurrently).
     std::mutex hostTaskMutex_;
     std::vector<HostTask> hostTasks_{};
     std::vector<HostTask> dealHostTasks_{};
@@ -101,14 +107,17 @@ class KernelParser::KernelParserImpl
     std::unordered_map<uint64_t, msptiActivityKernelPtr> unaging_kernel_map_{};
     std::unordered_map<uint64_t, DeviceTaskPtr> device_kernel_map_{};
 
+    std::atomic<int64_t> pendingKernelCount_{0};
+
     uint64_t kernelLackEndCount_{0};
     uint64_t kernelLackStartCount_{0};
 };
 
 msptiResult KernelParser::KernelParserImpl::ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data)
 {
-    if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL))
+    if (!Activity::ActivityManager::GetInstance()->IsHostReportAllowed(MSPTI_ACTIVITY_KIND_KERNEL))
     {
+        // 未使能或 UnRegister 进数关闭后，新的 host 数据直接丢弃，存量由 device 侧排空
         return MSPTI_SUCCESS;
     }
     auto taskType = static_cast<uint32_t>(data->data.runtimeTrack.taskType);
@@ -117,11 +126,17 @@ msptiResult KernelParser::KernelParserImpl::ReportRtTaskTrack(uint32_t agingFlag
         return MSPTI_SUCCESS;
     }
     Common::ContextManager::GetInstance()->UpdateAndReportCorrelationId(data->threadId);
-    std::lock_guard<std::mutex> lk(hostTaskMutex_);
-    hostTasks_.emplace_back(data->threadId, data->data.runtimeTrack.deviceId, data->data.runtimeTrack.streamId,
-                            data->data.runtimeTrack.taskType, data->data.runtimeTrack.kernelName,
-                            Common::ContextManager::GetInstance()->GetCorrelationId(), data->data.runtimeTrack.taskInfo,
-                            agingFlag == 1);
+    {
+        std::lock_guard<std::mutex> lk(hostTaskMutex_);
+        hostTasks_.emplace_back(data->threadId, data->data.runtimeTrack.deviceId, data->data.runtimeTrack.streamId,
+                                data->data.runtimeTrack.taskType, data->data.runtimeTrack.kernelName,
+                                Common::ContextManager::GetInstance()->GetCorrelationId(),
+                                data->data.runtimeTrack.taskInfo, agingFlag == 1);
+    }
+    if (agingFlag == 1)
+    {
+        pendingKernelCount_.fetch_add(1, std::memory_order_relaxed);
+    }
     return MSPTI_SUCCESS;
 }
 
@@ -131,6 +146,9 @@ msptiResult KernelParser::KernelParserImpl::ReportSocLog(uint32_t deviceId, cons
     {
         return MSPTI_SUCCESS;
     }
+    // Hold across device processing: concurrent UnRegister/Clear blocks here instead of
+    // racing the maps, and channel workers serialize with each other.
+    std::lock_guard<std::mutex> lk(hostTaskMutex_);
     DealCacheHostTask();
     if (originData.type == ACSQ_LOG)
     {
@@ -155,15 +173,14 @@ msptiResult KernelParser::KernelParserImpl::ReportSocLog(uint32_t deviceId, cons
 
 msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
 {
+    // Caller (ReportSocLog) holds hostTaskMutex_; kept across swap+push so Clear
+    // cannot wipe the maps mid-push (std::mutex is not recursive: never lock here).
+    if (hostTasks_.empty())
     {
-        std::lock_guard<std::mutex> lk(hostTaskMutex_);
-        if (hostTasks_.empty())
-        {
-            return MSPTI_SUCCESS;
-        }
-        dealHostTasks_.reserve(hostTasks_.size());
-        dealHostTasks_.swap(hostTasks_);
+        return MSPTI_SUCCESS;
     }
+    dealHostTasks_.reserve(hostTasks_.size());
+    dealHostTasks_.swap(hostTasks_);
     for (const auto& hostTask : dealHostTasks_)
     {
         // GetKernelBasicInfo
@@ -217,6 +234,7 @@ msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTas
     auto result = Activity::ActivityManager::GetInstance()->Record(
         Common::ReinterpretConvert<msptiActivity*>(kernel.get()), sizeof(msptiActivityKernel));
     kernelList.pop();
+    pendingKernelCount_.fetch_sub(1, std::memory_order_relaxed);
     if (kernelList.empty())
     {
         kernel_map_.erase(it);
@@ -296,6 +314,22 @@ inline bool KernelParser::KernelParserImpl::IsGraphTask(uint64_t dstKey)
     return unaging_kernel_map_.find(dstKey) != unaging_kernel_map_.end();
 }
 
+int64_t KernelParser::KernelParserImpl::GetPendingKernelCount()
+{
+    return pendingKernelCount_.load(std::memory_order_relaxed);
+}
+
+void KernelParser::KernelParserImpl::Clear()
+{
+    // Unified locking makes this a barrier: in-flight ReportSocLog either finishes
+    // first or blocks until done, so no map is touched concurrently.
+    std::lock_guard<std::mutex> lk(hostTaskMutex_);
+    hostTasks_.clear();
+    kernel_map_.clear();
+    device_kernel_map_.clear();
+    pendingKernelCount_.store(0, std::memory_order_relaxed);
+}
+
 // KernelParser
 KernelParser& KernelParser::GetInstance()
 {
@@ -316,5 +350,9 @@ msptiResult KernelParser::ReportStarsSocLog(uint32_t deviceId, const HalLogData&
 {
     return pImpl->ReportSocLog(deviceId, originData);
 }
+
+int64_t KernelParser::GetPendingKernelCount() { return pImpl->GetPendingKernelCount(); }
+
+void KernelParser::Clear() { pImpl->Clear(); }
 }  // namespace Parser
 }  // namespace Mspti

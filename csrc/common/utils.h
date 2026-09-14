@@ -91,6 +91,22 @@ inline T ReinterpretConvert(V ptr)
     return reinterpret_cast<T>(ptr);
 }
 
+template <typename Container, typename Pred>
+void EraseIf(Container& container, Pred pred)
+{
+    for (auto it = container.begin(); it != container.end();)
+    {
+        if (pred(*it))
+        {
+            it = container.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 inline uint64_t GetHashIdImple(const std::string& hashInfo)
 {
     static const uint32_t UINT32_BITS = 32;

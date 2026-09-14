@@ -15,13 +15,16 @@
  * -------------------------------------------------------------------------
  */
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <vector>
 
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
+#include "csrc/activity/ascend/parser/kernel_parser.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
+#include "csrc/common/context_manager.h"
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/utils.h"
 #include "gtest/gtest.h"
@@ -1046,5 +1049,71 @@ TEST_F(ActivityUtest, DoubleResetDeviceIsSafe)
     // 第二次 Reset 走 device 不存在分支，不得崩溃
     EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
     EXPECT_TRUE(instance->GetAllValidDevice().find(kDev) == instance->GetAllValidDevice().end());
+}
+
+TEST_F(ActivityUtest, UnRegisterKernelReturnsImmediatelyWhenNoPendingKernels)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    // Fast path: no pending -> exactly one initial flush, no retry flush.
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::FlushDevProfData).expects(exactly(1)).will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+    // First poll returns 0: break immediately without retry flush.
+    MOCKER_CPP(&Mspti::Parser::KernelParser::GetPendingKernelCount).stubs().will(returnValue(static_cast<int64_t>(0)));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    constexpr uint32_t kDev = 77;
+    // Drain devices leaked by earlier tests: flush loops iterate all valid devices,
+    // so the exact-count assertions below require exactly one device from here on.
+    for (auto dev : instance->GetAllValidDevice())
+    {
+        EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(dev));
+    }
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    // Verify FlushDevProfData call count: failure means unexpected retry (or missing initial flush).
+    GlobalMockObject::verify();
+}
+
+TEST_F(ActivityUtest, UnRegisterKernelRetriesFlushWhenPendingKernelsRemain)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    // Slow path: pending never drains -> 1 initial flush + one retry flush per iteration.
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::FlushDevProfData)
+        .expects(exactly(1 + Mspti::Activity::ActivityManager::FLUSH_RETRY_MAX_COUNT))
+        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+    // Pending never drains: exhaust all retries then give up.
+    MOCKER_CPP(&Mspti::Parser::KernelParser::GetPendingKernelCount).stubs().will(returnValue(static_cast<int64_t>(1)));
+
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    constexpr uint32_t kDev = 77;
+    // Drain devices leaked by earlier tests: flush loops iterate all valid devices,
+    // so the exact-count assertions below require exactly one device from here on.
+    for (auto dev : instance->GetAllValidDevice())
+    {
+        EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(dev));
+    }
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->SetDevice(kDev));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_FALSE(instance->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+
+    EXPECT_EQ(MSPTI_SUCCESS, instance->ResetDevice(kDev));
+    // Verify retry behavior by flush call count instead of wall-clock sleep time.
+    GlobalMockObject::verify();
 }
 }  // namespace

@@ -60,6 +60,8 @@ class ActivityManager
 {
    public:
     using ActivitySwitchType = Mspti::Ascend::DevTaskManager::ActivitySwitchType;
+    static constexpr uint32_t FLUSH_RETRY_MAX_COUNT = 5;
+    static constexpr uint32_t FLUSH_RETRY_WAIT_MS = 20;
     static ActivityManager *GetInstance();
     msptiResult RegisterCallbacks(msptiBuffersCallbackRequestFunc funcBufferRequested,
                                   msptiBuffersCallbackCompleteFunc funcBufferCompleted);
@@ -73,6 +75,7 @@ class ActivityManager
     msptiResult Register(msptiActivityKind kind);
     msptiResult UnRegister(msptiActivityKind kind);
     bool IsActivityKindEnable(msptiActivityKind kind);
+    bool IsHostReportAllowed(msptiActivityKind kind);
     msptiResult GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize, uint32_t *enabledKindsCount);
     size_t GetAndResetDroppedCount() { return cur_drop_num_.exchange(0, std::memory_order_relaxed); }
 
@@ -97,6 +100,7 @@ class ActivityManager
     // Replace map with bitest
     ActivitySwitchType activity_switch_;
     ActivitySwitchType append_only_activity_switch_;
+    ActivitySwitchType unregistering_;
     std::unordered_set<uint32_t> devices_;
     std::mutex devices_mtx_;
 

@@ -19,6 +19,9 @@
 
 #include <cstdint>
 #include <fstream>
+#include <map>
+#include <unordered_map>
+#include <vector>
 
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/utils.h"
@@ -176,13 +179,13 @@ TEST_F(UtilsUtest, FileReadableShouldGetFalseWhenFileEmpty)
 
 TEST_F(UtilsUtest, CheckCharValidShouldReturnFalseWhenMsgContainsSpecialCharacter)
 {
-    const char *msg = "record&";
+    const char* msg = "record&";
     EXPECT_FALSE(Mspti::Common::Utils::CheckCharValid(msg));
 }
 
 TEST_F(UtilsUtest, CheckCharValidShouldReturnTrueWhenMsgNotContainSpecialCharacter)
 {
-    const char *msg = "xxxx";
+    const char* msg = "xxxx";
     EXPECT_TRUE(Mspti::Common::Utils::CheckCharValid(msg));
 }
 
@@ -370,4 +373,44 @@ TEST_F(UtilsUtest, ParseMsptiVersionReturnsZeroWhenNumericOverflow)
     EXPECT_EQ(0U, Mspti::Common::ParseMsptiVersion("429496.73.0"));
 }
 
+TEST_F(UtilsUtest, EraseIfShouldRemoveMatchingElementsFromUnorderedMap)
+{
+    std::unordered_map<int, std::string> container{{1, "a"}, {2, "b"}, {3, "c"}, {4, "d"}};
+    Mspti::Common::EraseIf(container, [](const auto& kv) { return kv.first % 2 == 0; });
+    EXPECT_EQ(2U, container.size());
+    EXPECT_TRUE(container.find(1) != container.end());
+    EXPECT_TRUE(container.find(3) != container.end());
+}
+
+TEST_F(UtilsUtest, EraseIfShouldKeepUnmatchedElementsInOrderedMap)
+{
+    std::map<uint64_t, bool> container{{10, true}, {20, false}, {30, true}};
+    Mspti::Common::EraseIf(container, [](const auto& kv) { return kv.second; });
+    EXPECT_EQ(1U, container.size());
+    EXPECT_TRUE(container.find(20) != container.end());
+}
+
+TEST_F(UtilsUtest, EraseIfShouldWorkOnSequenceContainer)
+{
+    std::vector<int> container{1, 2, 3, 4, 5};
+    Mspti::Common::EraseIf(container, [](int value) { return value > 3; });
+    EXPECT_EQ(3U, container.size());
+    EXPECT_EQ(1, container[0]);
+    EXPECT_EQ(3, container[2]);
+}
+
+TEST_F(UtilsUtest, EraseIfShouldHandleEmptyContainerAndFullMatch)
+{
+    std::unordered_map<int, int> empty;
+    Mspti::Common::EraseIf(empty, [](const auto& kv) { return true; });
+    EXPECT_TRUE(empty.empty());
+
+    std::unordered_map<int, int> allMatch{{1, 1}, {2, 2}};
+    Mspti::Common::EraseIf(allMatch, [](const auto& kv) { return true; });
+    EXPECT_TRUE(allMatch.empty());
+
+    std::unordered_map<int, int> noneMatch{{1, 1}, {2, 2}};
+    Mspti::Common::EraseIf(noneMatch, [](const auto& kv) { return false; });
+    EXPECT_EQ(2U, noneMatch.size());
+}
 }  // namespace
