@@ -306,4 +306,115 @@ TEST_F(DevProfTaskUtest, DoubleStartShouldRunStartTaskOnceAndStopShouldBalanceRe
 
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
 }
+
+TEST_F(DevProfTaskUtest, CreateAicpuTasksShouldReturnTwoProfTasks)
+{
+    GlobalMockObject::verify();
+    constexpr uint32_t deviceId = 0;
+    auto profTasks = Mspti::Ascend::DevProfTaskFactory::CreateAicpuTasks(deviceId);
+    constexpr size_t AICPU_PROF_TASK_NUM = 2;
+    EXPECT_EQ(AICPU_PROF_TASK_NUM, profTasks.size());
+}
+
+TEST_F(DevProfTaskUtest, DevProfTaskAicpuShouldRunSuccessfullyWhenRunNormally)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskAicpu> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+    EXPECT_EQ(MSPTI_SUCCESS, task->StartTask());
+
+    // repeat start task for same device
+    EXPECT_EQ(MSPTI_SUCCESS, task->StartTask());
+
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+
+    // repeat stop task for same device
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
+
+TEST_F(DevProfTaskUtest, DevProfTaskAicpuShouldReturnSuccessWhenCheckChannelValidFail)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskAicpu> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(false));
+
+    EXPECT_EQ(MSPTI_SUCCESS, task->StartTask());
+
+    // clear ref_cnts
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+}
+
+TEST_F(DevProfTaskUtest, DevProfTaskAicpuShouldReturnInnerErrorWhenAddReaderFail)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskAicpu> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+
+    // set add reader fail
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::AddReader).stubs().will(returnValue(MSPTI_ERROR_INNER));
+    EXPECT_EQ(MSPTI_ERROR_INNER, task->StartTask());
+
+    // no reader was added, stop should be harmless
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
+
+TEST_F(DevProfTaskUtest, DevProfTaskAicpuShouldRollbackReaderWhenDrvStartChannelFail)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskAicpu> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+
+    // reader is created successfully, but driver start fails -> reader must be rolled back
+    MOCKER_CPP(&ProfDrvStart).stubs().will(returnValue(-1));
+    EXPECT_EQ(MSPTI_ERROR_INNER, task->StartTask());
+
+    // rollback already removed the reader, stop should be harmless
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
+
+TEST_F(DevProfTaskUtest, DevProfTaskAiCustomCpuShouldRunSuccessfullyWhenRunNormally)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskAiCustomCpu> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+    EXPECT_EQ(MSPTI_SUCCESS, task->StartTask());
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
 }  // namespace

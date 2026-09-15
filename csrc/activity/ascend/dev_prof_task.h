@@ -18,11 +18,13 @@
 #ifndef MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 #define MSPTI_ACTIVITY_ASCEND_DEV_PROF_TASK_H
 
+#include <atomic>
 #include <condition_variable>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -102,10 +104,58 @@ class DevProfTaskStars : public DevProfTask
     static std::mutex cnt_mtx_;
 };
 
+class DevProfTaskAicpuBase : public DevProfTask
+{
+   public:
+    DevProfTaskAicpuBase(uint32_t deviceId, AI_DRV_CHANNEL channelId, const std::string &eventGrpName);
+    ~DevProfTaskAicpuBase() override;
+
+   private:
+    msptiResult StartTask() override;
+    msptiResult StopTask() override;
+    bool CanFlush() override;
+
+    msptiResult StartChannel();
+    void StopChannel();
+    void EventThreadRun();
+    void WaitEvent(uint32_t grpId);
+    msptiResult QueryDevPid();
+    msptiResult QueryGroupId(uint32_t &grpId);
+    bool TryStartChannelWhenValid();
+
+   private:
+    std::string eventGrpName_;
+    std::thread eventThread_;
+    std::atomic<bool> eventThreadRun_{false};
+    std::atomic<bool> attachedDevice_{false};
+    std::atomic<bool> channelStarted_{false};
+    bool readerAdded_{false};
+    std::mutex channelMtx_;
+};
+
+class DevProfTaskAicpu : public DevProfTaskAicpuBase
+{
+   public:
+    explicit DevProfTaskAicpu(uint32_t deviceId) : DevProfTaskAicpuBase(deviceId, PROF_CHANNEL_AICPU, "prof_aicpu_grp")
+    {
+    }
+};
+
+class DevProfTaskAiCustomCpu : public DevProfTaskAicpuBase
+{
+   public:
+    explicit DevProfTaskAiCustomCpu(uint32_t deviceId)
+        : DevProfTaskAicpuBase(deviceId, PROF_CHANNEL_CUS_AICPU, "prof_cus_grp")
+    {
+    }
+};
+
 class DevProfTaskFactory
 {
    public:
     static std::vector<std::unique_ptr<DevProfTask>> CreateTasks(uint32_t deviceId, msptiActivityKind kind);
+    // AICPU/AiCustomCpu通道与activity kind无关，由PROF_TASK_TIME开关触发，单独创建
+    static std::vector<std::unique_ptr<DevProfTask>> CreateAicpuTasks(uint32_t deviceId);
 
    private:
     static std::unique_ptr<DevProfTask> CreateDevChannelTask(uint32_t deviceId, AI_DRV_CHANNEL channelId);

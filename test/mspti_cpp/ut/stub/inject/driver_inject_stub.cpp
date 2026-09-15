@@ -109,3 +109,42 @@ int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned i
     }
     return 0;
 }
+
+int HalEschedAttachDevice(unsigned int devId) { return DRV_ERROR_NONE; }
+
+int HalEschedDettachDevice(unsigned int devId) { return DRV_ERROR_NONE; }
+
+int HalEschedCreateGrpEx(unsigned int devId, MsptiEschedGrpParaT* grpPara, unsigned int* grpId)
+{
+    if (grpId)
+    {
+        *grpId = 0;
+    }
+    return DRV_ERROR_NONE;
+}
+
+int HalEschedSubscribeEvent(unsigned int devId, unsigned int grpId, unsigned int threadId,
+                            unsigned long long eventBitmap)
+{
+    return DRV_ERROR_NONE;
+}
+
+int HalEschedWaitEvent(unsigned int devId, unsigned int grpId, unsigned int threadId, int timeout,
+                       MsptiEventInfoT* event)
+{
+    return DRV_ERROR_NOT_SUPPORT;
+}
+
+int HalEschedQueryInfo(unsigned int devId, int type, MsptiEschedInputInfoT* inPut, MsptiEschedOutputInfoT* outPut)
+{
+    return DRV_ERROR_NOT_SUPPORT;
+}
+
+int HalQueryDevpid(MsptiHalQueryDevpidInfoT info, int* devPid)
+{
+    if (devPid)
+    {
+        *devPid = 0;
+    }
+    return DRV_ERROR_NONE;
+}

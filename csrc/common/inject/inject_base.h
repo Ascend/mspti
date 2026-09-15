@@ -13,7 +13,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_COMMON_INJECT_INJECT_BASE_H
 #define MSPTI_COMMON_INJECT_INJECT_BASE_H
@@ -36,11 +36,12 @@ using AclrtArgsHandle = void *;
 using AclrtBinHandle = void *;
 using AclrtFuncHandle = void *;
 
-using VOID_PTR = void*;
+using VOID_PTR = void *;
 using CONST_VOID_PTR = const void *;
-using VOID_PTR_PTR = void**;
+using VOID_PTR_PTR = void **;
 
-typedef enum AclrtLaunchKernelAttrId {
+typedef enum AclrtLaunchKernelAttrId
+{
     ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE = 1,
     ACL_RT_LAUNCH_KERNEL_ATTR_ENGINE_TYPE = 3,
     ACL_RT_LAUNCH_KERNEL_ATTR_BLOCKDIM_OFFSET,
@@ -49,12 +50,14 @@ typedef enum AclrtLaunchKernelAttrId {
     ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT,
 } AclrtLaunchKernelAttrId;
 
-typedef enum {
+typedef enum
+{
     ACL_RT_ENGINE_TYPE_AIC = 0,
     ACL_RT_ENGINE_TYPE_AIV,
 } AclrtEngineType;
 
-typedef union AclrtLaunchKernelAttrValue {
+typedef union AclrtLaunchKernelAttrValue
+{
     uint8_t schemMode;
     uint32_t localMemorySize;
     AclrtEngineType engineType;
@@ -65,22 +68,26 @@ typedef union AclrtLaunchKernelAttrValue {
     uint32_t rsv[4];
 } AclrtLaunchKernelAttrValue;
 
-typedef struct AclrtLaunchKernelAttr {
+typedef struct AclrtLaunchKernelAttr
+{
     AclrtLaunchKernelAttrId id;
     AclrtLaunchKernelAttrValue value;
 } aclrtLaunchKernelAttr;
 
-typedef struct AclrtLaunchKernelCfg {
+typedef struct AclrtLaunchKernelCfg
+{
     aclrtLaunchKernelAttr *attrs;
     size_t numAttrs;
 } AclrtLaunchKernelCfg;
 
-typedef struct AclrtPlaceHolderInfo {
+typedef struct AclrtPlaceHolderInfo
+{
     uint32_t addrOffset;
     uint32_t dataOffset;
 } AclrtPlaceHolderInfo;
 
-enum DrvError {
+enum DrvError
+{
     DRV_ERROR_NONE = 0,
     DRV_ERROR_NO_DEVICE = 1,
     DRV_ERROR_NOT_SUPPORT = 0xfffe,
@@ -89,40 +96,48 @@ enum DrvError {
 #define PROF_CHANNEL_NAME_LEN 32
 #define PROF_CHANNEL_NUM_MAX 160
 
-template<typename Type>
+template <typename Type>
 inline void THROW_FUNC_NOTFOUND(Type ptr, const std::string &funName, const std::string &soName)
 {
-    if (ptr == nullptr) {
-        throw std::runtime_error("Failed to get function: \""+ funName + "\" from \"" + soName + "\"");
+    if (ptr == nullptr)
+    {
+        throw std::runtime_error("Failed to get function: \"" + funName + "\" from \"" + soName + "\"");
     }
 }
 
-struct ChannelInfo {
+struct ChannelInfo
+{
     char channelName[PROF_CHANNEL_NAME_LEN];
     unsigned int channelType;
     unsigned int channelId;
 };
 
-typedef struct ChannelList {
+typedef struct ChannelList
+{
     unsigned int chipType;
     unsigned int channelNum;
     struct ChannelInfo channel[PROF_CHANNEL_NUM_MAX];
 } ChannelListT;
 
-enum AI_DRV_CHANNEL {
-    PROF_CHANNEL_UNKNOWN         = 0,
-    PROF_CHANNEL_TS_FW           = 44,
-    PROF_CHANNEL_STARS_SOC_LOG   = 50,
-    PROF_CHANNEL_MAX             = 160,
+enum AI_DRV_CHANNEL
+{
+    PROF_CHANNEL_UNKNOWN = 0,
+    PROF_CHANNEL_TS_FW = 44,
+    PROF_CHANNEL_STARS_SOC_LOG = 50,
+    PROF_CHANNEL_AICPU = 143,
+    PROF_CHANNEL_CUS_AICPU = 144,
+    PROF_CHANNEL_MAX = 160,
 };
 
-typedef enum ProfChannelType {
+typedef enum ProfChannelType
+{
     PROF_CHANNEL_TYPE_TS,
     PROF_CHANNEL_TYPE_PERIPHERAL,
     PROF_CHANNEL_TYPE_MAX,
 } PROF_CHANNEL_TYPE;
 
-typedef enum TAG_TS_PROFILE_COMMAND_TYPE {
+typedef enum TAG_TS_PROFILE_COMMAND_TYPE
+{
     TS_PROFILE_COMMAND_TYPE_ACK = 0,
     TS_PROFILE_COMMAND_TYPE_PROFILING_ENABLE = 1,
     TS_PROFILE_COMMAND_TYPE_PROFILING_DISABLE = 2,
@@ -133,7 +148,8 @@ typedef enum TAG_TS_PROFILE_COMMAND_TYPE {
     TS_PROFILE_COMMAND_TS_FW_DISENABLE = 7,      // TS fw data disenable
 } TS_PROFILE_COMMAND_TYPE_T;
 
-typedef struct ProfStartPara {
+typedef struct ProfStartPara
+{
     PROF_CHANNEL_TYPE channelType;
     unsigned int samplePeriod;
     unsigned int realTime;
@@ -141,24 +157,27 @@ typedef struct ProfStartPara {
     unsigned int userDataSize;
 } ProfStartParaT;
 
-typedef struct ProfPollInfo {
+typedef struct ProfPollInfo
+{
     unsigned int deviceId;
     unsigned int channelId;
 } ProfPollInfoT;
 
-typedef struct TagTsTsFwProfileConfig {
+typedef struct TagTsTsFwProfileConfig
+{
     uint32_t period;
     uint32_t tsTaskTrack;     // 1-enable,2-disable
     uint32_t tsCpuUsage;      // 1-enable,2-disable
     uint32_t aiCoreStatus;    // 1-enable,2-disable
-    uint32_t tsTimeline;       // 1-enable,2-disable
+    uint32_t tsTimeline;      // 1-enable,2-disable
     uint32_t aiVectorStatus;  // 1-enable,2-disable
-    uint32_t tsKeypoint;       // 1-enable,2-disable
-    uint32_t tsMemcpy;         // 1-enable,2-disable
-    uint32_t tsBlockdim;       // 1-enable,2-disable
+    uint32_t tsKeypoint;      // 1-enable,2-disable
+    uint32_t tsMemcpy;        // 1-enable,2-disable
+    uint32_t tsBlockdim;      // 1-enable,2-disable
 } TsTsFwProfileConfigT;
 
-typedef struct TagStarsSocLogConfig {
+typedef struct TagStarsSocLogConfig
+{
     uint32_t acsq_task;         // 1-enable,2-disable
     uint32_t acc_pmu;           // 1-enable,2-disable
     uint32_t cdqm_reg;          // 1-enable,2-disable
@@ -168,76 +187,84 @@ typedef struct TagStarsSocLogConfig {
     uint32_t ffts_thread_task;  // 1-enable,2-disable
     uint32_t ffts_block;        // 1-enable,2-disable
     uint32_t sdma_dmu;          // 1-enable,2-disable
-    uint32_t tag;                // 0-enable immediately, 1-enable delay
-    uint32_t blockShinkFlag;     // 1-enable,2-disable
+    uint32_t tag;               // 0-enable immediately, 1-enable delay
+    uint32_t blockShinkFlag;    // 1-enable,2-disable
 } StarsSocLogConfigT;
 
-enum PROFILE_MODE {
+enum PROFILE_MODE
+{
     PROFILE_REAL_TIME = 1,
 };
 
-typedef struct rtHostInputInfo {
+typedef struct rtHostInputInfo
+{
     uint32_t addrOffset;
     uint32_t dataOffset;
 } RtHostInputInfoT;
 
-typedef struct tagRtArgsEx {
-    void *args;                     // args host mem addr
-    RtHostInputInfoT *hostInputInfoPtr;     // nullptr means no host mem input
-    uint32_t argsSize;              // input + output + tiling addr size + tiling data size + host mem
-    uint32_t tilingAddrOffset;      // tiling addr offset
-    uint32_t tilingDataOffset;      // tiling data offset
-    uint16_t hostInputInfoNum;      // hostInputInfo num
-    uint8_t hasTiling;              // if has tiling: 0 means no tiling
-    uint8_t isNoNeedH2DCopy;        // is no need host to device copy: 0 means need H2D copy,
-                                    // others means doesn't need H2D copy.
+typedef struct tagRtArgsEx
+{
+    void *args;                          // args host mem addr
+    RtHostInputInfoT *hostInputInfoPtr;  // nullptr means no host mem input
+    uint32_t argsSize;                   // input + output + tiling addr size + tiling data size + host mem
+    uint32_t tilingAddrOffset;           // tiling addr offset
+    uint32_t tilingDataOffset;           // tiling data offset
+    uint16_t hostInputInfoNum;           // hostInputInfo num
+    uint8_t hasTiling;                   // if has tiling: 0 means no tiling
+    uint8_t isNoNeedH2DCopy;             // is no need host to device copy: 0 means need H2D copy,
+                                         // others means doesn't need H2D copy.
     uint8_t reserved[4];
 } RtArgsExT;
 
-typedef struct tagRtAicpuArgsEx {
-    void *args; // args host mem addr
-    RtHostInputInfoT *hostInputInfoPtr; // nullptr means no host mem input
-    RtHostInputInfoT *kernelOffsetInfoPtr; // KernelOffsetInfo, it is different for CCE Kernel and fwk kernel
+typedef struct tagRtAicpuArgsEx
+{
+    void *args;                             // args host mem addr
+    RtHostInputInfoT *hostInputInfoPtr;     // nullptr means no host mem input
+    RtHostInputInfoT *kernelOffsetInfoPtr;  // KernelOffsetInfo, it is different for CCE Kernel and fwk kernel
     uint32_t argsSize;
-    uint16_t hostInputInfoNum; // hostInputInfo num
-    uint16_t kernelOffsetInfoNum; // KernelOffsetInfo num
-    uint32_t soNameAddrOffset; // just for CCE Kernel, default value is 0xffff for FWK kernel
-    uint32_t kernelNameAddrOffset; // just for CCE Kernel, default value is 0xffff for FWK kernel
-    bool isNoNeedH2DCopy; // is no need host to device copy: 0 means need H2D copy,
-                               // other means doesn't need H2D copy.
+    uint16_t hostInputInfoNum;      // hostInputInfo num
+    uint16_t kernelOffsetInfoNum;   // KernelOffsetInfo num
+    uint32_t soNameAddrOffset;      // just for CCE Kernel, default value is 0xffff for FWK kernel
+    uint32_t kernelNameAddrOffset;  // just for CCE Kernel, default value is 0xffff for FWK kernel
+    bool isNoNeedH2DCopy;           // is no need host to device copy: 0 means need H2D copy,
+                                    // other means doesn't need H2D copy.
     uint8_t reserved[3];
 } RtAicpuArgsExT;
 
 typedef void *rtFuncHandle;
 typedef void *rtLaunchArgsHandle;
 
-typedef struct tagRtTaskCfgInfo {
+typedef struct tagRtTaskCfgInfo
+{
     uint8_t qos;
     uint8_t partId;
-    uint8_t schemMode; // rtschemModeType_t 0:normal;1:batch;2:sync
-    bool d2dCrossFlag; // d2dCrossFlag true:D2D_CROSS flase:D2D_INNER
+    uint8_t schemMode;  // rtschemModeType_t 0:normal;1:batch;2:sync
+    bool d2dCrossFlag;  // d2dCrossFlag true:D2D_CROSS flase:D2D_INNER
     uint32_t blockDimOffset;
-    uint8_t dumpflag; // dumpflag 0:fault 2:RT_KERNEL_DUMPFLAG 4:RT_FUSION_KERNEL_DUMPFLAG
+    uint8_t dumpflag;  // dumpflag 0:fault 2:RT_KERNEL_DUMPFLAG 4:RT_FUSION_KERNEL_DUMPFLAG
 } RtTaskCfgInfoT;
 
 #define MSPROF_ENGINE_MAX_TAG_LEN (63)
 
-struct ReporterData {
+struct ReporterData
+{
     char tag[MSPROF_ENGINE_MAX_TAG_LEN + 1];  // the sub-type of the module, data with different tag will be writen
     int deviceId;                             // the index of device
     size_t dataLen;                           // the length of send data
     unsigned char *data;                      // the data content
 };
 
-struct MsprofStampInfo {
+struct MsprofStampInfo
+{
     uint16_t magicNumber;
     uint16_t dataTag;
     uint32_t processId;
     uint32_t threadId;
-    uint32_t category;      // marker category
+    uint32_t category;  // marker category
     uint32_t eventType;
     int32_t payloadType;
-    union PayloadValue {    // payload info for marker
+    union PayloadValue
+    {  // payload info for marker
         uint64_t ullValue;
         int64_t llValue;
         double dValue;
@@ -251,11 +278,87 @@ struct MsprofStampInfo {
     char message[128];
 };
 
-struct MsprofStampInstance {
+struct MsprofStampInstance
+{
     ReporterData report;
     MsprofStampInfo stampInfo;
     int id;
-    struct MsprofStampInstance* next;
-    struct MsprofStampInstance* prev;
+    struct MsprofStampInstance *next;
+    struct MsprofStampInstance *prev;
 };
+
+// ==== Event Scheduler (esched) definitions used for AICPU channel subscription ====
+// Layouts must stay ABI-compatible with libascend_hal (ascend_hal_define.h / ascend_hal_external.h).
+#define MSPTI_EVENT_MAX_MSG_LEN 128
+#define MSPTI_EVENT_MAX_GRP_NAME_LEN 16
+#define MSPTI_EVENT_USR_START 48
+#define MSPTI_EVENT_MAX_NUM 64
+#define MSPTI_DEVDRV_PROCESS_CP1 0
+#define MSPTI_GRP_TYPE_BIND_CP_CPU 2
+#define MSPTI_QUERY_TYPE_LOCAL_GRP_ID 0
+#define MSPTI_DRV_ERROR_WAIT_TIMEOUT 16
+#define MSPTI_DRV_ERROR_NO_EVENT 73
+
+typedef struct MsptiEventInfoCommon
+{
+    int32_t eventId;
+    uint32_t subeventId;
+    int32_t pid;
+    int32_t hostPid;
+    uint32_t grpId;
+    uint64_t submitTimestamp;
+    uint64_t schedTimestamp;
+} MsptiEventInfoCommonT;
+
+typedef struct MsptiEventInfoPriv
+{
+    uint32_t msgLen;
+    char msg[MSPTI_EVENT_MAX_MSG_LEN];
+} MsptiEventInfoPrivT;
+
+typedef struct MsptiEventInfo
+{
+    MsptiEventInfoCommonT comm;
+    MsptiEventInfoPrivT priv;
+} MsptiEventInfoT;
+
+typedef struct MsptiEschedGrpPara
+{
+    int32_t type;
+    uint32_t threadNum;
+    char grpName[MSPTI_EVENT_MAX_GRP_NAME_LEN];
+    int32_t rsv[3];
+} MsptiEschedGrpParaT;
+
+typedef struct MsptiEschedInputInfo
+{
+    void *inBuff;
+    uint32_t inLen;
+} MsptiEschedInputInfoT;
+
+typedef struct MsptiEschedOutputInfo
+{
+    void *outBuff;
+    uint32_t outLen;
+} MsptiEschedOutputInfoT;
+
+typedef struct MsptiEschedQueryGidInput
+{
+    int32_t pid;
+    char grpName[MSPTI_EVENT_MAX_GRP_NAME_LEN];
+} MsptiEschedQueryGidInputT;
+
+typedef struct MsptiEschedQueryGidOutput
+{
+    uint32_t grpId;
+} MsptiEschedQueryGidOutputT;
+
+typedef struct MsptiHalQueryDevpidInfo
+{
+    int32_t hostPid;
+    uint32_t devId;
+    uint32_t vfId;
+    int32_t procType;
+    char resv[8];
+} MsptiHalQueryDevpidInfoT;
 #endif

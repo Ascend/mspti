@@ -104,10 +104,13 @@ msptiResult ChannelPoolManager::GetAllChannels(uint32_t devId)
         MSPTI_LOGE("ProfDrvGetChannels failed. Channel Num: %d.", channelList.channelNum);
         return MSPTI_ERROR_INNER;
     }
+    // 重新获取当前可采集的channel并整体替换缓存，避免只累加导致通道集合过期
+    std::set<uint32_t> devChannels;
     for (size_t i = 0; i < channelList.channelNum; ++i)
     {
-        channels_[devId].insert(channelList.channel[i].channelId);
+        devChannels.insert(channelList.channel[i].channelId);
     }
+    channels_[devId] = devChannels;
     return MSPTI_SUCCESS;
 }
 

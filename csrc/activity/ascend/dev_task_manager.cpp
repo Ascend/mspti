@@ -55,6 +55,11 @@ DevTaskManager::~DevTaskManager()
         StopAllDevKindProfTask(iter->second);
     }
     task_map_.clear();
+    for (auto iter = aicpu_task_map_.begin(); iter != aicpu_task_map_.end(); iter++)
+    {
+        StopAllDevKindProfTask(iter->second);
+    }
+    aicpu_task_map_.clear();
 }
 
 DevTaskManager::DevTaskManager() { Mspti::Common::ContextManager::GetInstance()->InitHostTimeInfo(); }
@@ -271,6 +276,22 @@ void DevTaskManager::UnRegisterReportCallback()
     }
 }
 
+uint64_t DevTaskManager::GetProfSwitchHi(uint64_t profSwitch) const
+{
+    uint64_t profSwitchHi = 0ULL;
+    // 参考CANN ProfAclMgr::GetProfSwitchHi：MC2(L1 task time) 或 AICPU_HCCL(L0 task time)
+    // 场景需要置高位的aicpu通道开关，否则驱动不会开启aicpu通道
+    if ((profSwitch & PROF_TASK_TIME_L1) != 0)
+    {
+        profSwitchHi |= PROF_HI_AICPU_CHANNEL;
+    }
+    if ((profSwitch & PROF_TASK_TIME) != 0)
+    {
+        profSwitchHi |= PROF_HI_AICPU_CHANNEL;
+    }
+    return profSwitchHi;
+}
+
 msptiResult DevTaskManager::StartCANNProfTask(uint32_t deviceId, const ActivitySwitchType& kinds)
 {
     for (int kindIndex = 0; kindIndex < MSPTI_ACTIVITY_KIND_COUNT; kindIndex++)
@@ -301,18 +322,63 @@ msptiResult DevTaskManager::StartCANNProfTask(uint32_t deviceId, const ActivityS
         return MSPTI_ERROR_INNER;
     }
     command.profSwitch = profSwitch_;
-    command.profSwitchHi = 0;
+    command.profSwitchHi = GetProfSwitchHi(profSwitch_.load());
     command.devNums = 1;
     command.devIdList[0] = deviceId;
     command.modelId = PROF_INVALID_MODE_ID;
     command.type = PROF_COMMANDHANDLE_TYPE_START;
+    // 下发开关中包含PROF_TASK_TIME时，需要打开AICPU/AiCustomCpu驱动通道。
+    // 设备侧(devprof)会按组名(prof_aicpu_grp/prof_cus_grp)查宿主组并投递EVENT_USR_START，
+    // 因此必须先建组+订阅，再下发命令，避免设备侧查不到组返回DRV_ERROR_UNINIT导致事件丢失
+    const bool needAicpu = (profSwitch_.load() & PROF_TASK_TIME) != 0;
+    if (needAicpu)
+    {
+        (void)StartAicpuProfTask(deviceId);
+    }
     auto ret = Mspti::Inject::profSetProfCommand(static_cast<VOID_PTR>(&command), sizeof(CommandHandle));
     if (ret != MSPTI_SUCCESS)
     {
         MSPTI_LOGE("Start Profiling Command failed.");
+        if (needAicpu)
+        {
+            (void)StopAicpuProfTask(deviceId);
+        }
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
+}
+
+msptiResult DevTaskManager::StartAicpuProfTask(uint32_t deviceId)
+{
+    std::lock_guard<std::mutex> lk(task_map_mtx_);
+    if (aicpu_task_map_.find(deviceId) != aicpu_task_map_.end())
+    {
+        MSPTI_LOGW("The device: %u Aicpu DevProfTask is already running.", deviceId);
+        return MSPTI_SUCCESS;
+    }
+    auto profTasks = Mspti::Ascend::DevProfTaskFactory::CreateAicpuTasks(deviceId);
+    decltype(profTasks) successTasks;
+    auto ret = StartAllDevKindProfTask(profTasks, successTasks);
+    aicpu_task_map_.emplace(deviceId, std::move(successTasks));
+    if (ret != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("The device %u start Aicpu DevProfTask failed.", deviceId);
+        return ret;
+    }
+    return MSPTI_SUCCESS;
+}
+
+msptiResult DevTaskManager::StopAicpuProfTask(uint32_t deviceId)
+{
+    std::lock_guard<std::mutex> lk(task_map_mtx_);
+    auto iter = aicpu_task_map_.find(deviceId);
+    if (iter == aicpu_task_map_.end())
+    {
+        return MSPTI_SUCCESS;
+    }
+    auto ret = StopAllDevKindProfTask(iter->second);
+    aicpu_task_map_.erase(iter);
+    return ret;
 }
 
 msptiResult DevTaskManager::StopCANNProfTask(uint32_t deviceId)
@@ -329,7 +395,7 @@ msptiResult DevTaskManager::StopCANNProfTask(uint32_t deviceId)
         return MSPTI_SUCCESS;
     }
     command.profSwitch = profSwitch_;
-    command.profSwitchHi = 0;
+    command.profSwitchHi = GetProfSwitchHi(profSwitch_.load());
     command.devNums = 1;
     command.devIdList[0] = deviceId;
     command.modelId = PROF_INVALID_MODE_ID;
@@ -339,6 +405,11 @@ msptiResult DevTaskManager::StopCANNProfTask(uint32_t deviceId)
     {
         MSPTI_LOGE("Stop Profiling Commond failed.");
         return MSPTI_ERROR_INNER;
+    }
+    // 与StartCANNProfTask对称，关闭PROF_TASK_TIME对应的AICPU/AiCustomCpu驱动通道
+    if ((profSwitch_.load() & PROF_TASK_TIME) != 0)
+    {
+        return StopAicpuProfTask(deviceId);
     }
     return MSPTI_SUCCESS;
 }

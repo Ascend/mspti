@@ -13,14 +13,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #ifndef MSPTI_COMMON_INJECT_DRIVER_INJECT_H
 #define MSPTI_COMMON_INJECT_DRIVER_INJECT_H
 
 #include "csrc/common/inject/inject_base.h"
 #include "csrc/include/mspti_result.h"
 
-typedef enum {
+typedef enum
+{
     DRV_INFO_TYPE_ENV = 0,
     DRV_INFO_TYPE_VERSION,
     DRV_INFO_TYPE_MASTERID,
@@ -57,39 +58,51 @@ typedef enum {
     DRV_INFO_TYPE_CONFIG,
 } DrvInfoType;
 
-typedef enum {
+typedef enum
+{
     DRV_MODULE_TYPE_SYSTEM = 0,
     DRV_MODULE_TYPE_AICPU,
-    DRV_MODULE_TYPE_CCPU,        /**< ccpu_info*/
-    DRV_MODULE_TYPE_DCPU,        /**< dcpu info*/
-    DRV_MODULE_TYPE_AICORE,      /**< AI CORE info*/
-    DRV_MODULE_TYPE_TSCPU,       /**< tscpu info*/
-    DRV_MODULE_TYPE_PCIE,        /**< PCIE info*/
-    DRV_MODULE_TYPE_VECTOR_CORE, /**< VECTOR CORE info*/
-    DRV_MODULE_TYPE_HOST_AICPU,  /* Host Aicpu info */
-    DRV_MODULE_TYPE_QOS,         /**<qos info> */
+    DRV_MODULE_TYPE_CCPU,               /**< ccpu_info*/
+    DRV_MODULE_TYPE_DCPU,               /**< dcpu info*/
+    DRV_MODULE_TYPE_AICORE,             /**< AI CORE info*/
+    DRV_MODULE_TYPE_TSCPU,              /**< tscpu info*/
+    DRV_MODULE_TYPE_PCIE,               /**< PCIE info*/
+    DRV_MODULE_TYPE_VECTOR_CORE,        /**< VECTOR CORE info*/
+    DRV_MODULE_TYPE_HOST_AICPU,         /* Host Aicpu info */
+    DRV_MODULE_TYPE_QOS,                /**<qos info> */
     DRV_MODULE_TYPE_COMPUTING = 0x8000, /* computing power info */
 } DrvModuleType;
 
 #if defined(__cplusplus)
-extern "C" {
+extern "C"
+{
 #endif
 
-// Inner
-int ProfDrvGetChannels(unsigned int deviceId, ChannelListT* channelList);
-DrvError DrvGetDevIDs(uint32_t* devices, uint32_t len);
-DrvError DrvGetDevNum(uint32_t* count);
-int ProfDrvStart(unsigned int deviceId, unsigned int channelId, struct ProfStartPara* startPara);
-int ProfStop(unsigned int deviceId, unsigned int channelId);
-int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char *outBuf,
-    unsigned int bufSize);
-int ProfChannelPoll(struct ProfPollInfo* outBuf, int num, int timeout);
-DrvError HalGetDeviceInfo(uint32_t deviceId, int32_t moduleType, int32_t infoType, int64_t* value);
-DrvError halGetAPIVersion(int32_t* apiVersion);
-int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int *data_len);
+    // Inner
+    int ProfDrvGetChannels(unsigned int deviceId, ChannelListT* channelList);
+    DrvError DrvGetDevIDs(uint32_t* devices, uint32_t len);
+    DrvError DrvGetDevNum(uint32_t* count);
+    int ProfDrvStart(unsigned int deviceId, unsigned int channelId, struct ProfStartPara* startPara);
+    int ProfStop(unsigned int deviceId, unsigned int channelId);
+    int ProfChannelRead(unsigned int deviceId, unsigned int channelId, char* outBuf, unsigned int bufSize);
+    int ProfChannelPoll(struct ProfPollInfo* outBuf, int num, int timeout);
+    DrvError HalGetDeviceInfo(uint32_t deviceId, int32_t moduleType, int32_t infoType, int64_t* value);
+    DrvError halGetAPIVersion(int32_t* apiVersion);
+    int HalProfDataFlush(unsigned int device_id, unsigned int channel_id, unsigned int* data_len);
+
+    // Event scheduler (esched) interfaces, used to subscribe the AICPU channel becoming valid.
+    int HalEschedAttachDevice(unsigned int devId);
+    int HalEschedDettachDevice(unsigned int devId);
+    int HalEschedCreateGrpEx(unsigned int devId, MsptiEschedGrpParaT* grpPara, unsigned int* grpId);
+    int HalEschedSubscribeEvent(unsigned int devId, unsigned int grpId, unsigned int threadId,
+                                unsigned long long eventBitmap);
+    int HalEschedWaitEvent(unsigned int devId, unsigned int grpId, unsigned int threadId, int timeout,
+                           MsptiEventInfoT* event);
+    int HalEschedQueryInfo(unsigned int devId, int type, MsptiEschedInputInfoT* inPut, MsptiEschedOutputInfoT* outPut);
+    int HalQueryDevpid(MsptiHalQueryDevpidInfoT info, int* devPid);
 
 #if defined(__cplusplus)
 }
-#endif // __cplusplus
+#endif  // __cplusplus
 
-#endif // MSPTI_COMMON_INJECT_DRIVER_INJECT_H
+#endif  // MSPTI_COMMON_INJECT_DRIVER_INJECT_H

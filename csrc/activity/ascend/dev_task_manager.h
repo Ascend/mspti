@@ -62,6 +62,12 @@ class DevTaskManager
 
     msptiResult StartCANNProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
     msptiResult StopCANNProfTask(uint32_t deviceId);
+    // 参考CANN ProfAclMgr::GetProfSwitchHi计算高位开关
+    uint64_t GetProfSwitchHi(uint64_t profSwitch) const;
+
+    // AICPU/AiCustomCpu通道由PROF_TASK_TIME开关触发，与activity kind无关
+    msptiResult StartAicpuProfTask(uint32_t deviceId);
+    msptiResult StopAicpuProfTask(uint32_t deviceId);
 
    private:
     std::set<uint32_t> device_set_;
@@ -69,6 +75,7 @@ class DevTaskManager
     static std::map<msptiActivityKind, uint64_t> datatype_config_map_;
 
     std::map<std::pair<uint32_t, msptiActivityKind>, std::vector<std::unique_ptr<DevProfTask>>> task_map_;
+    std::map<uint32_t, std::vector<std::unique_ptr<DevProfTask>>> aicpu_task_map_;
     std::mutex task_map_mtx_;
     std::atomic<uint64_t> profSwitch_{0};
 };

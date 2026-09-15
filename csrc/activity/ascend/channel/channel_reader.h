@@ -53,6 +53,7 @@ class ChannelReader : public Mspti::Common::Task
                                             AI_DRV_CHANNEL channelId);
     static size_t TransTsFwData(char buffer[], size_t valid_size, uint32_t deviceId);
     static size_t TransStarsLog(char buffer[], size_t valid_size, uint32_t deviceId);
+    static size_t TransAicpuData(char buffer[], size_t valid_size, uint32_t deviceId);
     void CheckIfSendFlush(int currLen);
     void SendFlushFinished();
 

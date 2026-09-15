@@ -17,10 +17,15 @@
 
 #include "csrc/activity/ascend/dev_prof_task.h"
 
+#include <pthread.h>
+
+#include <chrono>
+
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/utils.h"
 #include "securec.h"
 
 namespace Mspti
@@ -62,10 +67,24 @@ std::unique_ptr<DevProfTask> DevProfTaskFactory::CreateDevChannelTask(uint32_t d
         case PROF_CHANNEL_STARS_SOC_LOG:
             return std::make_unique<DevProfTaskStars>(deviceId);
             break;
+        case PROF_CHANNEL_AICPU:
+            return std::make_unique<DevProfTaskAicpu>(deviceId);
+            break;
+        case PROF_CHANNEL_CUS_AICPU:
+            return std::make_unique<DevProfTaskAiCustomCpu>(deviceId);
+            break;
         default:
             return std::make_unique<DevProfTaskDefault>(deviceId);
             break;
     }
+}
+
+std::vector<std::unique_ptr<DevProfTask>> DevProfTaskFactory::CreateAicpuTasks(uint32_t deviceId)
+{
+    std::vector<std::unique_ptr<DevProfTask>> profTasks;
+    profTasks.emplace_back(CreateDevChannelTask(deviceId, PROF_CHANNEL_AICPU));
+    profTasks.emplace_back(CreateDevChannelTask(deviceId, PROF_CHANNEL_CUS_AICPU));
+    return profTasks;
 }
 
 std::vector<std::unique_ptr<DevProfTask>> DevProfTaskFactory::CreateTasks(uint32_t deviceId, msptiActivityKind kind)
@@ -84,8 +103,8 @@ std::vector<std::unique_ptr<DevProfTask>> DevProfTaskFactory::CreateTasks(uint32
         MSPTI_LOGW("The kind: %d of device: %u is not support.", kind, deviceId);
         return profTasks;
     }
-    const auto& channelTypes = kindIter->second;
-    for (const auto& channelType : channelTypes)
+    const auto &channelTypes = kindIter->second;
+    for (const auto &channelType : channelTypes)
     {
         auto task = CreateDevChannelTask(deviceId, channelType);
         profTasks.emplace_back(std::move(task));
@@ -348,6 +367,312 @@ bool DevProfTaskStars::CanFlush()
         return false;
     }
     return iter->second > 0;
+}
+
+DevProfTaskAicpuBase::DevProfTaskAicpuBase(uint32_t deviceId, AI_DRV_CHANNEL channelId, const std::string &eventGrpName)
+    : DevProfTask(deviceId, channelId), eventGrpName_(eventGrpName)
+{
+}
+
+DevProfTaskAicpuBase::~DevProfTaskAicpuBase()
+{
+    eventThreadRun_ = false;
+    if (eventThread_.joinable())
+    {
+        eventThread_.join();
+    }
+    if (attachedDevice_.load())
+    {
+        try
+        {
+            (void)HalEschedDettachDevice(deviceId_);
+        }
+        catch (...)
+        {
+            MSPTI_LOGW("Dettach device %u failed.", deviceId_);
+        }
+        attachedDevice_ = false;
+    }
+    StopChannel();
+}
+
+msptiResult DevProfTaskAicpuBase::StartTask()
+{
+    if (Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->CheckChannelValid(deviceId_, channelId_))
+    {
+        return StartChannel();
+    }
+    // 通道尚未生效：订阅设备事件，等事件触发/通道生效后再开启通道
+    MSPTI_LOGI("Aicpu channel %u is invalid, wait for event to start it, device: %u.", channelId_, deviceId_);
+    eventThreadRun_ = true;
+    eventThread_ = std::thread(&DevProfTaskAicpuBase::EventThreadRun, this);
+    return MSPTI_SUCCESS;
+}
+
+msptiResult DevProfTaskAicpuBase::StopTask()
+{
+    eventThreadRun_ = false;
+    if (eventThread_.joinable())
+    {
+        eventThread_.join();
+    }
+    if (attachedDevice_.load())
+    {
+        try
+        {
+            (void)HalEschedDettachDevice(deviceId_);
+        }
+        catch (...)
+        {
+            MSPTI_LOGW("Dettach device %u failed.", deviceId_);
+        }
+        attachedDevice_ = false;
+    }
+    StopChannel();
+    return MSPTI_SUCCESS;
+}
+
+bool DevProfTaskAicpuBase::CanFlush() { return channelStarted_.load(); }
+
+msptiResult DevProfTaskAicpuBase::StartChannel()
+{
+    std::lock_guard<std::mutex> lk(channelMtx_);
+    if (channelStarted_.load())
+    {
+        return MSPTI_SUCCESS;
+    }
+    if (!Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->CheckChannelValid(deviceId_, channelId_))
+    {
+        return MSPTI_SUCCESS;
+    }
+    // AICPU通道为peripheral类型，当前不下发userData配置
+    static const uint32_t AICPU_SAMPLE_PERIOD = 10;
+    ProfStartParaT profStartPara;
+    if (memset_s(&profStartPara, sizeof(profStartPara), 0, sizeof(profStartPara)) != EOK)
+    {
+        return MSPTI_ERROR_INNER;
+    }
+    auto addReaderRet = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->AddReader(deviceId_, channelId_);
+    if (addReaderRet != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("Failed to add reader for device: %u, channel id: %u, ret: %d.", deviceId_, channelId_,
+                   static_cast<int32_t>(addReaderRet));
+        return MSPTI_ERROR_INNER;
+    }
+    readerAdded_ = true;
+    profStartPara.channelType = PROF_CHANNEL_TYPE_PERIPHERAL;
+    profStartPara.samplePeriod = AICPU_SAMPLE_PERIOD;
+    profStartPara.realTime = PROFILE_REAL_TIME;
+    profStartPara.userData = nullptr;
+    profStartPara.userDataSize = 0;
+    int ret = ProfDrvStart(deviceId_, channelId_, &profStartPara);
+    if (ret != 0)
+    {
+        MSPTI_LOGE("Failed to start Aicpu job for device: %u, channel id: %u", deviceId_, channelId_);
+        // 启动失败：回滚本次已创建的Reader，避免其残留在ChannelPool中
+        (void)Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->RemoveReader(deviceId_, channelId_);
+        readerAdded_ = false;
+        return MSPTI_ERROR_INNER;
+    }
+    channelStarted_ = true;
+    MSPTI_EVENT("Succeed to start Aicpu job for device: %u, channel id: %u", deviceId_, channelId_);
+    return MSPTI_SUCCESS;
+}
+
+void DevProfTaskAicpuBase::StopChannel()
+{
+    std::lock_guard<std::mutex> lk(channelMtx_);
+    if (!channelStarted_.load() && !readerAdded_)
+    {
+        return;
+    }
+    if (channelStarted_.load())
+    {
+        int ret = ProfStop(deviceId_, channelId_);
+        if (ret != 0)
+        {
+            MSPTI_LOGE("Failed to stop Aicpu job for device: %u, channel id: %u", deviceId_, channelId_);
+        }
+    }
+    if (readerAdded_)
+    {
+        (void)Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->RemoveReader(deviceId_, channelId_);
+        readerAdded_ = false;
+    }
+    channelStarted_ = false;
+    MSPTI_EVENT("Succeed to stop Aicpu job for device: %u, channel id: %u", deviceId_, channelId_);
+}
+
+void DevProfTaskAicpuBase::EventThreadRun()
+{
+    pthread_setname_np(pthread_self(), "MsptiAicpuEvent");
+    try
+    {
+        if (QueryDevPid() != MSPTI_SUCCESS)
+        {
+            MSPTI_LOGW("Unable to query device pid, device: %u, channel: %u.", deviceId_, channelId_);
+            return;
+        }
+        if (HalEschedAttachDevice(deviceId_) != 0)
+        {
+            MSPTI_LOGE("Call halEschedAttachDevice failed, device: %u.", deviceId_);
+            return;
+        }
+        attachedDevice_ = true;
+
+        uint32_t grpId = 0;
+        if (QueryGroupId(grpId) != MSPTI_SUCCESS)
+        {
+            MsptiEschedGrpParaT grpPara;
+            if (memset_s(&grpPara, sizeof(grpPara), 0, sizeof(grpPara)) != EOK)
+            {
+                return;
+            }
+            grpPara.type = MSPTI_GRP_TYPE_BIND_CP_CPU;
+            grpPara.threadNum = 1;
+            if (strcpy_s(grpPara.grpName, sizeof(grpPara.grpName), eventGrpName_.c_str()) != EOK)
+            {
+                MSPTI_LOGE("Copy grp name: %s failed.", eventGrpName_.c_str());
+                return;
+            }
+            if (HalEschedCreateGrpEx(deviceId_, &grpPara, &grpId) != 0)
+            {
+                MSPTI_LOGE("Call halEschedCreateGrpEx failed, device: %u.", deviceId_);
+                (void)HalEschedDettachDevice(deviceId_);
+                attachedDevice_ = false;
+                return;
+            }
+            uint64_t eventBitmap = 1ULL << static_cast<uint64_t>(MSPTI_EVENT_USR_START);
+            if (HalEschedSubscribeEvent(deviceId_, grpId, 0, eventBitmap) != 0)
+            {
+                MSPTI_LOGE("Call halEschedSubscribeEvent failed, device: %u.", deviceId_);
+                (void)HalEschedDettachDevice(deviceId_);
+                attachedDevice_ = false;
+                return;
+            }
+        }
+        WaitEvent(grpId);
+    }
+    catch (const std::exception &e)
+    {
+        MSPTI_LOGE("Aicpu event thread exception: %s, device: %u, channel: %u.", e.what(), deviceId_, channelId_);
+    }
+    catch (...)
+    {
+        MSPTI_LOGE("Aicpu event thread unknown exception, device: %u, channel: %u.", deviceId_, channelId_);
+    }
+}
+
+void DevProfTaskAicpuBase::WaitEvent(uint32_t grpId)
+{
+    constexpr int32_t DRV_EVENT_TIMEOUT = 100;
+    MsptiEventInfoT event;
+    if (memset_s(&event, sizeof(event), 0, sizeof(event)) != EOK)
+    {
+        return;
+    }
+    event.comm.eventId = MSPTI_EVENT_MAX_NUM;
+    bool onceFlag = true;
+    int32_t timeout = 1;  // first timeout needs to check whether the channel is valid
+    while (eventThreadRun_.load())
+    {
+        int err = HalEschedWaitEvent(deviceId_, grpId, 0, timeout, &event);
+        timeout = DRV_EVENT_TIMEOUT;
+        if (err == 0)
+        {
+            if (event.comm.eventId != MSPTI_EVENT_USR_START)
+            {
+                MSPTI_LOGE("Receive unexpected event, device: %u, channel: %u, eventId: %d.", deviceId_, channelId_,
+                           event.comm.eventId);
+                return;
+            }
+            if (!TryStartChannelWhenValid())
+            {
+                MSPTI_LOGE("Failed to start Aicpu channel, device: %u, channel: %u.", deviceId_, channelId_);
+            }
+            return;
+        }
+        if (err == MSPTI_DRV_ERROR_WAIT_TIMEOUT || err == MSPTI_DRV_ERROR_NO_EVENT)
+        {
+            // 仅首次超时时重查一次通道是否已生效，之后依赖事件
+            if (!onceFlag)
+            {
+                continue;
+            }
+            onceFlag = false;
+            if (TryStartChannelWhenValid())
+            {
+                return;
+            }
+            continue;
+        }
+        MSPTI_LOGW("Wait event failed, device: %u, channel: %u, ret: %d.", deviceId_, channelId_, err);
+        return;
+    }
+}
+
+bool DevProfTaskAicpuBase::TryStartChannelWhenValid()
+{
+    if (Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->GetAllChannels(deviceId_) == MSPTI_SUCCESS &&
+        Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->CheckChannelValid(deviceId_, channelId_))
+    {
+        MSPTI_LOGI("Channel is valid, device: %u, channel: %u.", deviceId_, channelId_);
+        return StartChannel() == MSPTI_SUCCESS;
+    }
+    return false;
+}
+
+msptiResult DevProfTaskAicpuBase::QueryGroupId(uint32_t &grpId)
+{
+    MsptiEschedQueryGidOutputT gidOut;
+    if (memset_s(&gidOut, sizeof(gidOut), 0, sizeof(gidOut)) != EOK)
+    {
+        return MSPTI_ERROR_INNER;
+    }
+    MsptiEschedQueryGidInputT gidIn;
+    if (memset_s(&gidIn, sizeof(gidIn), 0, sizeof(gidIn)) != EOK)
+    {
+        return MSPTI_ERROR_INNER;
+    }
+    MsptiEschedOutputInfoT outPut = {&gidOut, sizeof(MsptiEschedQueryGidOutputT)};
+    MsptiEschedInputInfoT inPut = {&gidIn, sizeof(MsptiEschedQueryGidInputT)};
+    gidIn.pid = static_cast<int32_t>(Common::Utils::GetPid());
+    if (strcpy_s(gidIn.grpName, sizeof(gidIn.grpName), eventGrpName_.c_str()) != EOK)
+    {
+        MSPTI_LOGE("Copy grp name: %s failed.", eventGrpName_.c_str());
+        return MSPTI_ERROR_INNER;
+    }
+    if (HalEschedQueryInfo(deviceId_, MSPTI_QUERY_TYPE_LOCAL_GRP_ID, &inPut, &outPut) == 0)
+    {
+        grpId = gidOut.grpId;
+        return MSPTI_SUCCESS;
+    }
+    return MSPTI_ERROR_INNER;
+}
+
+msptiResult DevProfTaskAicpuBase::QueryDevPid()
+{
+    constexpr uint32_t waitTimeMs = 20;
+    constexpr int32_t waitCount = 80;
+    int32_t devPid = 0;
+    MsptiHalQueryDevpidInfoT info;
+    if (memset_s(&info, sizeof(info), 0, sizeof(info)) != EOK)
+    {
+        return MSPTI_ERROR_INNER;
+    }
+    info.hostPid = static_cast<int32_t>(Common::Utils::GetPid());
+    info.devId = deviceId_;
+    info.procType = MSPTI_DEVDRV_PROCESS_CP1;
+    for (int32_t i = 0; i < waitCount && eventThreadRun_.load(); ++i)
+    {
+        if (HalQueryDevpid(info, &devPid) == 0)
+        {
+            MSPTI_LOGI("Query devPid succ, device: %u, devPid: %d.", deviceId_, devPid);
+            return MSPTI_SUCCESS;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(waitTimeMs));
+    }
+    return MSPTI_ERROR_INNER;
 }
 }  // namespace Ascend
 }  // namespace Mspti

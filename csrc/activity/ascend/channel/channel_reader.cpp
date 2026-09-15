@@ -176,6 +176,9 @@ size_t ChannelReader::TransDataToActivityBuffer(char buffer[], size_t valid_size
             return TransTsFwData(buffer, valid_size, deviceId);
         case PROF_CHANNEL_STARS_SOC_LOG:
             return TransStarsLog(buffer, valid_size, deviceId);
+        case PROF_CHANNEL_AICPU:
+        case PROF_CHANNEL_CUS_AICPU:
+            return TransAicpuData(buffer, valid_size, deviceId);
         default:
             return 0;
     }
@@ -224,6 +227,15 @@ size_t ChannelReader::TransStarsLog(char buffer[], size_t valid_size, uint32_t d
         }
     }
     return pos;
+}
+
+size_t ChannelReader::TransAicpuData(char buffer[], size_t valid_size, uint32_t deviceId)
+{
+    // AICPU / AiCustomCpu 数据当前不被 mspti 消费，读到后直接丢弃：
+    // 返回 valid_size 表示本段数据全部消费，使 curPos_ 归零，避免缓冲区持续增长。
+    (void)buffer;
+    (void)deviceId;
+    return valid_size;
 }
 }  // namespace Channel
 }  // namespace Ascend
