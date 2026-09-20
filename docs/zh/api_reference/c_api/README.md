@@ -96,7 +96,7 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 |[msptiSubscriberHandle](./context/msptiSubscriberHandle.md)|订阅者的句柄。|
 |[msptiDomainTable](./context/msptiDomainTable.md)|指向回调域数组的指针。|
 |**Enumeration类型**|**Enumeration说明**|
-|[msptiCallbackDomain](./context/msptiCallbackDomain.md)|相关API函数或CANN驱动程序活动的回调点。|
+|[msptiCallbackDomain](./context/msptiCallbackDomain.md)|相关API函数的回调点。|
 |[msptiApiCallbackSite](./context/msptiApiCallbackSite.md)|指定API调用中发出回调的点，如回调的开始和回调的结束。|
 |[msptiCallbackIdRuntime](./context/msptiCallbackIdRuntime.md)|Runtime API函数的索引定义。|
 |[msptiCallbackIdHccl](./context/msptiCallbackIdHccl.md)|通信API函数的索引的简要定义。|

@@ -373,7 +373,7 @@ def consumer():
             kernel_times.append(duration)
         else:
             comm_times.append(duration)
-    # 计算计算/通信比例
+    # 计算/通信比例
     total_kernel = sum(kernel_times)
     total_comm = sum(comm_times)
     ratio = total_comm / total_kernel if total_kernel > 0 else 0

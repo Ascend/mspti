@@ -38,11 +38,11 @@ msPTI 主要提供以下能力：
 
 ## 🚀 快速入门
 
-快速入门介绍msPTI工具的使用流程，具体请参见《[msPTI快速入门](./docs/zh/quick_start/mspti_quick_start.md)》。
+快速入门提供基础可运行样例，在安装CANN之后一键执行，具体请参见《[msPTI快速入门](./docs/zh/quick_start/mspti_quick_start.md)》。
 
 ## 📦 安装指南
 
-介绍工具的环境依赖与安装方法，请参见 《[msPTI 工具安装指南](./docs/zh/install_guide/mspti_install_guide.md)》。
+介绍工具的环境依赖与安装方法法，支持在线安装、离线安装、源码编译三种方式，请参见 《[msPTI 工具安装指南](./docs/zh/install_guide/mspti_install_guide.md)》。
 
 ## 📘 使用指南
 
