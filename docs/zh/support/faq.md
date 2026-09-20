@@ -16,22 +16,22 @@ msPTI 提供两大核心能力：
 ### Q3: msPTI 支持哪些产品型号？
 
 <!-- npu="950" id1 -->
-- Ascend 950PR&950DT 系列产品：支持
+- Ascend 950PR&950DT系列产品：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- Atlas A3 系列产品：支持
+- Atlas A3系列产品：支持
 <!-- end id2 -->
 <!-- npu="910b" id3 -->
-- Atlas A2 系列产品：支持
+- Atlas A2系列产品：支持
 <!-- end id3 -->
 <!-- npu="310b" id4 -->
-- Atlas 200I/500 A2 推理产品：支持
+- Atlas 200I/500 A2推理产品：支持
 <!-- end id4 -->
 <!-- npu="310p" id5 -->
-- Atlas 推理系列产品：不支持
+- Atlas推理系列产品：不支持
 <!-- end id5 -->
 <!-- npu="910" id6 -->
-- Atlas 训练系列产品：不支持
+- Atlas训练系列产品：不支持
 <!-- end id6 -->
 
 ### Q4: msPTI 是否支持 Windows 环境？
@@ -69,7 +69,7 @@ pip show mspti
 执行以下步骤：
 
 ```bash
-curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.1.0/ms_install.py
+curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.2.0/ms_install.py
 python ms_install.py uninstall {tools_name}
 ```
 
@@ -148,7 +148,7 @@ msPTI 提供两类 API：
 
 ### Q16: Python 样例需要额外安装什么？
 
-Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/building_from_source.md)》。
+Python 样例（`python_monitor`、`python_mstx_monitor`）额外依赖 PyTorch 框架和 TorchNPU 插件。请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/zh/installation_guide/building_from_source.md)》。
 
 ### Q17: 什么是 Activity Buffer？如何管理？
 
