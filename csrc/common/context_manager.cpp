@@ -269,9 +269,14 @@ inline uint64_t ContextManager::GetCurrentHostRealTimeNs()
 
 PlatformType ContextManager::GetChipType(uint32_t deviceId)
 {
-    std::call_once(deviceInfoCache_[deviceId].flag,
-                   [&] { deviceInfoCache_[deviceId].platformType = GetChipTypeImpl(deviceId); });
-    return deviceInfoCache_[deviceId].platformType;
+    if (deviceId >= deviceInfoCache_.size())
+    {
+        return PlatformType::END_TYPE;
+    }
+    auto &contextInfo = deviceInfoCache_[deviceId];
+    std::call_once(contextInfo.flag,
+                   [&contextInfo, deviceId] { contextInfo.platformType = GetChipTypeImpl(deviceId); });
+    return contextInfo.platformType;
 }
 
 uint64_t ContextManager::GetCorrelationId(uint32_t threadId)

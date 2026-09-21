@@ -45,6 +45,11 @@ constexpr uint32_t ActivityManager::FLUSH_RETRY_MAX_COUNT;
 constexpr uint32_t ActivityManager::FLUSH_RETRY_WAIT_MS;
 namespace
 {
+inline bool IsValidActivityKind(msptiActivityKind kind)
+{
+    return kind > MSPTI_ACTIVITY_KIND_INVALID && kind < MSPTI_ACTIVITY_KIND_COUNT;
+}
+
 msptiResult IsNeedLdPreload(msptiActivityKind kind)
 {
     // Some activity kinds depend on LD_PRELOAD hooking (libmspti.so). If those
@@ -133,7 +138,7 @@ inline bool GetActivityStructSize(msptiActivityKind kind, size_t *size)
     {
         return false;
     }
-    if (kind <= MSPTI_ACTIVITY_KIND_INVALID || MSPTI_ACTIVITY_KIND_COUNT <= kind)
+    if (!IsValidActivityKind(kind))
     {
         return false;
     }
@@ -460,11 +465,14 @@ msptiResult ActivityManager::UnRegister(msptiActivityKind kind)
     return MSPTI_SUCCESS;
 }
 
-bool ActivityManager::IsActivityKindEnable(msptiActivityKind kind) { return activity_switch_[kind]; }
+bool ActivityManager::IsActivityKindEnable(msptiActivityKind kind)
+{
+    return IsValidActivityKind(kind) && activity_switch_[kind];
+}
 
 bool ActivityManager::IsHostReportAllowed(msptiActivityKind kind)
 {
-    return activity_switch_[kind] && !unregistering_[kind];
+    return IsValidActivityKind(kind) && activity_switch_[kind] && !unregistering_[kind];
 }
 
 msptiResult ActivityManager::GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize,

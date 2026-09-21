@@ -297,6 +297,22 @@ TEST_F(ActivityUtest, MsptiActivityIsEnabledWillReturnFalseWhenDisableMarkerKind
     EXPECT_EQ(false, msptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER));
 }
 
+TEST_F(ActivityUtest, ActivityKindQueriesWillReturnFalseWhenKindIsOutOfRange)
+{
+    auto instance = Mspti::Activity::ActivityManager::GetInstance();
+    const msptiActivityKind invalidKinds[] = {
+        static_cast<msptiActivityKind>(-1),  MSPTI_ACTIVITY_KIND_INVALID,   MSPTI_ACTIVITY_KIND_COUNT,
+        static_cast<msptiActivityKind>(100), MSPTI_ACTIVITY_KIND_FORCE_INT,
+    };
+
+    for (auto kind : invalidKinds)
+    {
+        EXPECT_FALSE(instance->IsActivityKindEnable(kind));
+        EXPECT_FALSE(instance->IsHostReportAllowed(kind));
+        EXPECT_FALSE(msptiActivityIsEnabled(kind));
+    }
+}
+
 TEST_F(ActivityUtest, ShouldRetSuccessWhenSetPeriodFlushTime)
 {
     MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
