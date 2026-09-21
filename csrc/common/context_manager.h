@@ -18,6 +18,7 @@
 #ifndef MSPTI_COMMON_CONTEXT_MANAGER_H
 #define MSPTI_COMMON_CONTEXT_MANAGER_H
 
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <memory>
@@ -125,7 +126,8 @@ class ContextManager final
     std::condition_variable cv_;
 
     ConcurrentMap<uint32_t, uint64_t> threadCorrelationIdInfo_;
-    std::unordered_map<uint32_t, ContextInfo> deviceInfoCache_;
+    static constexpr size_t DEVICE_INFO_CACHE_SIZE = 32;
+    std::array<ContextInfo, DEVICE_INFO_CACHE_SIZE> deviceInfoCache_;
 
     std::atomic<msptiTimestampCallbackFunc> timestampCallback_{nullptr};
 };

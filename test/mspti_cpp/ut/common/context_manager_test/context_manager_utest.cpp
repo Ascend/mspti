@@ -15,6 +15,10 @@
  * -------------------------------------------------------------------------
  */
 
+#include <atomic>
+#include <thread>
+#include <vector>
+
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/utils.h"
@@ -103,6 +107,50 @@ TEST_F(ContextManagerUtest, GetChipType)
 
     EXPECT_TRUE(chipType == PlatformType::CHIP_910B || chipType == PlatformType::CHIP_310B ||
                 chipType == PlatformType::CHIP_V6 || chipType == PlatformType::END_TYPE);
+}
+
+TEST_F(ContextManagerUtest, GetChipTypeSupportsConcurrentInitializationForDifferentDevices)
+{
+    constexpr uint32_t threadCount = 32;
+    std::atomic<uint32_t> readyCount{0};
+    std::atomic<bool> start{false};
+    std::vector<PlatformType> chipTypes(threadCount, PlatformType::END_TYPE);
+    std::vector<std::thread> workers;
+    workers.reserve(threadCount);
+
+    for (uint32_t i = 0; i < threadCount; ++i)
+    {
+        workers.emplace_back(
+            [&, i]
+            {
+                readyCount.fetch_add(1, std::memory_order_relaxed);
+                while (!start.load(std::memory_order_acquire))
+                {
+                    std::this_thread::yield();
+                }
+                chipTypes[i] = contextManager->GetChipType(i);
+            });
+    }
+    while (readyCount.load(std::memory_order_acquire) != threadCount)
+    {
+        std::this_thread::yield();
+    }
+    start.store(true, std::memory_order_release);
+    for (auto& worker : workers)
+    {
+        worker.join();
+    }
+
+    for (auto chipType : chipTypes)
+    {
+        EXPECT_EQ(PlatformType::CHIP_910B, chipType);
+    }
+}
+
+TEST_F(ContextManagerUtest, GetChipTypeReturnsEndTypeWhenDeviceIdIsOutOfRange)
+{
+    EXPECT_EQ(PlatformType::END_TYPE, contextManager->GetChipType(32));
+    EXPECT_EQ(PlatformType::END_TYPE, contextManager->GetChipType(UINT32_MAX));
 }
 
 TEST_F(ContextManagerUtest, GetCorrelationId)
