@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -19,8 +19,9 @@ import os
 import logging
 import sqlite3
 
-logging.basicConfig(level=logging.INFO,
-                    format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s'
+)
 
 
 class EmptyClass:
@@ -59,6 +60,7 @@ class DBManager:
     """
     class to manage DB operation
     """
+
     FETCH_SIZE = 10000
     INSERT_SIZE = 10000
     TENNSTONS = 10
@@ -140,8 +142,10 @@ class DBManager:
                 res = curs.fetchmany(cls.FETCH_SIZE)
                 data += res
                 if len(data) > cls.MAX_ROW_COUNT:
-                    logging.error("Please check the record counts in %s's table",
-                                  os.path.basename(curs.execute("PRAGMA database_list;").fetchone()[-1]))
+                    logging.error(
+                        "Please check the record counts in %s's table",
+                        os.path.basename(curs.execute("PRAGMA database_list;").fetchone()[-1]),
+                    )
 
                 if len(res) < cls.FETCH_SIZE:
                     break
@@ -161,8 +165,9 @@ class DBManager:
         if not (conn and curs):
             return False
 
-        sql = "select * from {table_name} where {col}='{item}' limit 1".format(table_name=table_name,
-                                                                               col=col, item=item)
+        sql = "select * from {table_name} where {col}='{item}' limit 1".format(
+            table_name=table_name, col=col, item=item
+        )
         try:
             data = DBManager.fetch_all_data(curs, sql)
         except sqlite3.Error as _err:
@@ -241,8 +246,10 @@ class DBManager:
                     actual_content = [row[0] for row in data]
                     missing_content = [content for content in required_content if content not in actual_content]
                     if missing_content:
-                        raise ValueError(f"Field '{field_name}' in table '{table_name}' in database '{db_path}' "
-                                         f"is missing required content: {missing_content}")
+                        raise ValueError(
+                            f"Field '{field_name}' in table '{table_name}' in database '{db_path}' "
+                            f"is missing required content: {missing_content}"
+                        )
         except sqlite3.Error as _err:
             raise RuntimeError(f"Failed to fetch data, ERROR: {_err}")
         finally:
@@ -290,8 +297,10 @@ class DBManager:
                     if not comparison_func(value):
                         invalid_values.append(value)
             if invalid_values:
-                raise ValueError(f"Fields '{', '.join(field_names)}' in table '{table_name}' in database '{db_path}' "
-                                 f"contain values that do not meet the condition: {invalid_values}")
+                raise ValueError(
+                    f"Fields '{', '.join(field_names)}' in table '{table_name}' in database '{db_path}' "
+                    f"contain values that do not meet the condition: {invalid_values}"
+                )
         except sqlite3.Error as _err:
             raise RuntimeError(f"Failed to fetch data, ERROR: {_err}")
         finally:

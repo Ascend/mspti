@@ -1,46 +1,49 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "mspti_adapter.h"
+
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/utils.h"
 
-namespace {
+namespace
+{
 // python data keyword
-const char *KIND            = "kind";
-const char *START           = "start";
-const char *END             = "end";
-const char *DEVICE_ID       = "deviceId";
-const char *STREAM_ID       = "streamId";
-const char *CORRELATION_ID  = "correlationId";
-const char *TYPE            = "type";
-const char *NAME            = "name";
-const char *FLAG            = "flag";
-const char *SOURCE_KIND     = "sourceKind";
-const char *TIMESTAMP       = "timestamp";
-const char *ID              = "id";
-const char *PROCESS_ID      = "processId";
-const char *THREAD_ID       = "threadId";
-const char *DOMAIN_NAME     = "domain";
-const char *BANDWIDTH       = "bandWidth";
-const char *COMMNAME        = "commName";
-const char *DATA_TYPE       = "dataType";
-const char *COUNT           = "count";
-const char *ALG_TYPE        = "algType";
+const char *KIND = "kind";
+const char *START = "start";
+const char *END = "end";
+const char *DEVICE_ID = "deviceId";
+const char *STREAM_ID = "streamId";
+const char *CORRELATION_ID = "correlationId";
+const char *TYPE = "type";
+const char *NAME = "name";
+const char *FLAG = "flag";
+const char *SOURCE_KIND = "sourceKind";
+const char *TIMESTAMP = "timestamp";
+const char *ID = "id";
+const char *PROCESS_ID = "processId";
+const char *THREAD_ID = "threadId";
+const char *DOMAIN_NAME = "domain";
+const char *BANDWIDTH = "bandWidth";
+const char *COMMNAME = "commName";
+const char *DATA_TYPE = "dataType";
+const char *COUNT = "count";
+const char *ALG_TYPE = "algType";
 
 // default value
 const int64_t INVALID_PROCESSID = -1L;
@@ -50,33 +53,34 @@ const int64_t INVALID_STERAMID = -1L;
 
 void CallKernelCallback(PyObject *kernelCallback, const msptiActivityKernel *kernel)
 {
-    if (kernelCallback == nullptr) {
+    if (kernelCallback == nullptr)
+    {
         MSPTI_LOGW("Kernel callback is nullptr");
         return;
     }
-    if (kernel == nullptr) {
+    if (kernel == nullptr)
+    {
         MSPTI_LOGE("Kernel data is nullptr");
         return;
     }
-    PyObject *kernelData = Py_BuildValue("{sIsKsKsIsIsKssss}",
-        KIND, static_cast<uint32_t>(kernel->kind),
-        START, kernel->start,
-        END, kernel->end,
-        DEVICE_ID, kernel->ds.deviceId,
-        STREAM_ID, kernel->ds.streamId,
-        CORRELATION_ID, kernel->correlationId,
-        TYPE, kernel->type,
-        NAME, kernel->name);
-    if (kernelData == nullptr) {
+    PyObject *kernelData =
+        Py_BuildValue("{sIsKsKsIsIsKssss}", KIND, static_cast<uint32_t>(kernel->kind), START, kernel->start, END,
+                      kernel->end, DEVICE_ID, kernel->ds.deviceId, STREAM_ID, kernel->ds.streamId, CORRELATION_ID,
+                      kernel->correlationId, TYPE, kernel->type, NAME, kernel->name);
+    if (kernelData == nullptr)
+    {
         MSPTI_LOGE("Build python kernel data failed");
         return;
     }
     /* make sure callback doesn't go away */
     Py_INCREF(kernelCallback);
     auto ret = PyObject_CallFunction(kernelCallback, "O", kernelData);
-    if (ret == nullptr) {
+    if (ret == nullptr)
+    {
         MSPTI_LOGE("Call kernel callback failed");
-    } else {
+    }
+    else
+    {
         Py_DECREF(ret);
     }
     Py_DECREF(kernelCallback);
@@ -85,150 +89,159 @@ void CallKernelCallback(PyObject *kernelCallback, const msptiActivityKernel *ker
 
 void CallMstxCallback(PyObject *mstxCallback, const msptiActivityMarker *marker)
 {
-    if (mstxCallback == nullptr) {
+    if (mstxCallback == nullptr)
+    {
         MSPTI_LOGW("Mstx callback is nullptr");
         return;
     }
-    if (marker == nullptr) {
+    if (marker == nullptr)
+    {
         MSPTI_LOGE("Marker data is nullptr");
         return;
     }
     auto sourceKind = marker->sourceKind;
-    PyObject *markerData = Py_BuildValue("{sIsIsIsKsKsLsLsLsLssss}",
-        KIND, static_cast<uint32_t>(marker->kind),
-        FLAG, static_cast<uint32_t>(marker->flag),
-        SOURCE_KIND, static_cast<uint32_t>(marker->sourceKind),
-        TIMESTAMP, marker->timestamp,
-        ID, marker->id,
-        PROCESS_ID, sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_HOST ? marker->objectId.pt.processId : INVALID_PROCESSID,
-        THREAD_ID, sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_HOST ? marker->objectId.pt.threadId : INVALID_THREADID,
-        DEVICE_ID, sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_DEVICE ? marker->objectId.ds.deviceId : INVALID_DEVICEID,
-        STREAM_ID, sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_DEVICE ? marker->objectId.ds.streamId : INVALID_STERAMID,
-        NAME, marker->name,
-        DOMAIN_NAME, marker->domain);
+    PyObject *markerData = Py_BuildValue(
+        "{sIsIsIsKsKsLsLsLsLssss}", KIND, static_cast<uint32_t>(marker->kind), FLAG,
+        static_cast<uint32_t>(marker->flag), SOURCE_KIND, static_cast<uint32_t>(marker->sourceKind), TIMESTAMP,
+        marker->timestamp, ID, marker->id, PROCESS_ID,
+        sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_HOST ? marker->objectId.pt.processId : INVALID_PROCESSID, THREAD_ID,
+        sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_HOST ? marker->objectId.pt.threadId : INVALID_THREADID, DEVICE_ID,
+        sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_DEVICE ? marker->objectId.ds.deviceId : INVALID_DEVICEID, STREAM_ID,
+        sourceKind == MSPTI_ACTIVITY_SOURCE_KIND_DEVICE ? marker->objectId.ds.streamId : INVALID_STERAMID, NAME,
+        marker->name, DOMAIN_NAME, marker->domain);
 
-    if (markerData == nullptr) {
+    if (markerData == nullptr)
+    {
         MSPTI_LOGE("Build python marker data failed");
         return;
     }
     /* make sure callback doesn't go away */
     Py_INCREF(mstxCallback);
     auto ret = PyObject_CallFunction(mstxCallback, "O", markerData);
-    if (ret == nullptr) {
+    if (ret == nullptr)
+    {
         MSPTI_LOGE("Call mstx callback failed");
-    } else {
+    }
+    else
+    {
         Py_DECREF(ret);
     }
     Py_DECREF(mstxCallback);
     Py_XDECREF(markerData);
 }
 
-void CallHcclCallback(PyObject *hcclCallback, const msptiActivityHccl* hccl)
+void CallHcclCallback(PyObject *hcclCallback, const msptiActivityHccl *hccl)
 {
-    if (hcclCallback == nullptr) {
+    if (hcclCallback == nullptr)
+    {
         MSPTI_LOGW("Hccl callback is nullptr");
         return;
     }
-    if (hccl == nullptr) {
+    if (hccl == nullptr)
+    {
         MSPTI_LOGE("Hccl data is nullptr");
         return;
     }
-    PyObject *hcclData = Py_BuildValue("{sIsKsKsIsIsdssss}",
-        KIND, static_cast<uint32_t>(hccl->kind),
-        START, hccl->start,
-        END, hccl->end,
-        DEVICE_ID, hccl->ds.deviceId,
-        STREAM_ID, hccl->ds.streamId,
-        BANDWIDTH, hccl->bandWidth,
-        NAME, hccl->name,
-        COMMNAME, hccl->commName);
-    if (hcclData == nullptr) {
+    PyObject *hcclData =
+        Py_BuildValue("{sIsKsKsIsIsdssss}", KIND, static_cast<uint32_t>(hccl->kind), START, hccl->start, END, hccl->end,
+                      DEVICE_ID, hccl->ds.deviceId, STREAM_ID, hccl->ds.streamId, BANDWIDTH, hccl->bandWidth, NAME,
+                      hccl->name, COMMNAME, hccl->commName);
+    if (hcclData == nullptr)
+    {
         MSPTI_LOGE("Build python hccl data failed");
         return;
     }
     /* make sure callback doesn't go away */
     Py_INCREF(hcclCallback);
     auto ret = PyObject_CallFunction(hcclCallback, "O", hcclData);
-    if (ret == nullptr) {
+    if (ret == nullptr)
+    {
         MSPTI_LOGE("Call hccl callback failed");
-    } else {
+    }
+    else
+    {
         Py_DECREF(ret);
     }
     Py_DECREF(hcclCallback);
     Py_XDECREF(hcclData);
 }
 
-void CallCommunicationCallback(PyObject *communicationCallback, const msptiActivityCommunication* communication)
+void CallCommunicationCallback(PyObject *communicationCallback, const msptiActivityCommunication *communication)
 {
-    if (communicationCallback == nullptr) {
+    if (communicationCallback == nullptr)
+    {
         MSPTI_LOGW("Communication callback is nullptr");
         return;
     }
-    if (communication == nullptr) {
+    if (communication == nullptr)
+    {
         MSPTI_LOGE("Communication data is nullptr");
         return;
     }
-    PyObject *communicationData = Py_BuildValue("{sIsIsKsIsIsKsKsssssssK}",
-        KIND, static_cast<uint32_t>(communication->kind),
-        DATA_TYPE, static_cast<uint32_t>(communication->dataType),
-        COUNT, communication->count,
-        DEVICE_ID, communication->ds.deviceId,
-        STREAM_ID, communication->ds.streamId,
-        START, communication->start,
-        END, communication->end,
-        ALG_TYPE, communication->algType,
-        NAME, communication->name,
-        COMMNAME, communication->commName,
-        CORRELATION_ID, communication->correlationId);
-    if (communicationData == nullptr) {
+    PyObject *communicationData =
+        Py_BuildValue("{sIsIsKsIsIsKsKsssssssK}", KIND, static_cast<uint32_t>(communication->kind), DATA_TYPE,
+                      static_cast<uint32_t>(communication->dataType), COUNT, communication->count, DEVICE_ID,
+                      communication->ds.deviceId, STREAM_ID, communication->ds.streamId, START, communication->start,
+                      END, communication->end, ALG_TYPE, communication->algType, NAME, communication->name, COMMNAME,
+                      communication->commName, CORRELATION_ID, communication->correlationId);
+    if (communicationData == nullptr)
+    {
         MSPTI_LOGE("Build python communication data failed");
         return;
     }
     /* make sure callback doesn't go away */
     Py_INCREF(communicationCallback);
     auto ret = PyObject_CallFunction(communicationCallback, "O", communicationData);
-    if (ret == nullptr) {
+    if (ret == nullptr)
+    {
         MSPTI_LOGE("Call communication callback failed");
-    } else {
+    }
+    else
+    {
         Py_DECREF(ret);
     }
     Py_DECREF(communicationCallback);
     Py_XDECREF(communicationData);
 }
 
-struct PyGILGuard {
+struct PyGILGuard
+{
     PyGILGuard() : gilState(PyGILState_Ensure()) {}
-    ~PyGILGuard()
-    {
-        PyGILState_Release(gilState);
-    }
+    ~PyGILGuard() { PyGILState_Release(gilState); }
 
     PyGILState_STATE gilState;
 };
-}
+}  // namespace
 
-namespace Mspti {
-namespace Adapter {
+namespace Mspti
+{
+namespace Adapter
+{
 void MsptiAdapter::UserBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecords)
 {
-    if (buffer == nullptr || size == nullptr || maxNumRecords == nullptr) {
+    if (buffer == nullptr || size == nullptr || maxNumRecords == nullptr)
+    {
         MSPTI_LOGE("Wrong param for mspti adapter alloc buffer");
         return;
     }
     *maxNumRecords = 0;
     auto instance = GetInstance();
-    if (!instance->bufferPool.CheckCanAllocBuffer()) {
+    if (!instance->bufferPool.CheckCanAllocBuffer())
+    {
         MSPTI_LOGW("Mspti adapter allocated buffer size exceeds the upper limit");
         *buffer = nullptr;
         *size = 0;
         return;
     }
     auto *pBuffer = instance->bufferPool.GetBuffer();
-    if (pBuffer == nullptr) {
+    if (pBuffer == nullptr)
+    {
         MSPTI_LOGE("Mspti adapter alloc buffer failed");
         *buffer = nullptr;
         *size = 0;
-    } else {
+    }
+    else
+    {
         *buffer = pBuffer;
         *size = instance->bufferSize;
     }
@@ -236,29 +249,39 @@ void MsptiAdapter::UserBufferRequest(uint8_t **buffer, size_t *size, size_t *max
 
 void MsptiAdapter::UserBufferComplete(uint8_t *buffer, size_t size, size_t validSize)
 {
-    if (!Py_IsInitialized()) {
+    if (!Py_IsInitialized())
+    {
         MSPTI_LOGW("Python interpreter is finalized");
         return;
     }
     MSPTI_LOGI("Mspti adapter buffer complete, size: %zu, validSize: %zu", size, validSize);
     PyGILGuard gilGuard;
-    if (validSize > 0 && buffer != nullptr) {
+    if (validSize > 0 && buffer != nullptr)
+    {
         msptiActivity *record = nullptr;
         msptiResult status = MSPTI_SUCCESS;
-        do {
+        do
+        {
             status = msptiActivityGetNextRecord(buffer, validSize, &record);
-            if (status == MSPTI_SUCCESS) {
+            if (status == MSPTI_SUCCESS)
+            {
                 UserBufferConsume(record);
-            } else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED) {
+            }
+            else if (status == MSPTI_ERROR_MAX_LIMIT_REACHED)
+            {
                 break;
-            } else {
+            }
+            else
+            {
                 MSPTI_LOGE("Mspti adapter consume buffer failed, status: %d", status);
                 break;
             }
         } while (true);
     }
-    if (buffer != nullptr) {
-        if (!GetInstance()->bufferPool.RecycleBuffer(buffer)) {
+    if (buffer != nullptr)
+    {
+        if (!GetInstance()->bufferPool.RecycleBuffer(buffer))
+        {
             MSPTI_LOGE("Mspti adapter recycle buffer failed");
         }
     }
@@ -266,28 +289,35 @@ void MsptiAdapter::UserBufferComplete(uint8_t *buffer, size_t size, size_t valid
 
 void MsptiAdapter::UserBufferConsume(msptiActivity *record)
 {
-    if (record == nullptr) {
+    if (record == nullptr)
+    {
         MSPTI_LOGE("Mspti consume buffer failed");
         return;
     }
-    switch (record->kind) {
-        case MSPTI_ACTIVITY_KIND_KERNEL: {
-            msptiActivityKernel *kernel = Common::ReinterpretConvert<msptiActivityKernel*>(record);
+    switch (record->kind)
+    {
+        case MSPTI_ACTIVITY_KIND_KERNEL:
+        {
+            msptiActivityKernel *kernel = Common::ReinterpretConvert<msptiActivityKernel *>(record);
             CallKernelCallback(GetInstance()->GetKernelCallback(), kernel);
             break;
         }
-        case MSPTI_ACTIVITY_KIND_MARKER: {
-            msptiActivityMarker* marker = Common::ReinterpretConvert<msptiActivityMarker*>(record);
+        case MSPTI_ACTIVITY_KIND_MARKER:
+        {
+            msptiActivityMarker *marker = Common::ReinterpretConvert<msptiActivityMarker *>(record);
             CallMstxCallback(GetInstance()->GetMstxCallback(), marker);
             break;
         }
-        case MSPTI_ACTIVITY_KIND_HCCL: {
-            msptiActivityHccl* hccl = Common::ReinterpretConvert<msptiActivityHccl *>(record);
+        case MSPTI_ACTIVITY_KIND_HCCL:
+        {
+            msptiActivityHccl *hccl = Common::ReinterpretConvert<msptiActivityHccl *>(record);
             CallHcclCallback(GetInstance()->GetHcclCallback(), hccl);
             break;
         }
-        case MSPTI_ACTIVITY_KIND_COMMUNICATION: {
-            msptiActivityCommunication* communication = Common::ReinterpretConvert<msptiActivityCommunication*>(record);
+        case MSPTI_ACTIVITY_KIND_COMMUNICATION:
+        {
+            msptiActivityCommunication *communication =
+                Common::ReinterpretConvert<msptiActivityCommunication *>(record);
             CallCommunicationCallback(GetInstance()->GetCommunicationCallback(), communication);
             break;
         }
@@ -300,11 +330,14 @@ void MsptiAdapter::UserBufferConsume(msptiActivity *record)
 msptiResult MsptiAdapter::Start()
 {
     auto originCnt = refCnt_.fetch_add(1);
-    if (originCnt == 0) {
+    if (originCnt == 0)
+    {
         auto ret = msptiSubscribe(&subscriber_, nullptr, nullptr);
-        if (ret == MSPTI_SUCCESS) {
+        if (ret == MSPTI_SUCCESS)
+        {
             bufferPool.Clear();
-            if (!(bufferPool.SetBufferSize(bufferSize) && bufferPool.SetPoolSize(MAX_BUFFER_SIZE / bufferSize))) {
+            if (!(bufferPool.SetBufferSize(bufferSize) && bufferPool.SetPoolSize(MAX_BUFFER_SIZE / bufferSize)))
+            {
                 MSPTI_LOGE("Mspti adapter init buffer pool failed");
                 msptiUnsubscribe(subscriber_);
                 return MSPTI_ERROR_INNER;
@@ -318,7 +351,8 @@ msptiResult MsptiAdapter::Start()
 
 msptiResult MsptiAdapter::Stop()
 {
-    if (refCnt_ >= 1) {
+    if (refCnt_ >= 1)
+    {
         refCnt_--;
     }
     MSPTI_LOGI("Mspti adapter stop, refCnt=%d", refCnt_.load());
@@ -329,7 +363,8 @@ msptiResult MsptiAdapter::FlushAll()
 {
     std::lock_guard<std::mutex> lk(mtx_);
     auto ret = msptiActivityFlushAll(1);
-    if (refCnt_ == 0) {
+    if (refCnt_ == 0)
+    {
         bufferPool.Clear();
     }
     return ret;
@@ -344,11 +379,13 @@ msptiResult MsptiAdapter::FlushPeriod(uint32_t time)
 msptiResult MsptiAdapter::SetBufferSize(size_t size)
 {
     std::lock_guard<std::mutex> lk(mtx_);
-    if (size * MB > MAX_BUFFER_SIZE) {
+    if (size * MB > MAX_BUFFER_SIZE)
+    {
         MSPTI_LOGW("Set buffer size exceeds the upper limit");
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
-    if (refCnt_ > 0) {
+    if (refCnt_ > 0)
+    {
         MSPTI_LOGW("Change buffer size when mspti is running, will not take effect until next start");
     }
     bufferSize = size * MB;
@@ -373,10 +410,7 @@ msptiResult MsptiAdapter::UnregisterMstxCallback()
     return ret;
 }
 
-PyObject* MsptiAdapter::GetMstxCallback() const
-{
-    return mstxCallback_;
-}
+PyObject *MsptiAdapter::GetMstxCallback() const { return mstxCallback_; }
 
 msptiResult MsptiAdapter::RegisterKernelCallback(PyObject *kernelCallback)
 {
@@ -386,10 +420,7 @@ msptiResult MsptiAdapter::RegisterKernelCallback(PyObject *kernelCallback)
     return msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL);
 }
 
-PyObject* MsptiAdapter::GetKernelCallback() const
-{
-    return kernelCallback_;
-}
+PyObject *MsptiAdapter::GetKernelCallback() const { return kernelCallback_; }
 
 msptiResult MsptiAdapter::UnregisterKernelCallback()
 {
@@ -409,10 +440,7 @@ msptiResult MsptiAdapter::RegisterHcclCallback(PyObject *hcclCallback)
     return msptiActivityEnable(MSPTI_ACTIVITY_KIND_HCCL);
 }
 
-PyObject* MsptiAdapter::GetHcclCallback() const
-{
-    return hcclCallback_;
-}
+PyObject *MsptiAdapter::GetHcclCallback() const { return hcclCallback_; }
 
 msptiResult MsptiAdapter::UnregisterHcclCallback()
 {
@@ -432,10 +460,7 @@ msptiResult MsptiAdapter::RegisterCommunicationCallback(PyObject *communicationC
     return msptiActivityEnable(MSPTI_ACTIVITY_KIND_COMMUNICATION);
 }
 
-PyObject* MsptiAdapter::GetCommunicationCallback() const
-{
-    return communicationCallback_;
-}
+PyObject *MsptiAdapter::GetCommunicationCallback() const { return communicationCallback_; }
 
 msptiResult MsptiAdapter::UnregisterCommunicationCallback()
 {
@@ -447,14 +472,8 @@ msptiResult MsptiAdapter::UnregisterCommunicationCallback()
     return ret;
 }
 
-msptiResult MsptiAdapter::EnableDomain(const char* domain)
-{
-    return msptiActivityEnableMarkerDomain(domain);
-}
+msptiResult MsptiAdapter::EnableDomain(const char *domain) { return msptiActivityEnableMarkerDomain(domain); }
 
-msptiResult MsptiAdapter::DisableDomain(const char* domain)
-{
-    return msptiActivityDisableMarkerDomain(domain);
-}
-} // Adapter
-} // Mspti
+msptiResult MsptiAdapter::DisableDomain(const char *domain) { return msptiActivityDisableMarkerDomain(domain); }
+}  // namespace Adapter
+}  // namespace Mspti

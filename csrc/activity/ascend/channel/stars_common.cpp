@@ -1,48 +1,56 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/activity/ascend/channel/stars_common.h"
-#include "stars_common.h"
 
 #include "csrc/common/context_manager.h"
+#include "stars_common.h"
 
-namespace Mspti {
-namespace Convert {
+namespace Mspti
+{
+namespace Convert
+{
 
 bool StarsCommon::isExpand = false;
 
-void StarsCommon::SetStreamExpandStatus(uint8_t expandStatus)
-{
-    isExpand = (expandStatus == 1);
-}
+void StarsCommon::SetStreamExpandStatus(uint8_t expandStatus) { isExpand = (expandStatus == 1); }
 
 uint16_t StarsCommon::GetStreamId(uint16_t streamId, uint16_t taskId)
 {
-    if (isExpand) {
-        if ((streamId & STREAM_JUDGE_BIT15_OPERATOR) != 0) {
+    if (isExpand)
+    {
+        if ((streamId & STREAM_JUDGE_BIT15_OPERATOR) != 0)
+        {
             return taskId & EXPANDING_LOW_OPERATOR;
-        } else {
+        }
+        else
+        {
             return streamId & EXPANDING_LOW_OPERATOR;
         }
-    } else {
-        if ((streamId & STREAM_JUDGE_BIT12_OPERATOR) != 0) {
+    }
+    else
+    {
+        if ((streamId & STREAM_JUDGE_BIT12_OPERATOR) != 0)
+        {
             return streamId % STREAM_LOW_OPERATOR;
         }
-        if ((streamId & STREAM_JUDGE_BIT13_OPERATOR) != 0) {
+        if ((streamId & STREAM_JUDGE_BIT13_OPERATOR) != 0)
+        {
             streamId = taskId & COMMON_LOW_OPERATOR;
         }
         return streamId % STREAM_LOW_OPERATOR;
@@ -51,17 +59,26 @@ uint16_t StarsCommon::GetStreamId(uint16_t streamId, uint16_t taskId)
 
 uint16_t StarsCommon::GetTaskId(uint16_t streamId, uint16_t taskId)
 {
-    if (isExpand) {
-        if ((streamId & STREAM_JUDGE_BIT15_OPERATOR) != 0) {
+    if (isExpand)
+    {
+        if ((streamId & STREAM_JUDGE_BIT15_OPERATOR) != 0)
+        {
             return (taskId & STREAM_JUDGE_BIT15_OPERATOR) | (streamId & EXPANDING_LOW_OPERATOR);
-        } else {
+        }
+        else
+        {
             return taskId;
         }
-    } else {
-        if ((streamId & STREAM_JUDGE_BIT12_OPERATOR) != 0) {
+    }
+    else
+    {
+        if ((streamId & STREAM_JUDGE_BIT12_OPERATOR) != 0)
+        {
             taskId = taskId & TASK_LOW_OPERATOR;
             taskId |= (streamId & STREAM_HIGH_OPERATOR);
-        } else if ((streamId & STREAM_JUDGE_BIT13_OPERATOR) != 0) {
+        }
+        else if ((streamId & STREAM_JUDGE_BIT13_OPERATOR) != 0)
+        {
             taskId = (streamId & COMMON_LOW_OPERATOR) | (taskId & COMMON_HIGH_OPERATOR);
         }
         return taskId;
@@ -70,11 +87,12 @@ uint16_t StarsCommon::GetTaskId(uint16_t streamId, uint16_t taskId)
 
 uint32_t StarsCommon::GetHostTaskId(uint16_t streamId, uint32_t taskInfo, uint32_t deviceId)
 {
-    if (Common::ContextManager::GetInstance()->GetChipType(deviceId) == Common::PlatformType::CHIP_V6) {
+    if (Common::ContextManager::GetInstance()->GetChipType(deviceId) == Common::PlatformType::CHIP_V6)
+    {
         // v6唯一id
         return taskInfo;
     }
     return GetTaskId(streamId, taskInfo & 0xFFFF);
 }
-} // namespace Parser
-} // namespace Mspti
+}  // namespace Convert
+}  // namespace Mspti

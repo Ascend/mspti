@@ -1,37 +1,35 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
-#include "gtest/gtest.h"
-
-#include "mockcpp/mockcpp.hpp"
-
-#include "csrc/activity/ascend/parser/hccl_calculator.h"
 #include "csrc/activity/ascend/entity/hccl_op_desc.h"
+#include "csrc/activity/ascend/parser/hccl_calculator.h"
 #include "csrc/common/inject/hccl_inject.h"
 #include "csrc/common/utils.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "securec.h"
 
-namespace {
-class HcclCalculatorUtest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
+namespace
+{
+class HcclCalculatorUtest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { GlobalMockObject::verify(); }
     virtual void TearDown() {}
 };
 
@@ -67,7 +65,7 @@ TEST_F(HcclCalculatorUtest, P2pOpDescShouldRetSuccessAndFailWhenBandWidth)
     unknownHcclOpDesc->start = startTime;
     unknownHcclOpDesc->count = count;
     unknownHcclOpDesc->dataType = HCCL_DATA_TYPE_RESERVED;
-    
+
     Mspti::Parser::HcclCalculator::CalculateBandWidth((HcclOpDesc*)hcclOpDesc);
     unknownHcclOpDesc->bandWidth = -1;
     Mspti::Parser::HcclCalculator::CalculateBandWidth((HcclOpDesc*)unknownHcclOpDesc);
@@ -132,7 +130,7 @@ TEST_F(HcclCalculatorUtest, All2AllVOpDescShouldRetSuccessAndFailWhenBandWidth)
     hcclOpDesc->recvCounts = recvCounts;
     hcclOpDesc->recvType = dataType;
     Mspti::Parser::HcclCalculator::CalculateBandWidth((HcclOpDesc*)hcclOpDesc);
-    
+
     double expectBandWidth = (double)(3 * dataTypeSize) / (endTime - startTime);
     EXPECT_EQ(expectBandWidth, hcclOpDesc->bandWidth);
 
@@ -200,4 +198,4 @@ TEST_F(HcclCalculatorUtest, BatchSendOpDescShouldRetSuccessAndFailWhenBandWidth)
     Mspti::Parser::HcclCalculator::CalculateBandWidth((HcclOpDesc*)hcclOpDesc);
     EXPECT_EQ(-1, hcclOpDesc->bandWidth);
 }
-}
+}  // namespace

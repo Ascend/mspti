@@ -1,52 +1,56 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #include "csrc/activity/ascend/parser/hccl_calculator.h"
+
 #include <cstring>
 #include <functional>
 #include <unordered_map>
-#include "csrc/common/plog_manager.h"
-#include "csrc/common/inject/hccl_inject.h"
-#include "csrc/activity/ascend/entity/hccl_op_desc.h"
 
-namespace Mspti {
-namespace Parser {
+#include "csrc/activity/ascend/entity/hccl_op_desc.h"
+#include "csrc/common/inject/hccl_inject.h"
+#include "csrc/common/plog_manager.h"
+
+namespace Mspti
+{
+namespace Parser
+{
 using CaculatorFunc = std::function<msptiResult(HcclOpDesc* hcclOpDesc)>;
 
-const static std::unordered_map<HcclDataType, uint8_t> dataType2Size {
-    {HCCL_DATA_TYPE_INT8, sizeof(int8_t)},
-    {HCCL_DATA_TYPE_INT16, sizeof(int16_t)},
-    {HCCL_DATA_TYPE_INT32, sizeof(int32_t)},
-    {HCCL_DATA_TYPE_FP16, 2},
-    {HCCL_DATA_TYPE_FP32, sizeof(float)},
-    {HCCL_DATA_TYPE_INT64, sizeof(int64_t)},
-    {HCCL_DATA_TYPE_UINT64, sizeof(uint64_t)},
-    {HCCL_DATA_TYPE_UINT8, sizeof(uint8_t)},
-    {HCCL_DATA_TYPE_UINT16, sizeof(uint16_t)},
-    {HCCL_DATA_TYPE_UINT32, sizeof(uint32_t)},
-    {HCCL_DATA_TYPE_FP64, 8},
-    {HCCL_DATA_TYPE_BFP16, 2},
-    {HCCL_DATA_TYPE_INT128, 16}
-};
+const static std::unordered_map<HcclDataType, uint8_t> dataType2Size{{HCCL_DATA_TYPE_INT8, sizeof(int8_t)},
+                                                                     {HCCL_DATA_TYPE_INT16, sizeof(int16_t)},
+                                                                     {HCCL_DATA_TYPE_INT32, sizeof(int32_t)},
+                                                                     {HCCL_DATA_TYPE_FP16, 2},
+                                                                     {HCCL_DATA_TYPE_FP32, sizeof(float)},
+                                                                     {HCCL_DATA_TYPE_INT64, sizeof(int64_t)},
+                                                                     {HCCL_DATA_TYPE_UINT64, sizeof(uint64_t)},
+                                                                     {HCCL_DATA_TYPE_UINT8, sizeof(uint8_t)},
+                                                                     {HCCL_DATA_TYPE_UINT16, sizeof(uint16_t)},
+                                                                     {HCCL_DATA_TYPE_UINT32, sizeof(uint32_t)},
+                                                                     {HCCL_DATA_TYPE_FP64, 8},
+                                                                     {HCCL_DATA_TYPE_BFP16, 2},
+                                                                     {HCCL_DATA_TYPE_INT128, 16}};
 
 msptiResult CalculateP2pBandWidth(HcclOpDesc* hcclOpDesc)
 {
     auto p2pOpDesc = static_cast<P2pOpDesc*>(hcclOpDesc);
     const auto& dataType = dataType2Size.find(p2pOpDesc->dataType);
-    if (dataType == dataType2Size.end()) {
+    if (dataType == dataType2Size.end())
+    {
         MSPTI_LOGW("unknown p2p op type, cannot calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
@@ -59,17 +63,20 @@ msptiResult CalculateP2pBandWidth(HcclOpDesc* hcclOpDesc)
 msptiResult CalculateAll2AllVBandWidth(HcclOpDesc* hcclOpDesc)
 {
     auto all2AllVOpDesc = static_cast<All2AllVOpDesc*>(hcclOpDesc);
-    if (all2AllVOpDesc->sendCounts == nullptr || all2AllVOpDesc->recvCounts == nullptr) {
+    if (all2AllVOpDesc->sendCounts == nullptr || all2AllVOpDesc->recvCounts == nullptr)
+    {
         MSPTI_LOGW("sendCounts or recvCounts in op is nullptr, cannot calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
     const auto& sendType = dataType2Size.find(all2AllVOpDesc->sendType);
-    if (sendType == dataType2Size.end()) {
+    if (sendType == dataType2Size.end())
+    {
         MSPTI_LOGW("unknow all2Allv op sendType, cannot calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
     const auto& recvType = dataType2Size.find(all2AllVOpDesc->recvType);
-    if (recvType == dataType2Size.end()) {
+    if (recvType == dataType2Size.end())
+    {
         MSPTI_LOGW("unknow all2Allv op recvType, cannot calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
@@ -77,7 +84,8 @@ msptiResult CalculateAll2AllVBandWidth(HcclOpDesc* hcclOpDesc)
     uint64_t recvDataSize = 0;
     const auto* sendCounts = reinterpret_cast<const uint64_t*>(all2AllVOpDesc->sendCounts);
     const auto* recvCounts = reinterpret_cast<const uint64_t*>(all2AllVOpDesc->recvCounts);
-    for (uint32_t i = 0; i < all2AllVOpDesc->rankSize; i++) {
+    for (uint32_t i = 0; i < all2AllVOpDesc->rankSize; i++)
+    {
         sendDataSize += sendCounts[i] * sendType->second;
         recvDataSize += recvCounts[i] * recvType->second;
     }
@@ -90,7 +98,8 @@ msptiResult CalculateCollectiveBandWidth(HcclOpDesc* hcclOpDesc)
 {
     auto collectiveOp = static_cast<All2AllVOpDesc*>(hcclOpDesc);
     const auto& it = dataType2Size.find(collectiveOp->dataType);
-    if (it == dataType2Size.end()) {
+    if (it == dataType2Size.end())
+    {
         MSPTI_LOGW("unknow collective op type, cannot calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
@@ -104,9 +113,11 @@ msptiResult CalculateBatchSendRecvBandWidth(HcclOpDesc* hcclOpDesc)
 {
     auto collectiveOp = static_cast<BatchSendRecvOp*>(hcclOpDesc);
     uint64_t dataSize = 0;
-    for (const auto &sendOp : collectiveOp->batchSendRecvItem) {
+    for (const auto& sendOp : collectiveOp->batchSendRecvItem)
+    {
         const auto& it = dataType2Size.find(sendOp.dataType);
-        if (it == dataType2Size.end()) {
+        if (it == dataType2Size.end())
+        {
             MSPTI_LOGW("unknow batchSendRecv op type, cannot calculate bandwidth");
             return MSPTI_ERROR_INNER;
         }
@@ -117,7 +128,7 @@ msptiResult CalculateBatchSendRecvBandWidth(HcclOpDesc* hcclOpDesc)
     return MSPTI_SUCCESS;
 }
 
-static const std::unordered_map<std::string, CaculatorFunc> calculateFunc {
+static const std::unordered_map<std::string, CaculatorFunc> calculateFunc{
     {"HcclSend", CalculateP2pBandWidth},
     {"HcclRecv", CalculateP2pBandWidth},
     {"HcclAllReduce", CalculateP2pBandWidth},
@@ -128,25 +139,27 @@ static const std::unordered_map<std::string, CaculatorFunc> calculateFunc {
     {"HcclReduce", CalculateP2pBandWidth},
     {"HcclAlltoAll", CalculateCollectiveBandWidth},
     {"HcclAlltoAllV", CalculateAll2AllVBandWidth},
-    {"HcclBatchSendRecv", CalculateBatchSendRecvBandWidth}
-};
+    {"HcclBatchSendRecv", CalculateBatchSendRecvBandWidth}};
 
 msptiResult HcclCalculator::CalculateBandWidth(HcclOpDesc* hcclOpDesc)
 {
-    if (hcclOpDesc == nullptr) {
+    if (hcclOpDesc == nullptr)
+    {
         MSPTI_LOGW("hcclOpDesc is nullptr, cannot calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
     const auto& it = calculateFunc.find(hcclOpDesc->opName);
-    if (it == calculateFunc.end()) {
+    if (it == calculateFunc.end())
+    {
         MSPTI_LOGW("bandwidth calculation formula without corresponding operator");
         return MSPTI_ERROR_INNER;
     }
-    if (hcclOpDesc->end <= hcclOpDesc->start) {
+    if (hcclOpDesc->end <= hcclOpDesc->start)
+    {
         MSPTI_LOGW("duration time is zero or start time is later than end time, can not calculate bandwidth");
         return MSPTI_ERROR_INNER;
     }
     return it->second(hcclOpDesc);
 }
-}
-}
+}  // namespace Parser
+}  // namespace Mspti

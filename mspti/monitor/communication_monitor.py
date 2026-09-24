@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -21,14 +21,10 @@ from ..activity_data import CommunicationData
 from ..constant import MsptiResult
 from ..utils import print_error_msg
 from .base_monitor import BaseMonitor
-from ._mspti_c import (
-    _communication_register_cb,
-    _communication_unregister_cb
-)
+from ._mspti_c import _communication_register_cb, _communication_unregister_cb
 
 
 class CommunicationMonitor(BaseMonitor):
-
     def __init__(self):
         super().__init__()
         self.user_cb = None

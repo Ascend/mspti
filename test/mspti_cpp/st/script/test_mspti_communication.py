@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -22,8 +22,9 @@ import re
 import sys
 from collections import defaultdict
 
-logging.basicConfig(level=logging.INFO,
-                    format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='\n%(asctime)s %(filename)s [line:%(lineno)d] [%(levelname)s] %(message)s'
+)
 
 
 class MsptiCommunication(test_base.TestProfiling):
@@ -53,29 +54,29 @@ class MsptiCommunication(test_base.TestProfiling):
             results.append(result)
         return results
 
-    def check_comm_data(self, comm_datas):
+    def check_comm_data(self, comm_data_list):
         logging.info("check_comm_data start")
-        self.assertEqual(len(comm_datas), 20, "少了通信算子")
-        for comm_data in comm_datas:
+        self.assertEqual(len(comm_data_list), 20, "少了通信算子")
+        for comm_data in comm_data_list:
             self.assertEqual(comm_data["name"], "hcom_allReduce_", "名字不对")
             self.assertTrue(comm_data["start"] <= comm_data["end"], "时间不对")
             self.assertEqual(int(comm_data["kind"]), 9, f"communication kind must be 9, but is {comm_data['kind']}")
 
-    def check_api_data(self, api_datas):
+    def check_api_data(self, api_data_list):
         logging.info("check_api_data start")
-        for api_data in api_datas:
+        for api_data in api_data_list:
             self.assertTrue(api_data["start"] <= api_data["end"], "时间不对")
             self.assertEqual(int(api_data["kind"]), 3, f"api kind must be 3, but is {api_data['kind']}")
 
-    def check_correlation(self, comm_datas, api_datas):
+    def check_correlation(self, comm_data_list, api_data_list):
         logging.info("check_correlation start")
         api_group = defaultdict(list)
 
         # 把所有 Api 分组（按 correlationId）
-        for r in api_datas:
+        for r in api_data_list:
             api_group[r['correlationId']].append(r)
 
-        for comm in comm_datas:
+        for comm in comm_data_list:
             corr_id = comm.get('correlationId')
             comm_name = comm.get('name', '').strip()
             api_candidates = api_group.get(corr_id, [])

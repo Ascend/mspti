@@ -1,14 +1,14 @@
 #!/usr/bin/python3
-# coding=utf-8
+# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -23,19 +23,14 @@ import logging
 from multiprocessing import Queue
 
 import torch
-import torch_npu
 
-from mspti import (
-    KernelData,
-    KernelMonitor,
-    CommunicationData,
-    CommunicationMonitor
-)
+from mspti import KernelData, KernelMonitor, CommunicationData, CommunicationMonitor
 
 # parser会被多线程调用，所以使用queue存储数据，保证多线程安全
 data_queue = Queue()
-logging.basicConfig(format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s', level=logging.INFO
+)
 
 
 def kernel_parser(data: KernelData):
@@ -53,12 +48,32 @@ def consumer_func(consume_queue):
             if data is None:
                 break
             if isinstance(data, KernelData):
-                logging.info(f'{data.kind}, {data.start}, {data.end}, {data.device_id}, {data.stream_id}, '
-                             f'{data.correlation_id}, {data.type}, {data.name}')
+                logging.info(
+                    '%s, %s, %s, %s, %s, %s, %s, %s',
+                    data.kind,
+                    data.start,
+                    data.end,
+                    data.device_id,
+                    data.stream_id,
+                    data.correlation_id,
+                    data.type,
+                    data.name,
+                )
             elif isinstance(data, CommunicationData):
-                logging.info(f'{data.kind}, {data.start}, {data.end}, {data.device_id}, {data.stream_id}, '
-                             f'{data.data_type}, {data.count}, {data.name}, {data.comm_name}, '
-                             f'{data.alg_type}, {data.correlation_id}')
+                logging.info(
+                    '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s',
+                    data.kind,
+                    data.start,
+                    data.end,
+                    data.device_id,
+                    data.stream_id,
+                    data.data_type,
+                    data.count,
+                    data.name,
+                    data.comm_name,
+                    data.alg_type,
+                    data.correlation_id,
+                )
         else:
             time.sleep(0.1)
 
@@ -68,7 +83,7 @@ def init_process(backend="hccl"):
 
 
 def test_monitor():
-    consumer = threading.Thread(target=consumer_func, args=(data_queue, ))
+    consumer = threading.Thread(target=consumer_func, args=(data_queue,))
     consumer.start()
 
     # enable mspti monitor to collect activity

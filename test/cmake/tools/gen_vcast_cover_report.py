@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -29,9 +29,7 @@ from vcast.vcast_full_coverage_report import VcastFullCoverageReport
 from utils import read_file_content_to_list
 from diff_coverage import DiffCoverage
 
-logging.basicConfig(
-    format='[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] : %(message)s',
-    level=logging.DEBUG)
+logging.basicConfig(format='[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] : %(message)s', level=logging.DEBUG)
 
 logger = logging.getLogger()
 
@@ -76,8 +74,7 @@ def inc_coverage(top_dir, classify_rule_list):
 
     invole_project_names = []
     coverage_xml_files = []
-    coverage_xml_file_path = os.path.join(
-        top_dir, 'output/llt/coverage_result/cobertura/')
+    coverage_xml_file_path = os.path.join(top_dir, 'output/llt/coverage_result/cobertura/')
     for f in os.listdir(coverage_xml_file_path):
         if f.endswith('.xml'):
             coverage_xml_files.append(os.path.join(coverage_xml_file_path, f))
@@ -86,7 +83,8 @@ def inc_coverage(top_dir, classify_rule_list):
     FILE_COVERAGE_THRESHOLD = 100
     LINE_COVERAGE_THRESHOLD = 80
     project_names, changed_files = read_file_content_to_list(
-        os.path.join(top_dir, 'vendor/hisi/llt/ci/script/changed_files_list'))
+        os.path.join(top_dir, 'vendor/hisi/llt/ci/script/changed_files_list')
+    )
     for project_name in project_names:
         path = os.path.join(top_dir, project_name)
         if not os.path.exists(path):
@@ -97,8 +95,16 @@ def inc_coverage(top_dir, classify_rule_list):
             continue
         invole_project_names.append(project_name)
 
-    diff_coverage = DiffCoverage(top_dir,
-                                 classify_rule_list, invole_project_names, coverage_xml_files, changed_files, language, FILE_COVERAGE_THRESHOLD, LINE_COVERAGE_THRESHOLD)
+    diff_coverage = DiffCoverage(
+        top_dir,
+        classify_rule_list,
+        invole_project_names,
+        coverage_xml_files,
+        changed_files,
+        language,
+        FILE_COVERAGE_THRESHOLD,
+        LINE_COVERAGE_THRESHOLD,
+    )
     retcode = diff_coverage.process()
     return retcode
 
@@ -112,21 +118,21 @@ def main(argv=None):
     full_coverage = args.full_coverage
     is_full_coverage = full_coverage != 'false'
     test_type = 'ut'
-    template_file = os.path.join(code_root,
-                                 "cmake/function/tools/template.html")
+    template_file = os.path.join(code_root, "cmake/function/tools/template.html")
 
     if is_full_coverage:
-        report = VcastFullCoverageReport(top_dir=code_root,
-                                         template=template_file,
-                                         test_type=test_type,
-                                         classify_rule_name=classify_rule_name,
-                                         is_full_coverage=is_full_coverage)
+        report = VcastFullCoverageReport(
+            top_dir=code_root,
+            template=template_file,
+            test_type=test_type,
+            classify_rule_name=classify_rule_name,
+            is_full_coverage=is_full_coverage,
+        )
         ret = report.process()
         if not ret:
             sys.exit(1)
     else:
-        ret = inc_coverage(top_dir=code_root,
-                           classify_rule_list=classify_rule_list)
+        ret = inc_coverage(top_dir=code_root, classify_rule_list=classify_rule_list)
         if not ret:
             sys.exit(1)
 

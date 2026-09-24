@@ -95,6 +95,9 @@ disable = [
   "wrong-import-order",
   "wrong-import-position",
   "import-error",
+
+  # 样例脚本之间的结构性重复
+  "duplicate-code",
 ]
 
 # ==============================================

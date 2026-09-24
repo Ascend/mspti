@@ -1,34 +1,38 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #include <fstream>
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
-#include "mspti/csrc/mspti_adapter.h"
 #include "csrc/common/inject/mstx_inject.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
+#include "mspti/csrc/mspti_adapter.h"
 
-namespace {
+namespace
+{
 using namespace Mspti::Adapter;
-const char* PYTHON_FILE = "./mspti_callback.py";
+const char *PYTHON_FILE = "./mspti_callback.py";
 const size_t BUFFER_SIZE = 4;
 
-class MsptiAdapterUtest : public testing::Test {
-protected:
+class MsptiAdapterUtest : public testing::Test
+{
+   protected:
     static void SetUpTestCase()
     {
         std::ofstream file(PYTHON_FILE);
@@ -55,7 +59,7 @@ protected:
     virtual void TearDown() {}
 };
 
-PyObject *GetMsptiPyCallback(const char* cb_name)
+PyObject *GetMsptiPyCallback(const char *cb_name)
 {
     PyRun_SimpleString("import sys");
     PyRun_SimpleString("sys.path.append('./')");
@@ -73,9 +77,7 @@ TEST_F(MsptiAdapterUtest, StartStopWillSuccess)
 
 TEST_F(MsptiAdapterUtest, FlushPeriodWillSuccess)
 {
-    MOCKER_CPP(&Mspti::Activity::ActivityManager::FlushPeriod)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::FlushPeriod).stubs().will(returnValue(MSPTI_SUCCESS));
     const uint32_t timeMs = 1000;
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushPeriod(timeMs));
 }
@@ -101,12 +103,8 @@ TEST_F(MsptiAdapterUtest, RegisterKernelCallbackWillSuccess)
 
 TEST_F(MsptiAdapterUtest, PythonKernelCallbackWillRunSuccess)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->SetBufferSize(BUFFER_SIZE));
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Start());
@@ -128,11 +126,11 @@ TEST_F(MsptiAdapterUtest, PythonKernelCallbackWillRunSuccess)
     kernel.correlationId = 1;
     kernel.type = "KERNEL_AIVEC";
     kernel.name = "Kernel";
-    instance->Record(reinterpret_cast<msptiActivity*>(&kernel), sizeof(kernel));
+    instance->Record(reinterpret_cast<msptiActivity *>(&kernel), sizeof(kernel));
 
     // invalid kind
     kernel.kind = MSPTI_ACTIVITY_KIND_INVALID;
-    instance->Record(reinterpret_cast<msptiActivity*>(&kernel), sizeof(kernel));
+    instance->Record(reinterpret_cast<msptiActivity *>(&kernel), sizeof(kernel));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Stop());
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushAll());
@@ -149,12 +147,8 @@ TEST_F(MsptiAdapterUtest, RegisterMstxCallbackWillSuccess)
 
 TEST_F(MsptiAdapterUtest, PythonMstxCallbackWillRunSuccess)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->SetBufferSize(BUFFER_SIZE));
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Start());
@@ -175,14 +169,14 @@ TEST_F(MsptiAdapterUtest, PythonMstxCallbackWillRunSuccess)
     marker.objectId.pt.threadId = 0;
     marker.name = "UserMark";
     marker.domain = "TestCase";
-    instance->Record(reinterpret_cast<msptiActivity*>(&marker), sizeof(marker));
+    instance->Record(reinterpret_cast<msptiActivity *>(&marker), sizeof(marker));
 
     marker.sourceKind = MSPTI_ACTIVITY_SOURCE_KIND_DEVICE;
-    instance->Record(reinterpret_cast<msptiActivity*>(&marker), sizeof(marker));
+    instance->Record(reinterpret_cast<msptiActivity *>(&marker), sizeof(marker));
 
     // invalid kind
     marker.kind = MSPTI_ACTIVITY_KIND_INVALID;
-    instance->Record(reinterpret_cast<msptiActivity*>(&marker), sizeof(marker));
+    instance->Record(reinterpret_cast<msptiActivity *>(&marker), sizeof(marker));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Stop());
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushAll());
@@ -199,12 +193,8 @@ TEST_F(MsptiAdapterUtest, RegisterHcclCallbackWillSuccess)
 
 TEST_F(MsptiAdapterUtest, PythonHcclCallbackWillRunSuccess)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->SetBufferSize(BUFFER_SIZE));
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Start());
@@ -226,11 +216,11 @@ TEST_F(MsptiAdapterUtest, PythonHcclCallbackWillRunSuccess)
     hccl.name = "UserMark";
     hccl.commName = "TestCase";
     hccl.bandWidth = 0;
-    instance->Record(reinterpret_cast<msptiActivity*>(&hccl), sizeof(hccl));
+    instance->Record(reinterpret_cast<msptiActivity *>(&hccl), sizeof(hccl));
 
     // invalid kind
     hccl.kind = MSPTI_ACTIVITY_KIND_INVALID;
-    instance->Record(reinterpret_cast<msptiActivity*>(&hccl), sizeof(hccl));
+    instance->Record(reinterpret_cast<msptiActivity *>(&hccl), sizeof(hccl));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Stop());
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushAll());
@@ -247,12 +237,8 @@ TEST_F(MsptiAdapterUtest, RegisterCommunicationCallbackWillSuccess)
 
 TEST_F(MsptiAdapterUtest, PythonCommunicationCallbackWillRunSuccess)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->SetBufferSize(BUFFER_SIZE));
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Start());
@@ -277,11 +263,11 @@ TEST_F(MsptiAdapterUtest, PythonCommunicationCallbackWillRunSuccess)
     communication.correlationId = 42;
     communication.count = 100;
     communication.dataType = msptiCommunicationDataType::MSPTI_ACTIVITY_COMMUNICATION_FP32;
-    instance->Record(reinterpret_cast<msptiActivity*>(&communication), sizeof(communication));
+    instance->Record(reinterpret_cast<msptiActivity *>(&communication), sizeof(communication));
 
     // invalid kind
     communication.kind = MSPTI_ACTIVITY_KIND_INVALID;
-    instance->Record(reinterpret_cast<msptiActivity*>(&communication), sizeof(communication));
+    instance->Record(reinterpret_cast<msptiActivity *>(&communication), sizeof(communication));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Stop());
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushAll());
@@ -290,12 +276,8 @@ TEST_F(MsptiAdapterUtest, PythonCommunicationCallbackWillRunSuccess)
 
 TEST_F(MsptiAdapterUtest, ConsumeFailedWhenNotRegisterCallback)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->SetBufferSize(BUFFER_SIZE));
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Start());
@@ -308,13 +290,13 @@ TEST_F(MsptiAdapterUtest, ConsumeFailedWhenNotRegisterCallback)
 
     msptiActivityMarker marker;
     marker.kind = MSPTI_ACTIVITY_KIND_MARKER;
-    instance->Record(reinterpret_cast<msptiActivity*>(&marker), sizeof(marker));
+    instance->Record(reinterpret_cast<msptiActivity *>(&marker), sizeof(marker));
     msptiActivityKernel kernel;
     kernel.kind = MSPTI_ACTIVITY_KIND_KERNEL;
-    instance->Record(reinterpret_cast<msptiActivity*>(&kernel), sizeof(kernel));
+    instance->Record(reinterpret_cast<msptiActivity *>(&kernel), sizeof(kernel));
     msptiActivityHccl hccl;
     hccl.kind = MSPTI_ACTIVITY_KIND_HCCL;
-    instance->Record(reinterpret_cast<msptiActivity*>(&hccl), sizeof(hccl));
+    instance->Record(reinterpret_cast<msptiActivity *>(&hccl), sizeof(hccl));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Stop());
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushAll());
@@ -322,12 +304,8 @@ TEST_F(MsptiAdapterUtest, ConsumeFailedWhenNotRegisterCallback)
 
 TEST_F(MsptiAdapterUtest, DisableDefaultDomainBeforeMark)
 {
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
-    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask)
-        .stubs()
-        .will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
 
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Start());
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
@@ -339,4 +317,4 @@ TEST_F(MsptiAdapterUtest, DisableDefaultDomainBeforeMark)
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->FlushAll());
     EXPECT_EQ(MSPTI_SUCCESS, MsptiAdapter::GetInstance()->Stop());
 }
-}
+}  // namespace

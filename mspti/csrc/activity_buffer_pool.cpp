@@ -1,30 +1,35 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "activity_buffer_pool.h"
+
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/utils.h"
 
-namespace Mspti {
-namespace Adapter {
+namespace Mspti
+{
+namespace Adapter
+{
 bool ActivityBufferPool::SetBufferSize(size_t bufferSize)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (bufferSize == 0) {
+    if (bufferSize == 0)
+    {
         MSPTI_LOGE("Can not set mspti python adapter buffer pool buffer size with zero");
         return false;
     }
@@ -35,7 +40,8 @@ bool ActivityBufferPool::SetBufferSize(size_t bufferSize)
 bool ActivityBufferPool::SetPoolSize(size_t poolSize)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (poolSize == 0) {
+    if (poolSize == 0)
+    {
         MSPTI_LOGE("Can not set mspti python adapter buffer pool size with zero");
         return false;
     }
@@ -52,18 +58,22 @@ bool ActivityBufferPool::CheckCanAllocBuffer()
 uint8_t* ActivityBufferPool::GetBuffer()
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (bufferSize_ == 0 || poolSize_ == 0) {
+    if (bufferSize_ == 0 || poolSize_ == 0)
+    {
         MSPTI_LOGE("Mspti python adapter buffer pool can not alloc buffer when bufferSize or poolSize is zero");
         return nullptr;
     }
-    if (freeBuffers_.empty() && allocedBuffers_.size() + 1 > poolSize_) {
+    if (freeBuffers_.empty() && allocedBuffers_.size() + 1 > poolSize_)
+    {
         MSPTI_LOGE("Mspti python adapter buffer pool is full");
         return nullptr;
     }
-    if (freeBuffers_.empty()) {
+    if (freeBuffers_.empty())
+    {
         std::unique_ptr<ActivityBuffer> activitybuffer = nullptr;
         Common::MsptiMakeUniquePtr(activitybuffer, bufferSize_);
-        if (activitybuffer == nullptr) {
+        if (activitybuffer == nullptr)
+        {
             return nullptr;
         }
         auto buffer = activitybuffer->Data();
@@ -74,7 +84,8 @@ uint8_t* ActivityBufferPool::GetBuffer()
     auto freeBufferAddr = *freeBuffers_.begin();
     freeBuffers_.erase(freeBufferAddr);
     auto bufferIter = allocedBuffers_.find(freeBufferAddr);
-    if (bufferIter == allocedBuffers_.end()) {
+    if (bufferIter == allocedBuffers_.end())
+    {
         MSPTI_LOGE("Mspti python adapter buffer pool can not find recycled buffer");
         return nullptr;
     }
@@ -86,14 +97,18 @@ uint8_t* ActivityBufferPool::GetBuffer()
 bool ActivityBufferPool::RecycleBuffer(uint8_t* buffer)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (buffer == nullptr) {
+    if (buffer == nullptr)
+    {
         MSPTI_LOGE("Mspti python adapter buffer pool recycle with null buffer");
         return false;
     }
     auto bufferAddr = Common::ReinterpretConvert<uintptr_t>(buffer);
-    if (allocedBuffers_.find(bufferAddr) != allocedBuffers_.end()) {
+    if (allocedBuffers_.find(bufferAddr) != allocedBuffers_.end())
+    {
         freeBuffers_.insert(bufferAddr);
-    } else {
+    }
+    else
+    {
         MSPTI_LOGE("Mspti python adapter buffer pool recycle with unknown buffer");
         return false;
     }
@@ -110,5 +125,5 @@ void ActivityBufferPool::Clear()
     freeBuffers_.clear();
     allocedBuffers_.clear();
 }
-} // namespace Adapter
-} // namespace Mspti
+}  // namespace Adapter
+}  // namespace Mspti

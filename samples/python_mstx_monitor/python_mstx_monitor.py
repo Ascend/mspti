@@ -1,14 +1,14 @@
 #!/usr/bin/python3
-# coding=utf-8
+# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -25,17 +25,14 @@ from multiprocessing import Queue
 import torch
 import torch_npu
 
-from mspti import (
-    MstxMonitor,
-    MarkerData,
-    RangeMarkerData
-)
+from mspti import MstxMonitor, MarkerData, RangeMarkerData
 
 # parser会被多线程调用，所以使用queue存储数据，保证多线程安全
 data_queue = Queue()
 
-logging.basicConfig(format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s', level=logging.INFO
+)
 
 
 def range_mark_parser(data: RangeMarkerData):
@@ -53,15 +50,26 @@ def consumer_func(consume_queue):
             if data is None:
                 break
             if isinstance(data, RangeMarkerData):
-                logging.info(f'{data.kind}, {data.source_kind}, {data.id}, {data.name}, {data.domain}, {data.start}, '
-                             f'{data.end}, {data.object_id.process_id}, {data.object_id.thread_id}, '
-                             f'{data.object_id.stream_id}, {data.object_id.device_id}')
+                logging.info(
+                    '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s',
+                    data.kind,
+                    data.source_kind,
+                    data.id,
+                    data.name,
+                    data.domain,
+                    data.start,
+                    data.end,
+                    data.object_id.process_id,
+                    data.object_id.thread_id,
+                    data.object_id.stream_id,
+                    data.object_id.device_id,
+                )
         else:
             time.sleep(0.1)
 
 
 def test_monitor():
-    consumer = threading.Thread(target=consumer_func, args=(data_queue, ))
+    consumer = threading.Thread(target=consumer_func, args=(data_queue,))
     consumer.start()
     # mspti monitor开启打点类数据采集
     m_monitor = MstxMonitor()
@@ -81,6 +89,8 @@ def test_monitor():
 
     result = x + y
     result = torch.matmul(x, y)
+    print(f"result: {result}, result.shape: {result.shape}")
+
     torch_npu.npu.mstx.range_end(range_id)
 
     torch.npu.synchronize()

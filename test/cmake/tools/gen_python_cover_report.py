@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -34,17 +34,16 @@ import shutil
 import json
 from lxml import etree
 import codecs
+
 THIS_FILE_NAME = __file__
 THIS_FILE_PATH = os.path.dirname(os.path.realpath(THIS_FILE_NAME))
 work_dir = os.path.abspath(os.path.join(THIS_FILE_PATH, "../../../"))
-classify_rule_path = os.path.join(
-    work_dir, 'vendor/hisi/classify_rule/classify_rule.yaml')
+classify_rule_path = os.path.join(work_dir, 'vendor/hisi/classify_rule/classify_rule.yaml')
 sys.path.append(os.path.join(work_dir, "vendor/hisi/llt/ci/script/"))
-from utils import read_file_content_to_list,run_command
-from diff_coverage import ProjectCoverage,DiffCoverage
-logging.basicConfig(
-    format='[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] : %(message)s',
-    level=logging.DEBUG)
+from utils import read_file_content_to_list, run_command
+from diff_coverage import ProjectCoverage, DiffCoverage
+
+logging.basicConfig(format='[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] : %(message)s', level=logging.DEBUG)
 
 logger = logging.getLogger()
 
@@ -71,41 +70,33 @@ class IncCoverageParam:
     @property
     def coverage_filepath(self) -> Path:
         coverage_filepath = Path(
-            os.path.join(self.coverage_result_path.path,
-                         '.coverage.{0}'.format(self.local_module)),
-            self._topdir)
+            os.path.join(self.coverage_result_path.path, '.coverage.{0}'.format(self.local_module)), self._topdir
+        )
         return coverage_filepath
 
     @property
     def src_path_filepath(self) -> Path:
         src_path_filepath = Path(
-            os.path.join(self.coverage_result_path.path,
-                         '.src_path.{0}'.format(self.local_module)),
-            self._topdir)
+            os.path.join(self.coverage_result_path.path, '.src_path.{0}'.format(self.local_module)), self._topdir
+        )
         return src_path_filepath
 
     @property
     def cov_xml_filepath(self) -> Path:
         cov_xml_filepath = Path(
-            os.path.join(self.coverage_result_path.path,
-                         'coverage_{0}.xml'.format(self.local_module)),
-            self._topdir)
+            os.path.join(self.coverage_result_path.path, 'coverage_{0}.xml'.format(self.local_module)), self._topdir
+        )
         return cov_xml_filepath
 
     @property
     def cov_report_dirpath(self) -> Path:
-        cov_report_dirpath = Path(
-            os.path.join(self.coverage_result_path.path, self.local_module),
-            self._topdir)
+        cov_report_dirpath = Path(os.path.join(self.coverage_result_path.path, self.local_module), self._topdir)
         return cov_report_dirpath
 
     def load_src_paths(self):
         with open(self.src_path_filepath.path) as file:
             src_paths = file.read().strip().split(',')
-            self.src_paths = [
-                Path(os.path.join(self._topdir, src_path), self._topdir)
-                for src_path in src_paths
-            ]
+            self.src_paths = [Path(os.path.join(self._topdir, src_path), self._topdir) for src_path in src_paths]
 
 
 def quote_params(params) -> List:
@@ -159,6 +150,7 @@ def get_local_modules(coverage_result_path: Path):
 
 def get_classify_rule_item_list(classify_rule_name):
     from yaml_config_parser import YamlConfig
+
     component_list = classify_rule_name
     yamlconfig = YamlConfig(classify_rule_path)
     yamlconfig.initial(component_list)
@@ -171,8 +163,7 @@ def get_classify_rule_item_list(classify_rule_name):
     return item_list
 
 
-def generate_full_coverage_data(coverage_result_path: Path, python_version,
-                                classify_rule: list) -> bool:
+def generate_full_coverage_data(coverage_result_path: Path, python_version, classify_rule: list) -> bool:
     """
     生成全量覆盖率
     1. coverage_result目录下执行coverage combile，合并覆盖率数据
@@ -191,11 +182,15 @@ def generate_full_coverage_data(coverage_result_path: Path, python_version,
         coverage_file = os.path.join(coverage_result_path.path, '.coverage')
         os.chdir(coverage_result_path.topdir)
         report_cmd = [
-            'COVERAGE_FILE=' + coverage_file, python_version, '-m', 'coverage',
-            'html', "-d", coverage_result_path.path
+            'COVERAGE_FILE=' + coverage_file,
+            python_version,
+            '-m',
+            'coverage',
+            'html',
+            "-d",
+            coverage_result_path.path,
         ]
-        classify_rule_item_list = get_classify_rule_item_list(
-            classify_rule)
+        classify_rule_item_list = get_classify_rule_item_list(classify_rule)
         if len(classify_rule_item_list) > 0:
             # 根据classify_rule中的条目，只统计跟组件相关的代码
             include_str = ",".join(classify_rule_item_list)
@@ -210,28 +205,24 @@ def generate_full_coverage_data(coverage_result_path: Path, python_version,
     return True
 
 
-def check_inc_coverage_prerequisite(
-        inc_cov_params: List[IncCoverageParam]) -> bool:
+def check_inc_coverage_prerequisite(inc_cov_params: List[IncCoverageParam]) -> bool:
     """
     检查增量覆盖率前置条件，.coverage文件与.src_path文件都需要存在
     """
     retcode = True
     for inc_cov_param in inc_cov_params:
         if not os.path.isfile(inc_cov_param.coverage_filepath.path):
-            logging.warning('coverage file %s does not exist',
-                            inc_cov_param.coverage_filepath.relpath)
+            logging.warning('coverage file %s does not exist', inc_cov_param.coverage_filepath.relpath)
             retcode = False
 
     for inc_cov_param in inc_cov_params:
         if not os.path.isfile(inc_cov_param.src_path_filepath.path):
-            logging.warning('src_path file %s does not exist',
-                            inc_cov_param.src_path_filepath.relpath)
+            logging.warning('src_path file %s does not exist', inc_cov_param.src_path_filepath.relpath)
             retcode = False
     return retcode
 
 
-def generate_inc_coverage_data(python_version, classify_rule, top_dir,
-                               threshold) -> bool:
+def generate_inc_coverage_data(python_version, classify_rule, top_dir, threshold) -> bool:
     """
     生成增量覆盖率
     1. 对于每一个模块，执行coverage xml生成xml覆盖率数据文件
@@ -253,23 +244,16 @@ def generate_inc_coverage_data(python_version, classify_rule, top_dir,
     coverage_path = top_dir + '/output/llt/coverage_result/'
     coveragefile_path = coverage_path + '.coverage'
     coveragexml_path = coverage_path + 'coverage.xml'
-    envs = convert_to_envs(
-        {'COVERAGE_FILE': coveragefile_path})
-    cmds = quote_params([
-        python_version, '-m', 'coverage', 'xml', '-o',
-        coveragexml_path
-    ])
-    classify_rule_item_list = get_classify_rule_item_list(
-        classify_rule)
+    envs = convert_to_envs({'COVERAGE_FILE': coveragefile_path})
+    cmds = quote_params([python_version, '-m', 'coverage', 'xml', '-o', coveragexml_path])
+    classify_rule_item_list = get_classify_rule_item_list(classify_rule)
     if len(classify_rule_item_list) > 0:
         # 根据classify_rule中的条目，只统计跟组件相关的代码
         include_str = ",".join(classify_rule_item_list)
         cmds.append("--include=" + include_str)
     result = shell_exec(envs + cmds)
     if result.returncode != 0:
-        logging.error('coverage xml %s to %s failed!',
-                      coveragefile_path,
-                      coveragexml_path)
+        logging.error('coverage xml %s to %s failed!', coveragefile_path, coveragexml_path)
         retcode = False
 
     if not retcode:
@@ -281,7 +265,8 @@ def generate_inc_coverage_data(python_version, classify_rule, top_dir,
     FILE_COVERAGE_THRESHOLD = 100
     LINE_COVERAGE_THRESHOLD = threshold
     project_names, changed_files = read_file_content_to_list(
-        os.path.join(top_dir, 'vendor/hisi/llt/ci/script/changed_files_list'))
+        os.path.join(top_dir, 'vendor/hisi/llt/ci/script/changed_files_list')
+    )
     for project_name in project_names:
         path = os.path.join(top_dir, project_name)
         if not os.path.exists(path):
@@ -289,8 +274,16 @@ def generate_inc_coverage_data(python_version, classify_rule, top_dir,
         else:
             invole_project_names.append(project_name)
 
-    diff_coverage = DiffCoverage(top_dir,
-                                 classify_rule, invole_project_names, coverage_xml_files, changed_files, language, FILE_COVERAGE_THRESHOLD, LINE_COVERAGE_THRESHOLD)
+    diff_coverage = DiffCoverage(
+        top_dir,
+        classify_rule,
+        invole_project_names,
+        coverage_xml_files,
+        changed_files,
+        language,
+        FILE_COVERAGE_THRESHOLD,
+        LINE_COVERAGE_THRESHOLD,
+    )
     retcode = diff_coverage.process()
     return retcode
 
@@ -305,27 +298,27 @@ def generate_and_check_coverage(params: Dict):
     top_dir = script_dir.topdir
     classify_rule_str = " ".join(classify_rule)
     if full_coverage_config == 'true':
-        retcode = generate_full_coverage_data(coverage_result_path,
-                                              python_version, classify_rule)
+        retcode = generate_full_coverage_data(coverage_result_path, python_version, classify_rule)
         if not retcode:
             sys.exit(1)
     else:
         # ignore check result, go ahead
         # 增量检查
-        retcode = generate_inc_coverage_data(python_version, classify_rule, top_dir,
-                                             threshold)
+        retcode = generate_inc_coverage_data(python_version, classify_rule, top_dir, threshold)
         if not retcode:
             sys.exit(1)
 
     if full_coverage_config == 'true':
-
-        result = shell_exec([
-            python_version,
-            os.path.join(script_dir.path, 'get_python_report.py'),
-            classify_rule_str,
-            os.path.join(coverage_result_path.path),
-            str(threshold), full_coverage_config
-        ])
+        result = shell_exec(
+            [
+                python_version,
+                os.path.join(script_dir.path, 'get_python_report.py'),
+                classify_rule_str,
+                os.path.join(coverage_result_path.path),
+                str(threshold),
+                full_coverage_config,
+            ]
+        )
         if result.returncode != 0:
             logging.error('run get_python_report.py failed')
             sys.exit(1)
@@ -352,10 +345,8 @@ def generate_coverage_json(coverage_result_path):
         f.close()
         tree = etree.HTML(content)
 
-        coverage_total_element = tree.xpath(
-            '//*[@id="index"]/table/tfoot/tr[1]/td[2]')
-        coverage_miss_element = tree.xpath(
-            '//*[@id="index"]/table/tfoot/tr[1]/td[3]')
+        coverage_total_element = tree.xpath('//*[@id="index"]/table/tfoot/tr[1]/td[2]')
+        coverage_miss_element = tree.xpath('//*[@id="index"]/table/tfoot/tr[1]/td[3]')
         if len(coverage_total_element) == 0:
             coverage_total = 0
         else:
@@ -377,8 +368,7 @@ def generate_coverage_json(coverage_result_path):
         }
     result_json = json.dumps(coverage)
     json_file_name = "coverage.json"
-    json_file_full_name = os.path.join(coverage_result_path.topdir,
-                                       'output/llt', json_file_name)
+    json_file_full_name = os.path.join(coverage_result_path.topdir, 'output/llt', json_file_name)
     with open(json_file_full_name, 'w') as F:
         F.write(result_json)
 
@@ -390,11 +380,7 @@ def get_manifest_branch(topdir=None):
         manifest_path = os.path.join('.repo', 'manifests')
 
     cmd = ['git', 'config', '--get', 'branch.default.merge']
-    result = subprocess.run(cmd,
-                           cwd=manifest_path,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
-                           check=False)
+    result = subprocess.run(cmd, cwd=manifest_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     if result.returncode == 0:
         output = result.stdout.decode().strip()
         return output.split(os.path.sep)[-1] if os.path.sep in output else output
@@ -403,9 +389,7 @@ def get_manifest_branch(topdir=None):
 
 
 def main(argv):
-    logging.basicConfig(
-        format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)d:%(message)s',
-        level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)d:%(message)s', level=logging.INFO)
 
     stripped_argv = [arg.strip() for arg in argv]
 
@@ -426,11 +410,8 @@ def main(argv):
 
     topdir = stripped_argv[6]
 
-    coverage_result_path = Path(os.path.join(outdir, 'coverage_result'),
-                                topdir)
-    script_dir = Path(
-        os.path.join(topdir, 'vendor', 'hisi', 'llt', 'ci', 'script',
-                     'genaddcov'), topdir)
+    coverage_result_path = Path(os.path.join(outdir, 'coverage_result'), topdir)
+    script_dir = Path(os.path.join(topdir, 'vendor', 'hisi', 'llt', 'ci', 'script', 'genaddcov'), topdir)
 
     params = {
         'full_coverage_config': full_coverage_config,

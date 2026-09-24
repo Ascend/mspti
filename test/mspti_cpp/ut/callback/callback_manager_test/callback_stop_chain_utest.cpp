@@ -1,12 +1,13 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2026 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- * http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -15,17 +16,16 @@
  * -------------------------------------------------------------------------
  */
 
-#include "gtest/gtest.h"
-
-#include <cstdlib>
 #include <cstdio>
 #include <cstdlib>
 
-#include "mspti.h"
 #include "csrc/activity/activity_manager.h"
+#include "gtest/gtest.h"
+#include "mspti.h"
 
-class CallbackStopChainUtest : public testing::Test {
-protected:
+class CallbackStopChainUtest : public testing::Test
+{
+   protected:
     void SetUp() override
     {
         setenv("LD_PRELOAD", "libmspti.so", 1);
@@ -35,15 +35,15 @@ protected:
     void TearDown() override
     {
         // Best-effort cleanup for cases where the test fails in the middle.
-        if (subscriber_ != nullptr) {
+        if (subscriber_ != nullptr)
+        {
             (void)msptiUnsubscribe(subscriber_);
             subscriber_ = nullptr;
         }
         (void)msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL);
     }
 
-    static void UserCallback(void *pUserData, msptiCallbackDomain domain,
-                             msptiCallbackId callbackId,
+    static void UserCallback(void *pUserData, msptiCallbackDomain domain, msptiCallbackId callbackId,
                              const msptiCallbackData *pCallbackInfo)
     {
         (void)pUserData;
@@ -94,33 +94,23 @@ TEST_F(CallbackStopChainUtest, StopSequenceShouldDisableKernelAndAllowResubscrib
     EXPECT_EQ(MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED,
               msptiSubscribe(&anotherSubscriber, UserCallback, nullptr));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(true,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(true, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     // This is the first half of the Huawei stop sequence.
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(false,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(false, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     // Repeated disable is intentionally tolerated here.
     // The current MSPTI implementation resets the activity flag and stops analysis work,
     // so a second disable should not break the rest of the stop-chain.
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(false,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(false, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     // This is the second half of the Huawei stop sequence.
     // In the current MSPTI design, unsubscribe is also responsible for deeper cleanup.
@@ -136,8 +126,7 @@ TEST_F(CallbackStopChainUtest, StopSequenceShouldDisableKernelAndAllowResubscrib
     // Verify that callback configuration can be enabled again after stop-chain cleanup.
     // This is stronger than checking subscribe alone because it shows that the callback
     // layer is not only re-opened, but also usable.
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber_));
     subscriber_ = nullptr;
@@ -150,18 +139,13 @@ TEST_F(CallbackStopChainUtest, ActivityDisableAloneShouldNotBeTreatedAsFullStop)
     EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber_, UserCallback, nullptr));
     ASSERT_NE(subscriber_, nullptr);
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(false,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(false, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     // activityDisable alone is not expected to perform full callback-side cleanup.
     msptiSubscriberHandle anotherSubscriber = nullptr;
@@ -195,23 +179,16 @@ TEST_F(CallbackStopChainUtest, StopSequenceShouldSupportRestartAndSecondStop)
     EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber_, UserCallback, nullptr));
     ASSERT_NE(subscriber_, nullptr);
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(true,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(true, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     // First stop cycle.
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(false,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(false, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber_));
     subscriber_ = nullptr;
@@ -220,23 +197,16 @@ TEST_F(CallbackStopChainUtest, StopSequenceShouldSupportRestartAndSecondStop)
     EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&subscriber_, UserCallback, nullptr));
     ASSERT_NE(subscriber_, nullptr);
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiEnableDomain(1, subscriber_, MSPTI_CB_DOMAIN_RUNTIME));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(true,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(true, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     // Second stop cycle.
-    EXPECT_EQ(MSPTI_SUCCESS,
-              msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_KERNEL));
 
-    EXPECT_EQ(false,
-              Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(
-                  MSPTI_ACTIVITY_KIND_KERNEL));
+    EXPECT_EQ(false, Mspti::Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_KERNEL));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiUnsubscribe(subscriber_));
     subscriber_ = nullptr;

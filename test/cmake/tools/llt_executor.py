@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#    http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
@@ -30,10 +30,7 @@ import xml.etree.ElementTree as ET
 
 __version = "1.0"
 
-logging.basicConfig(
-    format=
-    '[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] : %(message)s',
-    level=logging.DEBUG)
+logging.basicConfig(format='[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] : %(message)s', level=logging.DEBUG)
 logger = logging.getLogger()
 
 LLT_RUN_MOD_SINGLE = "single"
@@ -41,11 +38,7 @@ LLT_RUN_MOD_TESTSUITE = "testsuite"
 LLT_RUN_MOD_TESTCASE = "testcase"
 LLT_RUN_MOD_MIND = "mind"
 
-LLT_RUN_MOD_CHOICES = (
-    LLT_RUN_MOD_SINGLE,
-    LLT_RUN_MOD_TESTSUITE,
-    LLT_RUN_MOD_MIND
-)
+LLT_RUN_MOD_CHOICES = (LLT_RUN_MOD_SINGLE, LLT_RUN_MOD_TESTSUITE, LLT_RUN_MOD_MIND)
 NUM_CPUS = cpu_count()
 
 
@@ -78,6 +71,7 @@ class LowLevelTestSplitMindMixin(object):
     """
     llt用例执行按照非切分的执行结果，进行智能切分。
     """
+
     single_xml_file = None
 
     def _mind_split(self):
@@ -164,7 +158,11 @@ class LowLevelTestExecuteBase(object):
         if self._testsuites is not None:
             return self._testsuites
         cmd = [self.llt_bin, "--gtest_list_tests"]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
+        p = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         stdout, stderr = p.communicate()
         logger.info(cmd)
         logger.info(stdout)
@@ -262,9 +260,9 @@ class LowLevelTestExecuteMultiBase(LowLevelTestExecuteBase):
             log_file_name = "{basename}_{index}.log".format(basename=self.llt_basename, index=self.process_index)
             log_file = os.path.join(self.tmp, log_file_name)
 
-            shell_cmd = "{llt_bin} --gtest_filter={item} --gtest_output=xml:{output}".format(llt_bin=self.llt_bin,
-                                                                                             item=item,
-                                                                                             output=output)
+            shell_cmd = "{llt_bin} --gtest_filter={item} --gtest_output=xml:{output}".format(
+                llt_bin=self.llt_bin, item=item, output=output
+            )
             cmd = shlex.split(shell_cmd)
             p = subprocess.run(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             if self.print_llt_log:
@@ -361,7 +359,6 @@ class LowLevelTestExecuteMultiBase(LowLevelTestExecuteBase):
 
 
 class LowLevelTestExecuteSingle(LowLevelTestExecuteBase):
-
     def process(self):
         shell_cmd = "{llt_bin} --gtest_output=xml:{output}".format(llt_bin=self.llt_bin, output=self.output)
         cmd = shlex.split(shell_cmd)
@@ -410,9 +407,15 @@ def main(argv=None):
         llt_class = LowLevelTestExecuteMind
     if not llt_class:
         logger.error("no executor init")
-    executor = llt_class(llt_bin=args.llt_bin, run_mod=args.run_mod, tmp=args.tmp,
-                         output=args.output, clean=args.clean, thread=args.thread,
-                         print_llt_log=args.print_llt_log)
+    executor = llt_class(
+        llt_bin=args.llt_bin,
+        run_mod=args.run_mod,
+        tmp=args.tmp,
+        output=args.output,
+        clean=args.clean,
+        thread=args.thread,
+        print_llt_log=args.print_llt_log,
+    )
     if args.run_mod == LLT_RUN_MOD_MIND:
         if not args.train_xml:
             logger.error("must set train-xml")
@@ -468,16 +471,10 @@ def _define_parser() -> ArgumentParser:
         default=False,
         help='is clean tmp dir after run finish',
     )
-    parser.add_argument(
-        '--print-llt-log',
-        action='store_true',
-        default=False,
-        help='is print llt run log'
-    )
+    parser.add_argument('--print-llt-log', action='store_true', default=False, help='is print llt run log')
     parser.add_argument('-V', '--version', action='version', version=__version)
     return parser
 
 
 if __name__ == "__main__":
     main()
-

@@ -1,62 +1,62 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <string>
+
 #include "mspti_adapter.h"
 
 #ifdef ASCEND_CI_LIMITED_PY37
 #undef PyCFunction_NewEx
 #endif
 
-namespace Mspti {
-namespace Adapter {
+namespace Mspti
+{
+namespace Adapter
+{
 PyObject *MsptiStart(PyObject *self, PyObject *args)
 {
     msptiResult ret = MSPTI_SUCCESS;
-    Py_BEGIN_ALLOW_THREADS
-    ret = MsptiAdapter::GetInstance()->Start();
-    Py_END_ALLOW_THREADS
-    return Py_BuildValue("i", ret);
+    Py_BEGIN_ALLOW_THREADS ret = MsptiAdapter::GetInstance()->Start();
+    Py_END_ALLOW_THREADS return Py_BuildValue("i", ret);
 }
 
 PyObject *MsptiStop(PyObject *self, PyObject *args)
 {
     msptiResult ret = MSPTI_SUCCESS;
-    Py_BEGIN_ALLOW_THREADS
-    ret = MsptiAdapter::GetInstance()->Stop();
-    Py_END_ALLOW_THREADS
-    return Py_BuildValue("i", ret);
+    Py_BEGIN_ALLOW_THREADS ret = MsptiAdapter::GetInstance()->Stop();
+    Py_END_ALLOW_THREADS return Py_BuildValue("i", ret);
 }
 
 PyObject *MsptiFlushAll(PyObject *self, PyObject *args)
 {
     msptiResult ret = MSPTI_SUCCESS;
-    Py_BEGIN_ALLOW_THREADS
-    ret = MsptiAdapter::GetInstance()->FlushAll();
-    Py_END_ALLOW_THREADS
-    return Py_BuildValue("i", ret);
+    Py_BEGIN_ALLOW_THREADS ret = MsptiAdapter::GetInstance()->FlushAll();
+    Py_END_ALLOW_THREADS return Py_BuildValue("i", ret);
 }
 
 PyObject *MsptiFlushPeriod(PyObject *self, PyObject *args)
 {
     uint32_t time = 0;
-    if (!PyArg_ParseTuple(args, "I", &time)) {
+    if (!PyArg_ParseTuple(args, "I", &time))
+    {
         PyErr_SetString(PyExc_TypeError, "FlushPeriod time args parse failed!");
         return nullptr;
     }
@@ -67,7 +67,8 @@ PyObject *MsptiFlushPeriod(PyObject *self, PyObject *args)
 PyObject *MsptiSetBufferSize(PyObject *self, PyObject *args)
 {
     uint32_t size = 0;
-    if (!PyArg_ParseTuple(args, "I", &size)) {
+    if (!PyArg_ParseTuple(args, "I", &size))
+    {
         PyErr_SetString(PyExc_TypeError, "SetBufferSize size args parse failed!");
         return nullptr;
     }
@@ -75,11 +76,13 @@ PyObject *MsptiSetBufferSize(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-namespace Mstx {
+namespace Mstx
+{
 PyObject *RegisterCB(PyObject *self, PyObject *args)
 {
     PyObject *callback = nullptr;
-    if (!PyArg_ParseTuple(args, "O", &callback)) {
+    if (!PyArg_ParseTuple(args, "O", &callback))
+    {
         PyErr_SetString(PyExc_TypeError, "Mstx register callback args parse failed!");
         return nullptr;
     }
@@ -95,8 +98,9 @@ PyObject *UnregisterCB(PyObject *self, PyObject *args)
 
 PyObject *EnableDomain(PyObject *self, PyObject *args)
 {
-    const char* domainName = nullptr;
-    if (!PyArg_ParseTuple(args, "s", &domainName)) {
+    const char *domainName = nullptr;
+    if (!PyArg_ParseTuple(args, "s", &domainName))
+    {
         PyErr_SetString(PyExc_TypeError, "EnableDomain: domain must be a string!");
         return nullptr;
     }
@@ -106,8 +110,9 @@ PyObject *EnableDomain(PyObject *self, PyObject *args)
 
 PyObject *DisableDomain(PyObject *self, PyObject *args)
 {
-    const char* domainName = nullptr;
-    if (!PyArg_ParseTuple(args, "s", &domainName)) {
+    const char *domainName = nullptr;
+    if (!PyArg_ParseTuple(args, "s", &domainName))
+    {
         PyErr_SetString(PyExc_TypeError, "DisableDomain: domain must be a string!");
         return nullptr;
     }
@@ -117,22 +122,22 @@ PyObject *DisableDomain(PyObject *self, PyObject *args)
 
 PyMethodDef *GetMstxMethods()
 {
-    static PyMethodDef methodMstx[] = {
-        {"registerCB", RegisterCB, METH_VARARGS, ""},
-        {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
-        {"enableDomain", EnableDomain, METH_VARARGS, ""},
-        {"disableDomain", DisableDomain, METH_VARARGS, ""},
-        {nullptr, nullptr, METH_VARARGS, ""}
-    };
+    static PyMethodDef methodMstx[] = {{"registerCB", RegisterCB, METH_VARARGS, ""},
+                                       {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
+                                       {"enableDomain", EnableDomain, METH_VARARGS, ""},
+                                       {"disableDomain", DisableDomain, METH_VARARGS, ""},
+                                       {nullptr, nullptr, METH_VARARGS, ""}};
     return methodMstx;
 }
-} // Mstx
+}  // namespace Mstx
 
-namespace Kernel {
+namespace Kernel
+{
 PyObject *RegisterCB(PyObject *self, PyObject *args)
 {
     PyObject *callback = nullptr;
-    if (!PyArg_ParseTuple(args, "O", &callback)) {
+    if (!PyArg_ParseTuple(args, "O", &callback))
+    {
         PyErr_SetString(PyExc_TypeError, "Kernel register callback args parse failed!");
         return nullptr;
     }
@@ -148,20 +153,20 @@ PyObject *UnregisterCB(PyObject *self, PyObject *args)
 
 PyMethodDef *GetKernelMethods()
 {
-    static PyMethodDef methodMstx[] = {
-        {"registerCB", RegisterCB, METH_VARARGS, ""},
-        {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
-        {nullptr, nullptr, METH_VARARGS, ""}
-    };
+    static PyMethodDef methodMstx[] = {{"registerCB", RegisterCB, METH_VARARGS, ""},
+                                       {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
+                                       {nullptr, nullptr, METH_VARARGS, ""}};
     return methodMstx;
 }
-} // Kernel
+}  // namespace Kernel
 
-namespace Hccl {
+namespace Hccl
+{
 PyObject *RegisterCB(PyObject *self, PyObject *args)
 {
     PyObject *callback = nullptr;
-    if (!PyArg_ParseTuple(args, "O", &callback)) {
+    if (!PyArg_ParseTuple(args, "O", &callback))
+    {
         PyErr_SetString(PyExc_TypeError, "hccl register callback args parse failed!");
         return nullptr;
     }
@@ -177,20 +182,20 @@ PyObject *UnregisterCB(PyObject *self, PyObject *args)
 
 PyMethodDef *GetHcclMethods()
 {
-    static PyMethodDef methodHccl[] = {
-        {"registerCB", RegisterCB, METH_VARARGS, ""},
-        {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
-        {nullptr, nullptr, METH_VARARGS, ""}
-    };
+    static PyMethodDef methodHccl[] = {{"registerCB", RegisterCB, METH_VARARGS, ""},
+                                       {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
+                                       {nullptr, nullptr, METH_VARARGS, ""}};
     return methodHccl;
 }
-} // Hccl
+}  // namespace Hccl
 
-namespace Communication {
+namespace Communication
+{
 PyObject *RegisterCB(PyObject *self, PyObject *args)
 {
     PyObject *callback = nullptr;
-    if (!PyArg_ParseTuple(args, "O", &callback)) {
+    if (!PyArg_ParseTuple(args, "O", &callback))
+    {
         PyErr_SetString(PyExc_TypeError, "Communication register callback args parse failed!");
         return nullptr;
     }
@@ -206,36 +211,24 @@ PyObject *UnregisterCB(PyObject *self, PyObject *args)
 
 PyMethodDef *GetCommunicationMethods()
 {
-    static PyMethodDef methodCommunication[] = {
-        {"registerCB", RegisterCB, METH_VARARGS, ""},
-        {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
-        {nullptr, nullptr, METH_VARARGS, ""}
-    };
+    static PyMethodDef methodCommunication[] = {{"registerCB", RegisterCB, METH_VARARGS, ""},
+                                                {"unregisterCB", UnregisterCB, METH_NOARGS, ""},
+                                                {nullptr, nullptr, METH_VARARGS, ""}};
     return methodCommunication;
 }
-} // Communication
-} // Adapter
-} // Mspti
+}  // namespace Communication
+}  // namespace Adapter
+}  // namespace Mspti
 
-static PyMethodDef g_moduleMethods[] = {
-    {"start", Mspti::Adapter::MsptiStart, METH_NOARGS, ""},
-    {"stop", Mspti::Adapter::MsptiStop, METH_NOARGS, ""},
-    {"flush_all", Mspti::Adapter::MsptiFlushAll, METH_NOARGS, ""},
-    {"flush_period", Mspti::Adapter::MsptiFlushPeriod, METH_VARARGS, ""},
-    {"set_buffer_size", Mspti::Adapter::MsptiSetBufferSize, METH_VARARGS, ""},
-    {nullptr, nullptr, METH_VARARGS, ""}
-};
+static PyMethodDef g_moduleMethods[] = {{"start", Mspti::Adapter::MsptiStart, METH_NOARGS, ""},
+                                        {"stop", Mspti::Adapter::MsptiStop, METH_NOARGS, ""},
+                                        {"flush_all", Mspti::Adapter::MsptiFlushAll, METH_NOARGS, ""},
+                                        {"flush_period", Mspti::Adapter::MsptiFlushPeriod, METH_VARARGS, ""},
+                                        {"set_buffer_size", Mspti::Adapter::MsptiSetBufferSize, METH_VARARGS, ""},
+                                        {nullptr, nullptr, METH_VARARGS, ""}};
 
 static PyModuleDef g_libMethods = {
-    PyModuleDef_HEAD_INIT, "mspti_C",
-    "",
-    -1,
-    g_moduleMethods,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr
-};
+    PyModuleDef_HEAD_INIT, "mspti_C", "", -1, g_moduleMethods, nullptr, nullptr, nullptr, nullptr};
 
 static void AddSubModule(PyObject *root, const char *name, PyMethodDef *methods)
 {
@@ -243,14 +236,16 @@ static void AddSubModule(PyObject *root, const char *name, PyMethodDef *methods)
     std::string subModuleName = name;
     std::string moduleName = "mspti_C." + subModuleName;
     PyObject *subModule = PyDict_GetItemString(d, name);
-    if (subModule == nullptr) {
+    if (subModule == nullptr)
+    {
         subModule = PyImport_AddModule(moduleName.c_str());
         PyDict_SetItemString(d, name, subModule);
         Py_XDECREF(subModule);
     }
     // populate module's dict
     d = PyModule_GetDict(subModule);
-    for (PyMethodDef *m = methods; m->ml_name != nullptr; ++m) {
+    for (PyMethodDef *m = methods; m->ml_name != nullptr; ++m)
+    {
         PyObject *methodObj = PyCFunction_NewEx(m, nullptr, nullptr);
         PyDict_SetItemString(d, m->ml_name, methodObj);
         Py_XDECREF(methodObj);
@@ -258,20 +253,21 @@ static void AddSubModule(PyObject *root, const char *name, PyMethodDef *methods)
 }
 
 #if defined(__cplusplus)
-extern "C" {
+extern "C"
+{
 #endif
 
-PyMODINIT_FUNC PyInit_mspti_C()
-{
-    PyObject *m = PyModule_Create(&g_libMethods);
-    AddSubModule(m, "mstx", Mspti::Adapter::Mstx::GetMstxMethods());
-    AddSubModule(m, "kernel", Mspti::Adapter::Kernel::GetKernelMethods());
-    AddSubModule(m, "hccl", Mspti::Adapter::Hccl::GetHcclMethods());
-    AddSubModule(m, "communication", Mspti::Adapter::Communication::GetCommunicationMethods());
-    return m;
-}
+    PyMODINIT_FUNC PyInit_mspti_C()
+    {
+        PyObject *m = PyModule_Create(&g_libMethods);
+        AddSubModule(m, "mstx", Mspti::Adapter::Mstx::GetMstxMethods());
+        AddSubModule(m, "kernel", Mspti::Adapter::Kernel::GetKernelMethods());
+        AddSubModule(m, "hccl", Mspti::Adapter::Hccl::GetHcclMethods());
+        AddSubModule(m, "communication", Mspti::Adapter::Communication::GetCommunicationMethods());
+        return m;
+    }
 
-__attribute__ ((visibility("default"))) PyObject* PyInit_mspti_C();
+    __attribute__((visibility("default"))) PyObject *PyInit_mspti_C();
 
 #if defined(__cplusplus)
 }

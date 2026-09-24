@@ -1,24 +1,28 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #include "csrc/common/inject/plog_inject.h"
+
 #include "csrc/common/utils.h"
 
-namespace {
-enum PlogFunctionIndex {
+namespace
+{
+enum PlogFunctionIndex
+{
     FUNC_CHECK_LOG_LEVEL_FOR_C,
     FUNC_DLOG_INNER_FOR_C,
     FUNC_PLOG_COUNT
@@ -32,7 +36,7 @@ void LoadPlogFunction()
     g_plogFuncArray[FUNC_CHECK_LOG_LEVEL_FOR_C] = Mspti::Common::RegisterFunction("libascendalog", "CheckLogLevelForC");
     g_plogFuncArray[FUNC_DLOG_INNER_FOR_C] = Mspti::Common::RegisterFunction("libascendalog", "DlogInnerForC");
 }
-}
+}  // namespace
 
 int CheckLogLevelForC(int moduleId, int level)
 {
@@ -40,7 +44,8 @@ int CheckLogLevelForC(int moduleId, int level)
     void* voidFunc = g_plogFuncArray[FUNC_CHECK_LOG_LEVEL_FOR_C];
     using checkLogLevelForCFunc = std::function<decltype(CheckLogLevelForC)>;
     checkLogLevelForCFunc func = Mspti::Common::ReinterpretConvert<decltype(&CheckLogLevelForC)>(voidFunc);
-    if (func == nullptr) {
+    if (func == nullptr)
+    {
         Mspti::Common::GetFunction("libascendalog", __FUNCTION__, func);
     }
     THROW_FUNC_NOTFOUND(func, __FUNCTION__, "libascendalog.so");

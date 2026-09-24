@@ -1,25 +1,28 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #include "csrc/common/inject/profapi_inject.h"
 #include "csrc/common/utils.h"
 
-namespace Mspti {
-namespace Inject {
+namespace Mspti
+{
+namespace Inject
+{
 
 int32_t MsprofRegisterProfileCallback(int32_t callbackType, VOID_PTR callback, uint32_t len)
 {
@@ -36,7 +39,8 @@ int32_t profSetProfCommand(VOID_PTR command, uint32_t len)
     return MSPTI_SUCCESS;
 }
 
-namespace Detail {
+namespace Detail
+{
 int32_t MsprofReporterCallbackImpl(uint32_t moduleId, uint32_t type, VOID_PTR data, uint32_t len)
 {
     UNUSED(moduleId);
@@ -100,11 +104,11 @@ int32_t MsptiRegReportTypeInfoImpl(uint16_t level, uint32_t typeId, const char* 
 }
 
 int32_t MsprofDeviceStateImpl(VOID_PTR deviceState, uint32_t len)
-{ 
+{
     UNUSED(deviceState);
     UNUSED(len);
     return MSPTI_SUCCESS;
 }
-}
-}
-}
+}  // namespace Detail
+}  // namespace Inject
+}  // namespace Mspti

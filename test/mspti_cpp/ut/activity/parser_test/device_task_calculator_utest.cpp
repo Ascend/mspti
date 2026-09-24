@@ -1,40 +1,38 @@
-/* -------------------------------------------------------------------------
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+/*
+ * -------------------------------------------------------------------------
  * This file is part of the MindStudio project.
+ * Copyright (c) 2025 Huawei Technologies Co.,Ltd.
  *
  * MindStudio is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
- *    http://license.coscl.org.cn/MulanPSL2
+ *          http://license.coscl.org.cn/MulanPSL2
  *
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
-#include "gtest/gtest.h"
-
-#include "mockcpp/mockcpp.hpp"
-
-#include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/parser/cann_hash_cache.h"
-#include "csrc/activity/ascend/parser/mstx_parser.h"
 #include "csrc/activity/ascend/parser/device_task_calculator.h"
+#include "csrc/activity/ascend/parser/mstx_parser.h"
+#include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/common/inject/acl_inject.h"
 #include "csrc/common/utils.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
 #include "securec.h"
 
-namespace {
+namespace
+{
 using namespace Mspti;
-class DeviceTaskCalculatorUtest : public testing::Test {
-protected:
-    virtual void SetUp()
-    {
-        GlobalMockObject::verify();
-    }
+class DeviceTaskCalculatorUtest : public testing::Test
+{
+   protected:
+    virtual void SetUp() { GlobalMockObject::verify(); }
     virtual void TearDown() {}
 };
 
@@ -43,12 +41,14 @@ TEST_F(DeviceTaskCalculatorUtest, ShouldReturnTaskWhenSocLogReport)
     uint16_t deviceId = 1;
     uint16_t streamId = 1;
     uint16_t taskId = 1;
-    auto &instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
+    auto& instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
     Mspti::Parser::DeviceTask firstTask(0, 0, streamId, taskId, deviceId);
-    instance.RegisterCallBack(firstTask, [deviceId](const Mspti::Parser::DeviceTask& task) {
-        EXPECT_EQ(task.deviceId, 1);
-        return MSPTI_SUCCESS;
-    });
+    instance.RegisterCallBack(firstTask,
+                              [deviceId](const Mspti::Parser::DeviceTask& task)
+                              {
+                                  EXPECT_EQ(task.deviceId, 1);
+                                  return MSPTI_SUCCESS;
+                              });
 
     HalLogData socLogStart;
     (void)memset_s(&socLogStart, sizeof(socLogStart), 0, sizeof(socLogStart));
@@ -73,12 +73,14 @@ TEST_F(DeviceTaskCalculatorUtest, ShouldReturnTaskWhenFftsLogReport)
     uint16_t taskId = 1;
     uint16_t subTaskId = 1;
     Mspti::Parser::DeviceTask firstTask(0, 0, streamId, taskId, deviceId);
-    auto &instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
-    instance.RegisterCallBack(firstTask, [deviceId](const Mspti::Parser::DeviceTask& task) {
-        EXPECT_EQ(task.deviceId, deviceId);
-        EXPECT_EQ(task.subTasks.size(), 1);
-        return MSPTI_SUCCESS;
-    });
+    auto& instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
+    instance.RegisterCallBack(firstTask,
+                              [deviceId](const Mspti::Parser::DeviceTask& task)
+                              {
+                                  EXPECT_EQ(task.deviceId, deviceId);
+                                  EXPECT_EQ(task.subTasks.size(), 1);
+                                  return MSPTI_SUCCESS;
+                              });
 
     HalLogData socLogStart;
     (void)memset_s(&socLogStart, sizeof(socLogStart), 0, sizeof(socLogStart));
@@ -123,11 +125,13 @@ TEST_F(DeviceTaskCalculatorUtest, ShouldNotReturnTask)
     uint16_t taskId = 1;
     uint16_t subTaskId = 1;
     Mspti::Parser::DeviceTask firstTask(0, 0, streamId, taskId, deviceId);
-    auto &instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
-    instance.RegisterCallBack(firstTask, [deviceId](const Mspti::Parser::DeviceTask& task) {
-        EXPECT_TRUE(false);
-        return MSPTI_SUCCESS;
-    });
+    auto& instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
+    instance.RegisterCallBack(firstTask,
+                              [deviceId](const Mspti::Parser::DeviceTask& task)
+                              {
+                                  EXPECT_TRUE(false);
+                                  return MSPTI_SUCCESS;
+                              });
 
     HalLogData socLogStart;
     (void)memset_s(&socLogStart, sizeof(socLogStart), 0, sizeof(socLogStart));
@@ -147,4 +151,4 @@ TEST_F(DeviceTaskCalculatorUtest, ShouldNotReturnTask)
     instance.ReportStarsSocLog(deviceId, socLogStart);
     instance.ReportStarsSocLog(deviceId, fftsLogEnd);
 }
-}
+}  // namespace
