@@ -87,5 +87,7 @@ Activity buffer: Buffers activity record data and transfers one or more activity
 
 |API|Description|
 |--|--|
+|**Function type**|**Function Description**|
+|[msptiGetResultString](./context/msptiGetResultString.md)|Obtains the descriptive string for a msPTI result code.|
 |**Enumeration type**|**Enumeration description**|
 |[msptiResult](./context/msptiResult.md)|Error and result code returned by msPTI.|

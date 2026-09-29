@@ -107,5 +107,7 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 
 |接口|说明|
 |--|--|
+|**Function类型**|**Function说明**|
+|[msptiGetResultString](./context/msptiGetResultString.md)|获取msPTI返回码对应的结果描述字符串。|
 |**Enumeration类型**|**Enumeration说明**|
 |[msptiResult](./context/msptiResult.md)|msPTI返回的错误和结果代码。|
