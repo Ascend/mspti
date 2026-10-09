@@ -283,7 +283,7 @@ msptiResult msptiActivityGetNextRecord(
 
 #### 4.3.1 msptiActivityFlushAll
 
-强制刷新所有 Activity 缓冲区，通过 CompleteFunc 回调返回数据。即使缓冲区未满也会返回。
+强制刷新所有 Activity 缓冲区，通过 CompleteFunc 回调返回数据，即使缓冲区未满也会返回。
 
 ```c
 msptiResult msptiActivityFlushAll(uint32_t flag);  // flag 保留参数

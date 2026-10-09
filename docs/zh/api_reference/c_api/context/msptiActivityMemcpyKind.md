@@ -1,6 +1,6 @@
 # msptiActivityMemcpyKind<a name="ZH-CN_TOPIC_0000002120344714"></a>
 
-内存拷贝类型。msptiActivityMemcpyKind为[msptiActivityMemcpy](msptiActivityMemcpy.md)调用的枚举类，定义如下：
+内存拷贝类型。msptiActivityMemcpyKind为[msptiActivityMemcpy](msptiActivityMemcpy.md)使用的枚举类，定义如下：
 
 ```cpp
 typedef enum {

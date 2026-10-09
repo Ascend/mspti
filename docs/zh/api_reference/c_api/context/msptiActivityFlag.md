@@ -1,6 +1,6 @@
 # msptiActivityFlag<a name="ZH-CN_TOPIC_0000002045928149"></a>
 
-Activity Record的活动标记。标记可以通过按位异或组合，将多个标记与Activity Record关联。每个标记都特定与某一Activity Record关联。
+Activity Record的活动标记。标记可以通过按位异或组合，将多个标记与Activity Record关联。每个标记都对应一个特定的Activity Record。
 
 msptiActivityFlag为[msptiActivityMarker](./msptiActivityMarker.md)结构体内调用的枚举类，定义如下：
 

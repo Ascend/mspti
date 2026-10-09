@@ -1,6 +1,6 @@
 # msptiActivityMemoryKind<a name="ZH-CN_TOPIC_0000002155584861"></a>
 
-请求的内存类型。msptiActivityMemoryKind为[msptiActivityMemory](./msptiActivityMemory.md)调用的枚举类，定义如下：
+请求的内存类型。msptiActivityMemoryKind为[msptiActivityMemory](./msptiActivityMemory.md)使用的枚举类，定义如下：
 
 ```cpp
 typedef enum {

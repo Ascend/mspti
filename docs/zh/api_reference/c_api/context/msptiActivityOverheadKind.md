@@ -1,6 +1,6 @@
 # msptiActivityOverheadKind<a name="ZH-CN_TOPIC_0000002155584861"></a>
 
-开销类型。msptiActivityOverheadKind为[msptiActivityOverhead](./msptiActivityOverhead.md)调用的枚举类，用于标识msPTI开销产生的环节，定义如下：
+开销类型。msptiActivityOverheadKind为[msptiActivityOverhead](./msptiActivityOverhead.md)使用的枚举类，用于标识msPTI开销产生的环节，定义如下：
 
 ```cpp
 typedef enum {

@@ -10,7 +10,7 @@ msPTI API的功能介绍和使用示例请参见[msPTI工具](../../user_guide/s
 
 具体接口如下：
 
-**表 1**  msPTI Python API
+**表 1** msPTI Python API
 
 |接口|说明|
 |--|--|

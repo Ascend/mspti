@@ -5,7 +5,7 @@ CommunicationData为[CommunicationMonitor.start](CommunicationMonitor-start.md)�
 ```python
 class CommunicationData:
     self.kind   # Activity Record类型MSPTI_ACTIVITY_KIND_COMMUNICATION
-    self.start   # 通信算子在NPU设备上执行开始时间戳，单位ns。开始和结束时间戳均为0时则无法收集通信算子的时间戳信息
+    self.start   # 通信算子在NPU设备上执行的开始时间戳，单位ns。开始和结束时间戳均为0时则无法收集通信算子的时间戳信息
     self.end   # 通信算子执行的结束时间戳，单位ns。开始和结束时间戳均为0时则无法收集通信算子的时间戳信息
     self.device_id   # 通信算子运行设备的Device ID
     self.stream_id   # 通信算子运行流的Stream ID

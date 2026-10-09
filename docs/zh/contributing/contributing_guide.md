@@ -159,7 +159,7 @@ bash scripts/execute_test_case.sh
 
 5. **代码审查**
 
-   1. 提交Pull Request后，您需要通知相关“负责人”（ Reviewers和Committers）进行内容审核。
+   1. 提交Pull Request后，您需要通知相关“负责人”（Reviewers和Committers）进行内容审核。
    2. 您需要根据反馈审核意见修改代码，并重新提交更新。此流程可能涉及多轮迭代，请保持积极响应和沟通。
 
    Pull Request流程中会提示相关的“负责人”，可在Pull Request流程中指定相关“负责人”，或通过[README](../../../README.md#-建议与交流)联系我们。
@@ -207,7 +207,7 @@ bash scripts/execute_test_case.sh
 示例：
 
 ```text
-feat:添加内存使用分析功能
+feat: 添加内存使用分析功能
 
 - 实现内存数据采集模块
 - 添加内存使用趋势分析算法
