@@ -59,7 +59,7 @@ If the output displays the version information without errors, the installation 
 Perform the following steps:
 
 ```bash
-curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.1.0/ms_install.py
+curl -O https://inst.obs.cn-north-4.myhuaweicloud.com/26.2.0/ms_install.py
 python ms_install.py uninstall {tools_name}
 ```
 
@@ -138,7 +138,7 @@ For detailed interface definitions, see [C API Reference](../api_reference/c_api
 
 ### Q16: What Additional Installation Do the Python Samples Require?
 
-The Python samples (`python_monitor` and `python_mstx_monitor`) additionally depend on the PyTorch framework and the TorchNPU plugin. See [TorchNPU Software Installation](https://gitcode.com/Ascend/pytorch/tree/master/docs/en/installation_guide/building_from_source.md).
+The Python samples (`python_monitor` and `python_mstx_monitor`) additionally depend on the PyTorch framework and the TorchNPU plugin. See [TorchNPU Software Installation](https://www.hiascend.com/en/developer/software/ai-frameworks/pytorch/download).
 
 ### Q17: What Is the Activity Buffer and How Do I Manage It?
 

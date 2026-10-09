@@ -5,7 +5,7 @@ msptiActivityKernel为Activity Record类型[MSPTI\_ACTIVITY\_KIND\_KERNEL](mspti
 ```cpp
 typedef struct PACKED_ALIGNMENT {
     msptiActivityKind kind;   // Activity Record类型MSPTI_ACTIVITY_KIND_KERNEL
-    uint64_t start;   // Kernel在NPU设备上执行开始时间戳，单位ns。开始和结束时间戳均为0时则无法收集Kernel的时间戳信息
+    uint64_t start;   // Kernel在NPU设备上执行的开始时间戳，单位ns。开始和结束时间戳均为0时则无法收集Kernel的时间戳信息
     uint64_t end;   // Kernel执行的结束时间戳，单位ns。开始和结束时间戳均为0时则无法收集Kernel的时间戳信息
     struct {
         uint32_t deviceId;   // Kernel运行设备的Device ID

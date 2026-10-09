@@ -2,7 +2,7 @@
 
 MsptiActivityKind为[HcclData](HcclData.md)、[KernelData](KernelData.md)、[MarkerData](MarkerData.md)和[RangeMarkerData](RangeMarkerData.md)调用的枚举类。
 
-msPTI通过MsptiActivityKind对所有能采集到的数据进行分类，每个枚举值对应一个数据的结构体类型。定义如下：
+msPTI通过MsptiActivityKind对所有能采集到的数据进行分类，每个枚举值对应一种数据的结构体类型。定义如下：
 
 ```python
 class MsptiActivityKind(Enum):

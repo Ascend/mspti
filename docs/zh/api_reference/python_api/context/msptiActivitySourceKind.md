@@ -2,7 +2,7 @@
 
 标记Activity数据来源。标记数据的来源是Host还是Device。
 
-MsptiActivitySourceKind为[MarkerData](MarkerData.md)结构体内调用的枚举类，定义如下：
+MsptiActivitySourceKind为[MarkerData](MarkerData.md)结构体内使用的枚举类，定义如下：
 
 ```python
 class MsptiActivitySourceKind(Enum):

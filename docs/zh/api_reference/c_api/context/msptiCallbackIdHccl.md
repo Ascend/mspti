@@ -1,6 +1,6 @@
 # msptiCallbackIdHccl<a name="ZH-CN_TOPIC_0000002049465541"></a>
 
-msptiCallbackIdHccl为[msptiEnableCallback](msptiEnableCallback.md)调用的枚举类。只有在枚举类中定义的函数才可以被callback api追踪。这些枚举在全局中唯一，定义如下：
+msptiCallbackIdHccl为[msptiEnableCallback](msptiEnableCallback.md)调用的枚举类。只有在枚举类中定义的函数才可以被callback API追踪。这些枚举在全局中唯一，定义如下：
 
 ```cpp
 typedef enum {
