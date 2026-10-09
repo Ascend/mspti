@@ -72,10 +72,11 @@ msptiResult DeviceTaskCalculator::AssembleTasksTimeWithSocLog(uint32_t deviceId,
     }
     else if (socLog.funcType == STARS_FUNC_TYPE_END)
     {
-        std::vector<uint64_t> timeFromSysCnt = Mspti::Common::ContextManager::GetInstance()->GetDeviceRealTime(
-            deviceId, {deviceTask.start, socLog.timestamp});
-        deviceTask.start = timeFromSysCnt[0];
-        deviceTask.end = timeFromSysCnt[1];
+        uint64_t startRealTime = deviceTask.start;
+        uint64_t endRealTime = socLog.timestamp;
+        Common::ContextManager::GetInstance()->GetDeviceRealTime(deviceId, startRealTime, endRealTime);
+        deviceTask.start = startRealTime;
+        deviceTask.end = endRealTime;
 
         auto& callback = completeFunc_[dstKey];
         msptiResult ans = callback(deviceTask);
@@ -116,10 +117,11 @@ msptiResult DeviceTaskCalculator::AssembleSubTasksTimeWithFftsLog(uint32_t devic
     }
     else
     {
-        auto timeFromSysCnt = Mspti::Common::ContextManager::GetInstance()->GetDeviceRealTime(
-            deviceId, {subTask.start, fftsLog.timestamp});
-        subTask.start = timeFromSysCnt[0];
-        subTask.end = timeFromSysCnt[1];
+        uint64_t startRealTime = subTask.start;
+        uint64_t endRealTime = fftsLog.timestamp;
+        Common::ContextManager::GetInstance()->GetDeviceRealTime(deviceId, startRealTime, endRealTime);
+        subTask.start = startRealTime;
+        subTask.end = endRealTime;
         iter->second.isFfts = true;
         iter->second.subTasks.emplace_back(subTask);
         assembleSubTasks_.erase(it);

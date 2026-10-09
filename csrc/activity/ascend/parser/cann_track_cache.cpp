@@ -133,7 +133,7 @@ msptiResult CannTrackCache::CannTrackCacheImpl::AppendNodeLunch(bool agingFlag, 
         return MSPTI_SUCCESS;
     }
     auto cache = GetOrCreateCache(data->threadId);
-    auto lastCommunicationTask = cache->lastCommunication.api;
+    const auto &lastCommunicationTask = cache->lastCommunication.api;
     if (!InApiRange(*data, lastCommunicationTask))
     {
         return MSPTI_SUCCESS;
@@ -170,7 +170,7 @@ msptiResult CannTrackCache::CannTrackCacheImpl::AppendCommunication(bool agingFl
     communicationTask.agingFlag = cache->lastTask.agingFlag;
     communicationTask.compactInfo = cache->lastTask.data;
     CommunicationCalculator::GetInstance().AppendCommunicationTask(communicationTask);
-    cache->lastCommunication = communicationTask;
+    cache->lastCommunication = std::move(communicationTask);
     return MSPTI_SUCCESS;
 }
 

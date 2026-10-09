@@ -29,7 +29,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-依次从Activity Buffer中取出数据，每次读取一条Activity数据。
+依次从Activity Buffer中取出数据，每次读取一条Activity数据。接口无内部遍历状态：下一条记录的位置由入参 \*record 推导，不同缓冲区或不同线程可交错遍历。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -66,9 +66,9 @@ msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBy
 </tr>
 <tr id="row208099610258"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p16810567252"><a name="p16810567252"></a><a name="p16810567252"></a>record</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p114341059162"><a name="p114341059162"></a><a name="p114341059162"></a>输出</p>
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p114341059162"><a name="p114341059162"></a><a name="p114341059162"></a>输入/输出</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p8810126142514"><a name="p8810126142514"></a><a name="p8810126142514"></a>记录Record数据的地址。</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p8810126142514"><a name="p8810126142514"></a><a name="p8810126142514"></a>输入上一次调用返回的Record指针（每个缓冲区首次遍历时传入NULL），输出下一条Record数据的地址。</p>
 </td>
 </tr>
 </tbody>
@@ -76,4 +76,4 @@ msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBy
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；Activity Buffer没有更多的Record数据时返回MSPTI\_ERROR\_MAX\_LIMIT\_REACHED（表示已取完Activity Buffer中数据），表示失败；Activity Buffer为空时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败；Record中的Activity Kind无效时返回MSPTI\_ERROR\_INVALID\_KIND，表示失败。
+返回MSPTI\_SUCCESS表示成功；Activity Buffer没有更多的Record数据时返回MSPTI\_ERROR\_MAX\_LIMIT\_REACHED（表示已取完Activity Buffer中数据），表示失败；buffer或record为空、或 \*record 超出 \[buffer, buffer + validBufferSizeBytes) 范围时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败；Record中的Activity Kind无效时返回MSPTI\_ERROR\_INVALID\_KIND，表示失败。

@@ -74,6 +74,43 @@ TEST_F(ContextManagerUtest, GetDeviceRealTimeVector)
     }
 }
 
+TEST_F(ContextManagerUtest, GetDeviceRealTimePairConvertsBothEndsConsistentlyWithScalar)
+{
+    constexpr uint32_t deviceId = 0;
+    EXPECT_NO_THROW(contextManager->InitDeviceTimeInfo(deviceId));
+
+    uint64_t start = 1000000;
+    uint64_t end = 2000000;
+    contextManager->GetDeviceRealTime(deviceId, start, end);
+
+    EXPECT_GT(start, 0ULL);
+    EXPECT_GT(end, 0ULL);
+    EXPECT_LT(start, end);
+    EXPECT_EQ(start, contextManager->GetDeviceRealTime(deviceId, 1000000ULL));
+    EXPECT_EQ(end, contextManager->GetDeviceRealTime(deviceId, 2000000ULL));
+}
+
+TEST_F(ContextManagerUtest, GetDeviceRealTimeKeepsInputsWhenDeviceInfoMissing)
+{
+    constexpr uint32_t deviceId = 42;  // Never initialized in this binary.
+    uint64_t start = 1111;
+    uint64_t end = 2222;
+    contextManager->GetDeviceRealTime(deviceId, start, end);
+    EXPECT_EQ(1111ULL, start);
+    EXPECT_EQ(2222ULL, end);
+
+    EXPECT_EQ(3333ULL, contextManager->GetDeviceRealTime(deviceId, 3333ULL));
+    std::vector<uint64_t> sysCnts = {10, 20};
+    EXPECT_EQ(sysCnts, contextManager->GetDeviceRealTime(deviceId, sysCnts));
+}
+
+// Must run before the first InitHostTimeInfo below: a missing host profile passes input through.
+TEST_F(ContextManagerUtest, GetHostRealTimeReturnsInputWhenHostInfoMissing)
+{
+    uint64_t result = contextManager->GetHostRealTime(123456);
+    EXPECT_EQ(123456ULL, result);
+}
+
 TEST_F(ContextManagerUtest, GetHostRealTime)
 {
     uint64_t sysCnt = 1000000;

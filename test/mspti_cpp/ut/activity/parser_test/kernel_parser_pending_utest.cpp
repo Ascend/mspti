@@ -75,7 +75,7 @@ class KernelParserPendingUtest : public testing::Test
         return data;
     }
 
-    Mspti::HalLogData MakeSocLog(uint32_t taskId, uint16_t funcType)
+    Mspti::HalLogData MakeSocLog(uint32_t taskId, uint16_t funcType, uint64_t timestamp = 0)
     {
         Mspti::HalLogData socLog;
         (void)memset_s(&socLog, sizeof(socLog), 0, sizeof(socLog));
@@ -83,6 +83,7 @@ class KernelParserPendingUtest : public testing::Test
         socLog.acsq.funcType = funcType;
         socLog.acsq.streamId = TEST_STREAM_ID;
         socLog.acsq.taskId = taskId;
+        socLog.acsq.timestamp = timestamp;
         return socLog;
     }
 };
@@ -307,5 +308,26 @@ TEST_F(KernelParserPendingUtest, HostReportDroppedAfterUnregisterStarts)
     EXPECT_EQ(0, instance.GetPendingKernelCount());
     EXPECT_EQ(MSPTI_SUCCESS, mgr->ResetDevice(TEST_DEVICE_ID));
     EXPECT_EQ(MSPTI_SUCCESS, mgr->Register(MSPTI_ACTIVITY_KIND_KERNEL));
+}
+
+// END converts staged times through an initialized device profile; pending stays balanced.
+TEST_F(KernelParserPendingUtest, DeviceEndConvertsTimeWithInitializedDeviceInfo)
+{
+    auto& instance = Mspti::Parser::KernelParser::GetInstance();
+    Mspti::Common::ContextManager::GetInstance()->InitDeviceTimeInfo(TEST_DEVICE_ID);
+    constexpr uint32_t taskId = 7105;
+    const int64_t baseline = instance.GetPendingKernelCount();
+
+    auto compact = MakeCompactInfo(taskId, TS_TASK_TYPE_KERNEL_AIVEC);
+    EXPECT_EQ(MSPTI_SUCCESS, instance.ReportRtTaskTrack(1, &compact));
+    EXPECT_EQ(baseline + 1, instance.GetPendingKernelCount());
+
+    auto beginLog = MakeSocLog(taskId, STARS_FUNC_TYPE_BEGIN, 5000000);
+    EXPECT_EQ(MSPTI_SUCCESS, instance.ReportStarsSocLog(TEST_DEVICE_ID, beginLog));
+    EXPECT_EQ(baseline + 1, instance.GetPendingKernelCount());
+
+    auto endLog = MakeSocLog(taskId, STARS_FUNC_TYPE_END, 6000000);
+    EXPECT_EQ(MSPTI_SUCCESS, instance.ReportStarsSocLog(TEST_DEVICE_ID, endLog));
+    EXPECT_EQ(baseline, instance.GetPendingKernelCount());
 }
 }  // namespace

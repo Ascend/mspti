@@ -79,7 +79,7 @@ class ActivityManager
     msptiResult GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize, uint32_t *enabledKindsCount);
     size_t GetAndResetDroppedCount() { return cur_drop_num_.exchange(0, std::memory_order_relaxed); }
 
-    const std::unordered_set<uint32_t> GetAllValidDevice();  // 仅返回当前device快照
+    std::unordered_set<uint32_t> GetAllValidDevice();  // 仅返回当前device快照
     void StartActivityMgrThread();
     void StopActivityMgrThread();
 

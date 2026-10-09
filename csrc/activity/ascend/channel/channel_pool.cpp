@@ -36,7 +36,8 @@ constexpr size_t CHANNELPOLL_THREAD_QUEUE_SIZE = 8192;
 
 size_t ChannelPool::GetChannelIndex(uint32_t devId, AI_DRV_CHANNEL channelId)
 {
-    return std::hash<std::string>()(std::to_string(devId) + "_" + std::to_string(channelId));
+    constexpr uint32_t CHANNEL_ID_SHIFT = 32;
+    return (static_cast<size_t>(devId) << CHANNEL_ID_SHIFT) | static_cast<size_t>(channelId);
 }
 
 msptiResult ChannelPool::AddReader(uint32_t devId, AI_DRV_CHANNEL channelId, uint32_t bufferSize)

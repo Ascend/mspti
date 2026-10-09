@@ -39,7 +39,7 @@ uint64_t CannHashCache::GenHashId(std::string &&hashInfo)
 {
     // DoubleHash耗时和map find的耗时比较
     uint64_t hashId = Common::GetHashIdImple(hashInfo);
-    hashInfoMap_.Emplace(hashId, hashInfo);
+    hashInfoMap_.Emplace(hashId, std::move(hashInfo));
     return hashId;
 }
 

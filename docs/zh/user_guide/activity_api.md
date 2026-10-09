@@ -264,7 +264,7 @@ bool msptiActivityIsEnabled(msptiActivityKind kind);
 
 #### 4.2.1 msptiActivityGetNextRecord
 
-遍历缓冲区中的 Activity Record。首次调用时 `record` 传入 NULL，之后传入上一次返回的指针。
+遍历缓冲区中的 Activity Record。接口无内部遍历状态：每个缓冲区首次调用时 `*record` 传入 NULL，之后传入上一次返回的指针，下一条记录的位置由 `*record` 推导，不同缓冲区或不同线程可交错遍历。
 
 ```c
 msptiResult msptiActivityGetNextRecord(
@@ -275,6 +275,8 @@ msptiResult msptiActivityGetNextRecord(
 
 - 返回 `MSPTI_SUCCESS` 表示成功获取一条记录。
 - 返回 `MSPTI_ERROR_MAX_LIMIT_REACHED` 表示缓冲区已无更多记录。
+- 返回 `MSPTI_ERROR_INVALID_PARAMETER` 表示 `buffer`/`record` 为空，或 `*record` 超出 `[buffer, buffer + validBufferSizeBytes)` 范围。
+- 返回 `MSPTI_ERROR_INVALID_KIND` 表示记录的活动类型无效。
 - 通过 `record->kind` 判断活动类型，再强转为对应的结构体类型。
 
 ### 4.3 缓冲刷新函数

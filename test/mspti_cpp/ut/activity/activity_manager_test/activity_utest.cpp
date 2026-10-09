@@ -411,6 +411,134 @@ TEST_F(ActivityUtest, GetRecordSuccessWhenBufferNull)
     free(buffer);
 }
 
+// Fill `count` consecutive MARKER records in `buffer` with sequential ids.
+void FillMarkerBuffer(uint8_t *buffer, size_t count, uint64_t firstId)
+{
+    for (size_t i = 0; i < count; i++)
+    {
+        msptiActivityMarker marker;
+        (void)memset_s(&marker, sizeof(marker), 0, sizeof(marker));
+        marker.kind = MSPTI_ACTIVITY_KIND_MARKER;
+        marker.id = firstId + i;
+        (void)memcpy_s(buffer + i * sizeof(msptiActivityMarker), sizeof(msptiActivityMarker), &marker,
+                       sizeof(msptiActivityMarker));
+    }
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsInvalidParameterWhenRecordPointerNull)
+{
+    size_t validSize = sizeof(msptiActivityMarker);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(validSize));
+    FillMarkerBuffer(buffer, 1, 0);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetNextRecord(buffer, validSize, nullptr));
+    free(buffer);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsMaxLimitWhenValidSizeZero)
+{
+    size_t validSize = sizeof(msptiActivityMarker);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(validSize));
+    FillMarkerBuffer(buffer, 1, 0);
+    msptiActivity *pRecord = nullptr;
+    EXPECT_EQ(MSPTI_ERROR_MAX_LIMIT_REACHED, msptiActivityGetNextRecord(buffer, 0, &pRecord));
+    EXPECT_EQ(nullptr, pRecord);
+    free(buffer);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsInvalidParameterWhenPrevRecordOutOfBuffer)
+{
+    size_t validSize = sizeof(msptiActivityMarker);
+    uint8_t *bufferA = static_cast<uint8_t *>(malloc(validSize));
+    uint8_t *bufferB = static_cast<uint8_t *>(malloc(validSize));
+    FillMarkerBuffer(bufferA, 1, 101);
+    FillMarkerBuffer(bufferB, 1, 201);
+
+    msptiActivity *pRecord = nullptr;
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNextRecord(bufferA, validSize, &pRecord));
+    EXPECT_EQ(101, reinterpret_cast<msptiActivityMarker *>(pRecord)->id);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, msptiActivityGetNextRecord(bufferB, validSize, &pRecord));
+
+    free(bufferA);
+    free(bufferB);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsMaxLimitWhenPrevHeaderTruncated)
+{
+    size_t validSize = sizeof(msptiActivityMarker);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(validSize));
+    FillMarkerBuffer(buffer, 1, 0);
+    msptiActivity *pRecord = reinterpret_cast<msptiActivity *>(buffer + validSize - 1);
+    EXPECT_EQ(MSPTI_ERROR_MAX_LIMIT_REACHED, msptiActivityGetNextRecord(buffer, validSize, &pRecord));
+    free(buffer);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsInvalidKindWhenPrevKindInvalid)
+{
+    size_t validSize = sizeof(msptiActivityMarker);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(validSize));
+    (void)memset_s(buffer, validSize, 0, validSize);
+    msptiActivity *pRecord = reinterpret_cast<msptiActivity *>(buffer);
+    EXPECT_EQ(MSPTI_ERROR_INVALID_KIND, msptiActivityGetNextRecord(buffer, validSize, &pRecord));
+    free(buffer);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsInvalidKindWhenCurrentKindInvalid)
+{
+    size_t validSize = sizeof(msptiActivityMarker);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(validSize));
+    (void)memset_s(buffer, validSize, 0, validSize);
+    msptiActivity *pRecord = nullptr;
+    EXPECT_EQ(MSPTI_ERROR_INVALID_KIND, msptiActivityGetNextRecord(buffer, validSize, &pRecord));
+    free(buffer);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsMaxLimitWhenTailSmallerThanHeader)
+{
+    size_t headerSize = sizeof(msptiActivity);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(sizeof(msptiActivityMarker)));
+    FillMarkerBuffer(buffer, 1, 0);
+    msptiActivity *pRecord = nullptr;
+    EXPECT_EQ(MSPTI_ERROR_MAX_LIMIT_REACHED, msptiActivityGetNextRecord(buffer, headerSize - 1, &pRecord));
+    free(buffer);
+}
+
+TEST_F(ActivityUtest, GetRecordReturnsMaxLimitWhenRecordBodyTruncated)
+{
+    size_t headerSize = sizeof(msptiActivity);
+    uint8_t *buffer = static_cast<uint8_t *>(malloc(sizeof(msptiActivityMarker)));
+    FillMarkerBuffer(buffer, 1, 0);
+    msptiActivity *pRecord = nullptr;
+    EXPECT_EQ(MSPTI_ERROR_MAX_LIMIT_REACHED, msptiActivityGetNextRecord(buffer, headerSize, &pRecord));
+    free(buffer);
+}
+
+// Fresh NULL cursor on a second buffer must restart at its first record: no cross-buffer state.
+TEST_F(ActivityUtest, GetRecordDerivesCursorFromRecordAcrossBuffers)
+{
+    size_t recordSize = sizeof(msptiActivityMarker);
+    size_t bufferSize = 2 * recordSize;
+    uint8_t *bufferA = static_cast<uint8_t *>(malloc(bufferSize));
+    uint8_t *bufferB = static_cast<uint8_t *>(malloc(bufferSize));
+    FillMarkerBuffer(bufferA, 2, 101);
+    FillMarkerBuffer(bufferB, 2, 201);
+    msptiActivity *pRecordA = nullptr;
+    msptiActivity *pRecordB = nullptr;
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNextRecord(bufferA, bufferSize, &pRecordA));
+    EXPECT_EQ(101, reinterpret_cast<msptiActivityMarker *>(pRecordA)->id);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNextRecord(bufferB, bufferSize, &pRecordB));
+    EXPECT_EQ(201, reinterpret_cast<msptiActivityMarker *>(pRecordB)->id);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNextRecord(bufferA, bufferSize, &pRecordA));
+    EXPECT_EQ(102, reinterpret_cast<msptiActivityMarker *>(pRecordA)->id);
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityGetNextRecord(bufferB, bufferSize, &pRecordB));
+    EXPECT_EQ(202, reinterpret_cast<msptiActivityMarker *>(pRecordB)->id);
+    EXPECT_EQ(MSPTI_ERROR_MAX_LIMIT_REACHED, msptiActivityGetNextRecord(bufferA, bufferSize, &pRecordA));
+    EXPECT_EQ(MSPTI_ERROR_MAX_LIMIT_REACHED, msptiActivityGetNextRecord(bufferB, bufferSize, &pRecordB));
+
+    free(bufferA);
+    free(bufferB);
+}
+
 TEST_F(ActivityUtest, MultThreadFlushAll)
 {
     MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));

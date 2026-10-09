@@ -79,6 +79,8 @@ class ContextManager final
     // Device counter -> real time conversion
     uint64_t GetDeviceRealTime(uint32_t deviceId, uint64_t sysCnt);
     std::vector<uint64_t> GetDeviceRealTime(uint32_t deviceId, const std::vector<uint64_t>& sysCnts);
+    // Pair-wise conversion: one lookup, no heap allocation
+    void GetDeviceRealTime(uint32_t deviceId, uint64_t& start, uint64_t& end);
 
     // Host real-time accessors
     uint64_t GetHostTimeStampNs();

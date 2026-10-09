@@ -35,16 +35,6 @@ namespace Mspti
 {
 namespace Common
 {
-namespace
-{
-const std::unordered_map<int, std::string> level_name = {
-    {DLOG_ERROR, "ERROR"},
-    {DLOG_INFO, "INFO"},
-    {DLOG_WARN, "WARN"},
-    {DLOG_DEBUG, "DEBUG"},
-};
-}
-
 class PlogManager
 {
    public:

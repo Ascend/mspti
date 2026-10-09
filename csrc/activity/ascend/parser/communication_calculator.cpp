@@ -65,7 +65,7 @@ msptiResult CommunicationCalculator::AppendCompactInfo(bool agingFlag, const Msp
 
 void TransApiEvent2CommTask(const ApiEvent& api2TaskInfo, CommunicationTask& commTask)
 {
-    auto track = api2TaskInfo.compactInfo.data.runtimeTrack;
+    const auto& track = api2TaskInfo.compactInfo.data.runtimeTrack;
     auto taskId = Convert::StarsCommon::GetHostTaskId(track.streamId, track.taskInfo, track.deviceId);
     auto streamId = Convert::StarsCommon::GetStreamId(track.streamId, static_cast<uint16_t>(track.taskInfo));
     commTask.start = 0;

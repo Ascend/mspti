@@ -931,17 +931,19 @@ extern "C"
      * @brief Iterate over the activity records in a buffer.
      *
      * This is a function to iterate over the activity records in buffer.
+     * Stateless: cursor is derived from *record, so different buffers or
+     * threads can be consumed interleaved safely.
      *
      * @param buffer [in] The buffer containing activity records
      * @param validBufferSizeBytes [in] The number of valid bytes in the buffer.
-     * @param record [in] Inputs the previous record returned by
-     * msptiActivityGetNextRecord and returns the next activity record
-     * from the buffer. If input value is NULL, returns the first activity
-     * record in the buffer.
+     * @param record [in,out] Previous record returned by
+     * msptiActivityGetNextRecord; returns the next record. Pass a NULL
+     * *record for the first record of each buffer.
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_MAX_LIMIT_REACHED if no more records in the buffer
-     * @return MSPTI_ERROR_INVALID_PARAMETER if @p buffer is NULL
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p buffer or @p record is NULL,
+     * or *record is out of [buffer, buffer + validBufferSizeBytes)
      * @return MSPTI_ERROR_INVALID_KIND if the activity kind is invalid
      */
     msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBytes, msptiActivity **record);

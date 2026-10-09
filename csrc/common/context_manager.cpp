@@ -165,14 +165,9 @@ void ContextManager::InitHostTimeInfo()
 uint64_t ContextManager::GetDeviceRealTime(uint32_t deviceId, uint64_t sysCnt)
 {
     DevTimeInfo devTimeInfo{};
+    if (!GetDeviceTimeInfo(deviceId, devTimeInfo))
     {
-        std::lock_guard<std::mutex> lk(devTimeMtx_);
-        auto iter = devTimeInfo_.find(deviceId);
-        if (iter == devTimeInfo_.end() || iter->second->freq == 0)
-        {
-            return sysCnt;
-        }
-        devTimeInfo = *iter->second;
+        return sysCnt;
     }
     return ConvertCounterToRealTime(sysCnt, devTimeInfo);
 }
@@ -180,14 +175,9 @@ uint64_t ContextManager::GetDeviceRealTime(uint32_t deviceId, uint64_t sysCnt)
 std::vector<uint64_t> ContextManager::GetDeviceRealTime(uint32_t deviceId, const std::vector<uint64_t> &sysCnts)
 {
     DevTimeInfo devTimeInfo{};
+    if (!GetDeviceTimeInfo(deviceId, devTimeInfo))
     {
-        std::lock_guard<std::mutex> lk(devTimeMtx_);
-        auto iter = devTimeInfo_.find(deviceId);
-        if (iter == devTimeInfo_.end() || iter->second->freq == 0)
-        {
-            return sysCnts;
-        }
-        devTimeInfo = *iter->second;
+        return sysCnts;
     }
     std::vector<uint64_t> ans(sysCnts.size());
     for (size_t i = 0; i < sysCnts.size(); i++)
@@ -197,16 +187,23 @@ std::vector<uint64_t> ContextManager::GetDeviceRealTime(uint32_t deviceId, const
     return ans;
 }
 
+void ContextManager::GetDeviceRealTime(uint32_t deviceId, uint64_t &start, uint64_t &end)
+{
+    DevTimeInfo devTimeInfo{};
+    if (!GetDeviceTimeInfo(deviceId, devTimeInfo))
+    {
+        return;
+    }
+    start = ConvertCounterToRealTime(start, devTimeInfo);
+    end = ConvertCounterToRealTime(end, devTimeInfo);
+}
+
 uint64_t ContextManager::GetHostRealTime(uint64_t sysCnt)
 {
     DevTimeInfo hostTime{};
+    if (!GetHostTimeInfo(hostTime))
     {
-        std::lock_guard<std::mutex> lk(hostTimeMtx_);
-        if (!hostTimeInfo_)
-        {
-            return sysCnt;
-        }
-        hostTime = *hostTimeInfo_;
+        return sysCnt;
     }
     return ConvertCounterToRealTime(sysCnt, hostTime);
 }
@@ -373,7 +370,7 @@ bool ContextManager::GetDeviceTimeInfo(uint32_t deviceId, DevTimeInfo &devTimeIn
 {
     std::lock_guard<std::mutex> lk(devTimeMtx_);
     auto iter = devTimeInfo_.find(deviceId);
-    if (iter == devTimeInfo_.end() || iter->second->freq == 0)
+    if (iter == devTimeInfo_.end() || iter->second->freq == ERR_FREQ)
     {
         return false;
     }

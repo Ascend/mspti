@@ -24,7 +24,7 @@
 #include <unistd.h>
 
 #include <ctime>
-#include <unordered_map>
+#include <utility>
 
 #include "csrc/common/plog_manager.h"
 #include "securec.h"
@@ -33,10 +33,13 @@ namespace Mspti
 {
 namespace Common
 {
-const std::unordered_map<std::string, std::string> INVALID_CHAR = {
+namespace
+{
+constexpr std::pair<const char*, const char*> INVALID_CHAR[] = {
     {"\n", "\\n"},         {"\f", "\\f"},  {"\r", "\\r"}, {"\b", "\\b"},  {"\t", "\\t"}, {"\v", "\\v"},
     {"\u007F", "\\u007F"}, {"\"", "\\\""}, {"'", "\'"},   {"\\", "\\\\"}, {"%", "\\%"},  {">", "\\>"},
     {"<", "\\<"},          {"|", "\\|"},   {"&", "\\&"},  {"$", "\\$"},   {";", "\\;"},  {"`", "\\`"}};
+}  // namespace
 
 uint64_t Utils::GetClockMonotonicRawNs()
 {
@@ -147,11 +150,11 @@ bool Utils::FileReadable(const std::string& path)
 
 bool Utils::CheckCharValid(const std::string& str)
 {
-    for (auto& item : INVALID_CHAR)
+    for (const auto& item : INVALID_CHAR)
     {
         if (str.find(item.first) != std::string::npos)
         {
-            MSPTI_LOGE("The path contains invalid character: %s.", item.second.c_str());
+            MSPTI_LOGE("The path contains invalid character: %s.", item.second);
             return false;
         }
     }

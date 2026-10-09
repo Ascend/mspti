@@ -517,22 +517,62 @@ msptiResult ActivityManager::GetNextRecord(uint8_t *buffer, size_t validBufferSi
         MSPTI_LOGE("The address of Activity Buffer is nullptr.");
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
-    static thread_local size_t pos = 0;
-    if (pos >= validBufferSizeBytes)
+    if (record == nullptr)
     {
-        pos = 0;
+        MSPTI_LOGE("The address of record pointer is nullptr.");
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (UNLIKELY(validBufferSizeBytes == 0))
+    {
         return MSPTI_ERROR_MAX_LIMIT_REACHED;
     }
 
-    msptiActivityKind *pKind = Common::ReinterpretConvert<msptiActivityKind *>(buffer + pos);
-    size_t size{0};
-    if (UNLIKELY(!GetActivityStructSize(*pKind, &size) || size == 0))
+    size_t pos = 0;
+    if (*record != nullptr)
     {
-        MSPTI_LOGE("GetNextRecord failed, invalid kind: %d", *pKind);
+        const uint8_t *prev = Common::ReinterpretConvert<const uint8_t *>(*record);
+        if (prev < buffer || prev >= buffer + validBufferSizeBytes)
+        {
+            MSPTI_LOGE("GetNextRecord failed, record %p out of buffer range [%p, %p).", static_cast<const void *>(prev),
+                       static_cast<const void *>(buffer), static_cast<const void *>(buffer + validBufferSizeBytes));
+            return MSPTI_ERROR_INVALID_PARAMETER;
+        }
+        if (prev + sizeof(msptiActivityKind) > buffer + validBufferSizeBytes)
+        {
+            return MSPTI_ERROR_MAX_LIMIT_REACHED;
+        }
+        const msptiActivity *prevActivity = Common::ReinterpretConvert<const msptiActivity *>(prev);
+        size_t prevSize = 0;
+        if (UNLIKELY(!GetActivityStructSize(prevActivity->kind, &prevSize) || prevSize == 0))
+        {
+            MSPTI_LOGE("GetNextRecord failed, invalid previous kind: %d", static_cast<int>(prevActivity->kind));
+            return MSPTI_ERROR_INVALID_KIND;
+        }
+        pos = static_cast<size_t>(prev - buffer) + prevSize;
+    }
+
+    if (pos >= validBufferSizeBytes)
+    {
+        return MSPTI_ERROR_MAX_LIMIT_REACHED;
+    }
+
+    if (pos + sizeof(msptiActivity) > validBufferSizeBytes)
+    {
+        return MSPTI_ERROR_MAX_LIMIT_REACHED;
+    }
+
+    msptiActivity *curActivity = Common::ReinterpretConvert<msptiActivity *>(buffer + pos);
+    size_t curSize = 0;
+    if (UNLIKELY(!GetActivityStructSize(curActivity->kind, &curSize) || curSize == 0))
+    {
+        MSPTI_LOGE("GetNextRecord failed, invalid kind: %d", static_cast<int>(curActivity->kind));
         return MSPTI_ERROR_INVALID_KIND;
     }
-    *record = Common::ReinterpretConvert<msptiActivity *>(buffer + pos);
-    pos += size;
+    if (pos + curSize > validBufferSizeBytes)
+    {
+        return MSPTI_ERROR_MAX_LIMIT_REACHED;
+    }
+    *record = curActivity;
     return MSPTI_SUCCESS;
 }
 
@@ -719,7 +759,7 @@ msptiResult ActivityManager::ResetAllDevice()
 
 ActivityManager::ActivityManager() { ResetActivitySwitch(); }
 
-const std::unordered_set<uint32_t> ActivityManager::GetAllValidDevice()
+std::unordered_set<uint32_t> ActivityManager::GetAllValidDevice()
 {
     std::lock_guard<std::mutex> lk(devices_mtx_);
     return devices_;
