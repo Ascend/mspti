@@ -39,6 +39,7 @@ MSPTI_HEADER=(
     mspti_callback.h
     mspti_cbid.h
     mspti_result.h
+    mspti_pm_sampling.h
 )
 UNINSTALL_SCRIPT="uninstall.sh"
 MSPTI_SHARE_INFO="share/info/mspti"

@@ -13,14 +13,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_H
 #define MSPTI_H
 
 #include "mspti_activity.h"
-#include "mspti_result.h"
 #include "mspti_callback.h"
 #include "mspti_cbid.h"
+#include "mspti_pm_sampling.h"
+#include "mspti_result.h"
 
 #endif

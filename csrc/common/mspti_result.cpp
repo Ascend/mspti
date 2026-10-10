@@ -24,20 +24,30 @@ namespace
 /* 按 mspti_result.h 枚举顺序一一对应（0..9 连续码位直接索引）。
  * 枚举尾部新增错误码时必须同步在此扩表 */
 const char* const kResultStrings[] = {
-    "Success.",                                     /* 0  MSPTI_SUCCESS */
-    "One or more of the parameters is invalid.",    /* 1  MSPTI_ERROR_INVALID_PARAMETER */
-    "Multiple subscribers are not supported.",      /* 2  MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED */
-    "The maximum limit is reached.",                /* 3  MSPTI_ERROR_MAX_LIMIT_REACHED */
-    "The device is offline.",                       /* 4  MSPTI_ERROR_DEVICE_OFFLINE */
-    "The queue is empty.",                          /* 5  MSPTI_ERROR_QUEUE_EMPTY */
-    "The operation requires LD_PRELOAD injection.", /* 6  MSPTI_ERROR_WITHOUT_LD_PRELOAD */
-    "MSPTI is not initialized.",                    /* 7  MSPTI_ERROR_NOT_INITIALIZED */
-    "The kind is invalid.",                         /* 8  MSPTI_ERROR_INVALID_KIND */
-    "The parameter size is not sufficient.",        /* 9  MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT */
+    "Success.",                                                  /* 0  MSPTI_SUCCESS */
+    "One or more of the parameters is invalid.",                 /* 1  MSPTI_ERROR_INVALID_PARAMETER */
+    "Multiple subscribers are not supported.",                   /* 2  MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED */
+    "The maximum limit is reached.",                             /* 3  MSPTI_ERROR_MAX_LIMIT_REACHED */
+    "The device is offline.",                                    /* 4  MSPTI_ERROR_DEVICE_OFFLINE */
+    "The queue is empty.",                                       /* 5  MSPTI_ERROR_QUEUE_EMPTY */
+    "The operation requires LD_PRELOAD injection.",              /* 6  MSPTI_ERROR_WITHOUT_LD_PRELOAD */
+    "MSPTI is not initialized.",                                 /* 7  MSPTI_ERROR_NOT_INITIALIZED */
+    "The kind is invalid.",                                      /* 8  MSPTI_ERROR_INVALID_KIND */
+    "The parameter size is not sufficient.",                     /* 9  MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT */
+    "A PM Sampling session is already enabled on this device.",  /* 10 MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED */
+    "The PM Sampling session does not exist or is not enabled.", /* 11 MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED */
+    "The PM Sampling object is not configured.",                 /* 12 MSPTI_ERROR_PM_SAMPLING_OBJECT_NOT_CONFIGURED */
+    "The PM Sampling metric id is invalid or not in the session metric set.", /* 13
+                                                                                 MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC
+                                                                               */
+    "The PM Sampling metric is unsupported on this chip.",        /* 14 MSPTI_ERROR_PM_SAMPLING_UNSUPPORTED_METRIC */
+    "The PM Sampling counter data buffer overflowed.",            /* 15 MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW */
+    "The PM Sampling operation is invalid in the current state.", /* 16 MSPTI_ERROR_PM_SAMPLING_INVALID_STATE */
+    "The PM Sampling interval is out of range [1ms, 1s].",        /* 17 MSPTI_ERROR_PM_SAMPLING_INTERVAL_INVALID */
 };
 
 /* 编译期断言：表长度与枚举连续码数量自动对齐，消除硬编码魔数 */
-static_assert(sizeof(kResultStrings) / sizeof(kResultStrings[0]) == MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT + 1,
+static_assert(sizeof(kResultStrings) / sizeof(kResultStrings[0]) == MSPTI_ERROR_PM_SAMPLING_INTERVAL_INVALID + 1,
               "kResultStrings must cover all continuous result codes");
 /* 连续业务码必须仍以 9 结尾，防止中段插入新错误码导致索引表错位 */
 static_assert(MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT == 9,

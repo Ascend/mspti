@@ -79,6 +79,7 @@ function create_temp_dir() {
     cp ${TOP_DIR}/csrc/include/mspti_callback.h ${temp_dir}
     cp ${TOP_DIR}/csrc/include/mspti_cbid.h ${temp_dir}
     cp ${TOP_DIR}/csrc/include/mspti_result.h ${temp_dir}
+    cp ${TOP_DIR}/csrc/include/mspti_pm_sampling.h ${temp_dir}
     cp -r ${TOP_DIR}/samples ${temp_dir}
     cp -r ${TOP_DIR}/version.info ${temp_dir}
     copy_script ${MAIN_SCRIPT} ${temp_dir}
@@ -171,6 +172,7 @@ function check_file_exist() {
     check_package ${temp_dir}/mspti_callback.h ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/mspti_cbid.h ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/mspti_result.h ${PKG_LIMIT_SIZE}
+    check_package ${temp_dir}/mspti_pm_sampling.h ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/samples ${PKG_LIMIT_SIZE}
 }
 
