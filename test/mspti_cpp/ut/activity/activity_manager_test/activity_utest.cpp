@@ -1100,6 +1100,36 @@ TEST_F(ActivityUtest, FlushAllWithNoBufferDoesNotCrashAndJoinWorkThreads)
     instance->StopActivityMgrThread();
 }
 
+TEST_F(ActivityUtest, ReapWorkThreadsAcrossManyFullBuffersKeepsAllRecords)
+{
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StartDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::StopDevProfTask).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    g_massive_records.store(0);
+    g_total_records.store(0);
+    // 1KB 小 buffer：少量 Record 即可写满，管理线程会被反复唤醒派发 work 线程；
+    // 每次派发前 Run() 都会调用 ReapWorkThreads() 回收上一轮已完成的线程。
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityRegisterCallbacks(UserLittleBufferRequest, MassiveBufferComplete));
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityEnable(MSPTI_ACTIVITY_KIND_MARKER));
+
+    constexpr uint32_t rounds = 10;
+    constexpr uint32_t perRound = 200;
+    for (uint32_t r = 0; r < rounds; ++r)
+    {
+        RecordThreadTestMarkers(perRound);
+        g_total_records += perRound;
+        // 留出时间让管理线程唤醒并派发 / 回收 work 线程
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+    // ReapWorkThreads 回收线程时不得丢失或重复记录
+    EXPECT_EQ(g_total_records.load(), g_massive_records.load());
+    EXPECT_GT(g_massive_records.load(), 0ull);
+
+    EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
+}
+
 TEST_F(ActivityUtest, CallbackManagerInitUnInitDrivesActivityThreadLifecycle)
 {
     // 验证 callback_manager.cpp 新增的 Init->Start / UnInit->Stop 链路

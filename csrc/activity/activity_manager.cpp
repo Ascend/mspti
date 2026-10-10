@@ -350,7 +350,12 @@ void ActivityManager::StopActivityMgrThread()
             // Exception occurred during destruction of ActivityManager
         }
     }
-    JoinWorkThreads();
+    std::vector<WorkThread> pendingWorkThreads;
+    {
+        std::lock_guard<std::mutex> lk(cv_mtx_);
+        pendingWorkThreads.swap(work_thread_);
+    }
+    JoinWorkThreads(pendingWorkThreads);
     ResetActivitySwitch();
     MSPTI_LOGI("ActivityManager thread stopped.");
 }
@@ -373,16 +378,32 @@ msptiResult ActivityManager::TryInitActivityBuffer()
     return MSPTI_SUCCESS;
 }
 
-void ActivityManager::JoinWorkThreads()
+void ActivityManager::JoinWorkThreads(std::vector<WorkThread> &workThreads)
 {
-    for (auto &thread : work_thread_)
+    for (auto &workThread : workThreads)
     {
-        if (thread.joinable())
+        if (workThread.thread.joinable())
         {
-            thread.join();
+            workThread.thread.join();
         }
     }
-    work_thread_.clear();
+    workThreads.clear();
+}
+
+void ActivityManager::ReapWorkThreads(std::vector<WorkThread> &reapedThreads)
+{
+    for (auto iter = work_thread_.begin(); iter != work_thread_.end();)
+    {
+        if (iter->done && iter->done->load(std::memory_order_acquire))
+        {
+            reapedThreads.push_back(std::move(*iter));
+            iter = work_thread_.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
 }
 
 msptiResult ActivityManager::RegisterCallbacks(msptiBuffersCallbackRequestFunc funcBufferRequested,
@@ -590,10 +611,12 @@ msptiResult ActivityManager::FlushAll()
             buffer->UnInit(bufferCompleted_handle_);
         }
     }
+    std::vector<WorkThread> workThreadsToJoin;
     {
         std::unique_lock<std::mutex> lck(cv_mtx_);
-        JoinWorkThreads();
+        workThreadsToJoin.swap(work_thread_);
     }
+    JoinWorkThreads(workThreadsToJoin);
     {
         std::lock_guard<std::recursive_mutex> lk(buf_mtx_);
         if (cur_buf_)
@@ -674,6 +697,7 @@ void ActivityManager::Run()
     MSPTI_LOGI("ActivityManager thread start running.");
     while (true)
     {
+        std::vector<WorkThread> reapedThreads;
         {
             std::unique_lock<std::mutex> lk(cv_mtx_);
             bool serveForWaitFor = true;
@@ -688,18 +712,33 @@ void ActivityManager::Run()
                 break;
             }
             {
+                ReapWorkThreads(reapedThreads);
                 for (auto &activity_buffer : co_activity_buffers_)
                 {
-                    work_thread_.emplace_back(std::thread([this](std::unique_ptr<ActivityBuffer> activity_buffer)
-                                                          { activity_buffer->UnInit(this->bufferCompleted_handle_); },
-                                                          std::move(activity_buffer)));
+                    auto done = std::make_shared<std::atomic<bool>>(false);
+                    work_thread_.emplace_back(
+                        WorkThread{std::thread(
+                                       [this, done](std::unique_ptr<ActivityBuffer> activity_buffer)
+                                       {
+                                           activity_buffer->UnInit(this->bufferCompleted_handle_);
+                                           done->store(true, std::memory_order_release);
+                                       },
+                                       std::move(activity_buffer)),
+                                   done});
                 }
                 co_activity_buffers_.clear();
                 buf_full_ = false;
             }
         }
+        // join 在释放 cv_mtx_ 之后执行，避免 bufferCompleted 回调重入 mspti 造成死锁
+        JoinWorkThreads(reapedThreads);
     }
-    JoinWorkThreads();
+    std::vector<WorkThread> pendingWorkThreads;
+    {
+        std::lock_guard<std::mutex> lk(cv_mtx_);
+        pendingWorkThreads.swap(work_thread_);
+    }
+    JoinWorkThreads(pendingWorkThreads);
     MSPTI_LOGI("ActivityManager thread stop running.");
 }
 

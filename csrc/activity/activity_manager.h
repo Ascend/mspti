@@ -84,6 +84,11 @@ class ActivityManager
     void StopActivityMgrThread();
 
    private:
+    struct WorkThread
+    {
+        std::thread thread;
+        std::shared_ptr<std::atomic<bool>> done;
+    };
     ActivityManager();
     ~ActivityManager();
     explicit ActivityManager(const ActivityManager &obj) = delete;
@@ -92,7 +97,10 @@ class ActivityManager
     ActivityManager &operator=(ActivityManager &&obj) = delete;
     void Run();
     void ResetActivitySwitch();
-    void JoinWorkThreads();
+    void JoinWorkThreads(std::vector<WorkThread> &workThreads);
+    // 将已完成的 work 线程从 work_thread_ 摘出到 reapedThreads（调用方需持有 cv_mtx_），
+    // join 由调用方在释放 cv_mtx_ 之后执行，避免 bufferCompleted 回调重入造成死锁。
+    void ReapWorkThreads(std::vector<WorkThread> &reapedThreads);
     msptiResult TryInitActivityBuffer();
 
    private:
@@ -112,7 +120,7 @@ class ActivityManager
     bool buf_full_{false};
     bool flush_period_{false};
     uint32_t flush_period_time_{DEFAULT_PERIOD_FLUSH_TIME};
-    std::vector<std::thread> work_thread_;
+    std::vector<WorkThread> work_thread_;
 
     std::deque<std::unique_ptr<ActivityBuffer>> co_activity_buffers_;
     std::unique_ptr<ActivityBuffer> cur_buf_;
