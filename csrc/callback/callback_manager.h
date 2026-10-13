@@ -58,6 +58,10 @@ class CallbackManager final
     void ExecuteCallback(msptiCallbackDomain domain, msptiCallbackId cbid, msptiApiCallbackSite site,
                          const char* funcName);
     bool IsTracingSessionRunning() { return init_.load(std::memory_order_relaxed); }
+    // Tear the whole session down (msptiFinalize): detach activity pipelines,
+    // then unsubscribe the subscriber. Idempotent; does not flush buffers,
+    // so the caller must run msptiActivityFlushAll beforehand.
+    msptiResult Finalize();
 
    public:
     using BitMap = uint64_t;
@@ -73,9 +77,14 @@ class CallbackManager final
     msptiResult Register(msptiCallbackDomain domain, msptiCallbackId c);
     msptiResult UnRegister(msptiCallbackDomain domain, msptiCallbackId c);
     bool IsCallbackIdEnable(msptiCallbackDomain domain, msptiCallbackId cbid);
+    // Tears down the subscriber session. Caller holds subscriber_mutex_;
+    // no-op when already unsubscribed (keeps msptiFinalize idempotent).
+    void TeardownLocked();
 
    private:
     std::atomic<bool> init_{false};
+    // Guards subscriber state and serializes session startup/teardown
+    // (Init/UnInit/Finalize, including concurrent Finalize) against each other.
     std::mutex subscriber_mutex_;
     std::shared_ptr<msptiSubscriber_st> subscriber_ptr_{nullptr};
     // 采用bitmap存储cbid开关情况，目前cbid均小于64，后续cbid超长之后采用拓展bitmap存储
@@ -88,7 +97,8 @@ class CallbackScope
     CallbackScope(msptiCallbackDomain domain, msptiCallbackId cbid, const char* funcName)
         : domain_(domain), cbid_(cbid), func_name_(funcName)
     {
-        CallbackManager::GetInstance()->ExecuteCallback(domain, cbid, MSPTI_API_ENTER, func_name_);
+        // UnInit clears init_/cbid_map_, so post-finalize calls pass through.
+        CallbackManager::GetInstance()->ExecuteCallback(domain_, cbid_, MSPTI_API_ENTER, func_name_);
     }
 
     ~CallbackScope()

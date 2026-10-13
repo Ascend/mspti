@@ -361,6 +361,51 @@ extern "C"
      */
     msptiResult msptiIsTracingSessionRunning(uint8_t *isRunning);
 
+    /**
+     * @brief Detach MSPTI from the current process and release all MSPTI resources.
+     *
+     * This API detaches MSPTI from the running process. It destroys and cleans up all the
+     * resources associated with MSPTI in the current process: the callback subscriber is
+     * unsubscribed (if any), every enabled activity pipeline is drained and stopped, device
+     * profiling tasks are stopped, and the manager thread is joined. After MSPTI detaches
+     * from the process, the process will keep on running with no MSPTI attached to it, and
+     * every interposed CANN API degrades to a pure pass-through until a new MSPTI
+     * session starts (msptiSubscribe, msptiActivityRegisterCallbacks or
+     * msptiActivityEnable resumes collection).
+     *
+     * For safe operation of the API, it is recommended this API is invoked from the EXIT
+     * callback site of any subscribed CANN API (the MSPTI_API_EXIT branch of a
+     * subscribed callback). Otherwise the MSPTI client needs to make sure that
+     * the required CANN synchronization and MSPTI activity buffer flush
+     * (msptiActivityFlushAll, waiting for the buffer-complete callback to drain)
+     * are done before calling the API: this API itself does not process user
+     * activity buffers.
+     *
+     * msptiFinalize is idempotent: calling it repeatedly (also from multiple threads)
+     * succeeds; every teardown step is a no-op once the session is already gone.
+     *
+     * It can be invoked from an MSPTI_API_EXIT callback site of a subscribed callback,
+     * or from any application thread.
+     * When called from an MSPTI_API_ENTER callback site, the current API call still completes
+     * but its paired EXIT callback is dropped. The caller must guarantee quiescence: no other
+     * MSPTI API concurrently, and no in-flight MSPTI callbacks on other threads (unlike a
+     * draining finalize, this call does not wait for them).
+     *
+     * @warning Do @b not call any MSPTI API (including this function,
+     * msptiSubscribe, msptiUnsubscribe, msptiActivityEnable/Disable,
+     * msptiActivityRegisterCallbacks and msptiActivityFlushAll) inside an
+     * MSPTI buffer callback (msptiBuffersCallbackRequestFunc /
+     * msptiBuffersCallbackCompleteFunc): teardown holds session locks and
+     * joins MSPTI worker threads, which may deadlock on that thread.
+     *
+     * @note @b Thread-safety: this function is thread safe. Other MSPTI APIs must not be invoked
+     * concurrently with msptiFinalize while it is tearing the session down.
+     *
+     * @return MSPTI_SUCCESS on success, including when no session is running
+     * @return MSPTI_ERROR_INNER if a teardown step failed
+     */
+    msptiResult msptiFinalize(void);
+
 #if defined(__GNUC__) && defined(MSPTI_LIB)
 #pragma GCC visibility pop
 #endif

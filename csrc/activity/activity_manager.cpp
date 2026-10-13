@@ -315,7 +315,7 @@ void ActivityManager::StopActivityMgrThread()
         std::lock_guard<std::mutex> lk(thread_mtx_);
         if (!thread_run_.load() && !(activity_mgr_thread_ && activity_mgr_thread_->joinable()))
         {
-            MSPTI_LOGW("ActivityManager thread is not running.");
+            MSPTI_LOGW("ActivityManager thread is not running, skip stop.");
             return;
         }
         thread_run_.store(false);
@@ -414,6 +414,7 @@ msptiResult ActivityManager::RegisterCallbacks(msptiBuffersCallbackRequestFunc f
         MSPTI_LOGE("Call msptiActivityRegisterCallbacks failed while request or complete callback is nullptr.");
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
+    std::lock_guard<std::mutex> lk(session_mutex_);
     bufferRequested_handle_ = funcBufferRequested;
     bufferCompleted_handle_ = funcBufferCompleted;
     StartActivityMgrThread();
@@ -431,6 +432,7 @@ msptiResult ActivityManager::Register(msptiActivityKind kind)
     {
         return MSPTI_ERROR_WITHOUT_LD_PRELOAD;
     }
+    std::lock_guard<std::mutex> lk(session_mutex_);
     activity_switch_[kind] = true;
     append_only_activity_switch_[kind] = true;
     // 重新打开 host 数据上报开关（防御：上次 UnRegister 若未正常复位也在这里恢复）
@@ -455,6 +457,12 @@ msptiResult ActivityManager::UnRegister(msptiActivityKind kind)
         MSPTI_LOGE("The ActivityKind: %d was not support.", static_cast<int>(kind));
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
+    std::lock_guard<std::mutex> lk(session_mutex_);
+    return UnRegisterLocked(kind);
+}
+
+msptiResult ActivityManager::UnRegisterLocked(msptiActivityKind kind)
+{
     // 先关闭 host 数据上报开关：此后 parser 只消费存量排空 pending，不再接受新 host 数据
     unregistering_[kind] = true;
     if (IsNeededDevTask(kind))
@@ -793,6 +801,30 @@ msptiResult ActivityManager::ResetAllDevice()
             }
         }
     }
+    return ret;
+}
+
+msptiResult ActivityManager::Detach()
+{
+    MSPTI_LOGI("ActivityManager detach start.");
+    msptiResult ret = MSPTI_SUCCESS;
+    {
+        std::lock_guard<std::mutex> lk(session_mutex_);
+        // Stop device profiling tasks so no new reports arrive during teardown.
+        auto resetRet = ResetAllDevice();
+        if (resetRet != MSPTI_SUCCESS)
+        {
+            MSPTI_LOGE("ResetAllDevice during detach failed, ret: %d.", resetRet);
+            ret = MSPTI_ERROR_INNER;
+        }
+        // Clear parser state.
+        Parser::KernelParser::GetInstance().Clear();
+        Parser::CommunicationCalculator::GetInstance().Clear();
+    }
+    // Stop the manager thread outside session_mutex_: avoid joining worker
+    // threads (which may re-enter MSPTI) while holding the lock.
+    StopActivityMgrThread();
+    MSPTI_LOGI("ActivityManager detach done.");
     return ret;
 }
 

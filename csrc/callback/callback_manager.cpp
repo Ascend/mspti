@@ -194,7 +194,7 @@ msptiResult CallbackManager::Init(msptiSubscriberHandle* subscriber, msptiCallba
 msptiResult CallbackManager::UnInit(msptiSubscriberHandle subscriber)
 {
     std::lock_guard<std::mutex> lock(subscriber_mutex_);
-    if (!init_.load())
+    if (!IsTracingSessionRunning())
     {
         MSPTI_LOGW("CallbackManager is not init, no need to UnInit.");
         return MSPTI_SUCCESS;
@@ -203,6 +203,19 @@ msptiResult CallbackManager::UnInit(msptiSubscriberHandle subscriber)
     {
         MSPTI_LOGE("CallbackManager UnInit subscriber was not subscribe.");
         return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    TeardownLocked();
+    MSPTI_LOGI("CallbackManager UnInit success.");
+    return MSPTI_SUCCESS;
+}
+
+// Subscriber teardown without handle verification.
+// Caller must hold subscriber_mutex_; safe to call when idle.
+void CallbackManager::TeardownLocked()
+{
+    if (!IsTracingSessionRunning())
+    {
+        return;
     }
     std::atomic_exchange(&subscriber_ptr_, std::shared_ptr<msptiSubscriber_st>(nullptr));
     for (auto& bitmap : cbid_map_)
@@ -214,9 +227,7 @@ msptiResult CallbackManager::UnInit(msptiSubscriberHandle subscriber)
     Mspti::Ascend::DevTaskManager::GetInstance()->UnRegisterReportCallback();
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
     Mspti::Activity::ActivityManager::GetInstance()->StopActivityMgrThread();
-    init_.store(false);
-    MSPTI_LOGI("CallbackManager UnInit success.");
-    return MSPTI_SUCCESS;
+    init_.store(false, std::memory_order_relaxed);
 }
 
 msptiResult CallbackManager::Register(msptiCallbackDomain domain, msptiCallbackId cbid)
@@ -490,6 +501,29 @@ msptiResult CallbackManager::GetEnabledCallbacks(msptiSubscriberHandle subscribe
     }
     return MSPTI_SUCCESS;
 }
+
+msptiResult CallbackManager::Finalize()
+{
+    // subscriber_mutex_ serializes Init/UnInit/Finalize. Callers must still
+    // guarantee quiescence: no concurrent MSPTI APIs, no in-flight callbacks
+    // except this EXIT site. Activity buffers are not flushed here; the
+    // caller must msptiActivityFlushAll beforehand.
+    std::lock_guard<std::mutex> lock(subscriber_mutex_);
+    msptiResult ret = MSPTI_SUCCESS;
+    auto detachRet = Mspti::Activity::ActivityManager::GetInstance()->Detach();
+    if (detachRet != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("Activity detach failed, ret: %d.", detachRet);
+        ret = detachRet;
+    }
+    // Subscriber teardown; no-op when idle, keeping Finalize idempotent.
+    TeardownLocked();
+    if (ret == MSPTI_SUCCESS)
+    {
+        MSPTI_LOGI("CallbackManager Finalize success.");
+    }
+    return ret;
+}
 }  // namespace Callback
 }  // namespace Mspti
 
@@ -568,4 +602,16 @@ msptiResult msptiIsTracingSessionRunning(uint8_t* isRunning)
     }
     *isRunning = Mspti::Callback::CallbackManager::GetInstance()->IsTracingSessionRunning() ? 1 : 0;
     return MSPTI_SUCCESS;
+}
+
+msptiResult msptiFinalize(void)
+{
+    msptiResult ret = Mspti::Callback::CallbackManager::GetInstance()->Finalize();
+    if (ret != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("msptiFinalize failed, ret: %d.", ret);
+        return ret;
+    }
+    MSPTI_EVENT("msptiFinalize success.");
+    return ret;
 }

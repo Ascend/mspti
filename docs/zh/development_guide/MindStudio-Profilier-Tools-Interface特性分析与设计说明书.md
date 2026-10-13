@@ -552,6 +552,7 @@ Get TIMESTAMP_CALLBACK
 | `msptiGetCallbackName` | 信息查询 | 获取指定Domain + Callback ID对应的API函数名 |
 | `msptiSupportedDomains` | 信息查询 | 获取当前支持的Callback Domain列表 |
 | `msptiIsTracingSessionRunning` | 生命周期 | 查询msPTI追踪会话是否仍在运行 |
+| `msptiFinalize` | 生命周期 | 卸载msPTI并释放全部资源（会话管理接口：回调退订、Activity流程终止、设备任务与工作线程停止），进程继续运行，可再次开启新会话；禁止在缓冲区回调中调用 |
 
 ### 4.4.3 Python API 接口
 
@@ -616,6 +617,7 @@ Get TIMESTAMP_CALLBACK
 - 维护Domain和Callback ID的Enable/Disable状态。
 - 提供状态查询及域枚举能力：`msptiGetCallbackState`/`msptiGetEnabledCallbacks`/`msptiSupportedDomains`/`msptiGetCallbackName`。
 - 提供批量控制与会话探活能力：`msptiEnableAllDomains`/`msptiEnableDomain`/`msptiIsTracingSessionRunning`。
+- 提供会话卸载能力：`msptiFinalize`（排空 Activity 流程、停止设备任务与工作线程、注销订阅者；可重复调用，之后可开启新会话）。
 - 在API入口/出口检测到开启的Domain或ID时，调用用户回调函数。
 - 传递包含函数名、参数、返回值、correlationId等信息的`msptiCallbackData`。
 

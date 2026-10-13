@@ -76,6 +76,9 @@ class ActivityManager
     msptiResult UnRegister(msptiActivityKind kind);
     bool IsActivityKindEnable(msptiActivityKind kind);
     bool IsHostReportAllowed(msptiActivityKind kind);
+    // msptiFinalize teardown: drain enabled kinds, stop device tasks and the
+    // manager thread. Does not flush buffers: caller must FlushAll beforehand.
+    msptiResult Detach();
     msptiResult GetEnabledKinds(msptiActivityKind *buffer, uint32_t *bufferSize, uint32_t *enabledKindsCount);
     size_t GetAndResetDroppedCount() { return cur_drop_num_.exchange(0, std::memory_order_relaxed); }
 
@@ -101,6 +104,8 @@ class ActivityManager
     // 将已完成的 work 线程从 work_thread_ 摘出到 reapedThreads（调用方需持有 cv_mtx_），
     // join 由调用方在释放 cv_mtx_ 之后执行，避免 bufferCompleted 回调重入造成死锁。
     void ReapWorkThreads(std::vector<WorkThread> &reapedThreads);
+    // 核心实现，调用方需持有 session_mutex_；kind 合法性由调用方校验。
+    msptiResult UnRegisterLocked(msptiActivityKind kind);
     msptiResult TryInitActivityBuffer();
 
    private:
@@ -117,6 +122,9 @@ class ActivityManager
     std::condition_variable cv_;
     std::mutex cv_mtx_;
     std::mutex thread_mtx_;  // 保护 Start/Stop 线程的临界区
+    // 只序列化 switch/handle 的写者（Register/UnRegister/RegisterCallbacks vs Detach）
+    // 锁序：subscriber_mutex_ > session_mutex_ > thread_mtx_/devices_mtx_ > cv_mtx_
+    std::mutex session_mutex_;
     bool buf_full_{false};
     bool flush_period_{false};
     uint32_t flush_period_time_{DEFAULT_PERIOD_FLUSH_TIME};

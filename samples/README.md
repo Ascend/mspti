@@ -22,6 +22,7 @@ bash sample_run.sh
 | --- | --- | --- | --- |
 | [callback_domain](./callback_domain) | Callback API | Runtime API 回调拦截与前后处理 | 演示通过 `msptiEnableDomain` 订阅指定 domain，并在 API 调用前后执行回调逻辑。 |
 | [callback_mstx](./callback_mstx) | Callback API + MSTX | Launch Kernel 路径打点与上下文透传 | 演示 Callback 与 MSTX 联合采集，以及通过 `userdata` 透传配置或运行参数。 |
+| [callback_finalize](./callback_finalize) | Callback API | 采集会话的卸载与新会话启动 | 演示调用 `msptiFinalize` 卸载 MSPTI 后进程继续运行、回调停止分发，以及再次开启会话时恢复采集。 |
 | [mspti_activity](./mspti_activity) | Activity API | 基础活动数据采集与缓冲区处理 | 演示 Kernel、Memory 等活动数据采集流程，以及 Activity Buffer 的申请、消费与管理。 |
 | [mspti_correlation](./mspti_correlation) | Activity API | API 下发与 Kernel 执行关联分析 | 演示利用 `correlationId` 建立 Runtime API 与 Kernel 执行记录之间的关联关系。 |
 | [mspti_external_correlation](./mspti_external_correlation) | Activity API | 跨层调用链路关联分析 | 演示外部关联 ID 的压栈与出栈机制，用于串联不同层级的调用关系。 |

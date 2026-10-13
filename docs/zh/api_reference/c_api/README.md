@@ -90,6 +90,7 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 |[msptiSupportedDomains](./context/msptiSupportedDomains.md)|获取可用的回调**domain**列表。|
 |[msptiGetEnabledCallbacks](./context/msptiGetEnabledCallbacks.md)|获取订阅者在指定**domain**下已开启的回调列表。|
 |[msptiIsTracingSessionRunning](./context/msptiIsTracingSessionRunning.md)|查询msPTI跟踪会话是否仍在运行。|
+|[msptiFinalize](./context/msptiFinalize.md)|卸载msPTI并释放全部资源，进程继续运行，后续可开启新会话。|
 |**Typedef类型**|**Typedef说明**|
 |[msptiCallbackFunc](./context/msptiCallbackFunc.md)|回调函数类型。|
 |[msptiCallbackId](./context/msptiCallbackId.md)|标识callback跟踪函数的ID。|

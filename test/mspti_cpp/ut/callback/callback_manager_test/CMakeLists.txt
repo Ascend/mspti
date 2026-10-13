@@ -16,6 +16,7 @@ add_executable(callback_utest
     callback_utest.cpp
     callback_group_utest.cpp
     callback_stop_chain_utest.cpp
+    finalize_utest.cpp
     ${TOP_DIR}/csrc/common/inject/mstx_inject.cpp
     ${TOP_DIR}/csrc/common/function_loader.cpp
     ${UT_TOP_DIR}/stub/inject/driver_inject_stub.cpp
