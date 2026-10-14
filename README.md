@@ -89,8 +89,6 @@ msPTI 运行依赖配套版本的 CANN 环境。安装 msPTI 前，请先完成�
 
 ## 🤝 致谢
 
-msPTI 由华为昇腾计算 MindStudio 开发部贡献，感谢来自社区的每一个 PR，欢迎持续参与共建。
+本工具由华为技术有限公司与开发者联合贡献。
 
-## 关于 MindStudio 团队
-
-MindStudio 团队围绕昇腾开发场景持续建设训练、推理、性能分析等工具链能力。更多信息请访问 [昇腾社区](https://www.hiascend.com/developer/software/mindstudio) 和 [昇腾论坛](https://www.hiascend.com/forum/)。
+感谢来自社区的每一个PR，欢迎贡献！
