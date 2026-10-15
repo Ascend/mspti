@@ -12,7 +12,7 @@ msPTI（MindStudio Profiler Tools Interface）是华为昇腾 MindStudio 提供�
 
 ### 2.1 硬件环境
 
-- 一台搭载支持昇腾 NPU 的服务器（参见[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)）。
+- 一台搭载支持昇腾 NPU 的服务器（参见[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/Glossary/productform/hardwaredesc_0001.html)）。
 
 ### 2.2 软件环境
 

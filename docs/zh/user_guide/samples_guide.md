@@ -8,7 +8,7 @@
 
 > [!NOTE]
 >
-> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+> 昇腾产品的具体型号，请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/Glossary/productform/hardwaredesc_0001.html)》。
 
 <!-- npu="950" id1 -->
 - Ascend 950PR&950DT系列产品：支持
@@ -33,7 +33,7 @@
 
 **环境准备**
 
-- 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
+- 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/Glossary/productform/hardwaredesc_0001.html)》。
 
 - 软件环境请参见《[CANN快速安装](https://www.hiascend.com/zh/cann/download)》安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量。
 - msPTI Python API部分的样例依赖于PyTorch框架和TorchNPU插件，请确保安装，具体请参见《[TorchNPU软件安装](https://www.hiascend.com/zh/developer/software/ai-frameworks/pytorch/download)》。
