@@ -147,74 +147,79 @@ extern "C"
      * @brief Metric IDs of the static metric table.
      *
      * All metrics are collected via DCMI interface point queries.
+     * Interconnect bandwidth metrics (HCCS per-link, PCIe, RoCE)
+     * are normalized to bytes/s by the collector.
      * MSPTI_PM_SAMPLING_METRIC_ID_HBM_BW_UTIL is the HBM bandwidth
      * utilization (DCMI exposes HBM bandwidth only as a utilization
-     * ratio, not as read/write bytes/s). IDs 1~6 are interconnect
-     * bandwidth metrics (HCCS per-link, PCIe, RoCE), normalized to
-     * bytes/s by the collector. IDs 7~13 are power, temperature,
-     * utilization, and frequency. Whether a metric is supported on the
-     * current chip model is reported by
+     * ratio, not as read/write bytes/s). Whether a metric is
+     * supported on the current chip model is reported by
      * @ref msptiPmSamplingGetCounterAvailability.
      */
     typedef enum
     {
         /**
-         * HBM bandwidth utilization in percent.
+         * Overall NPU utilization in percent.
+         * The exact semantics depend on the HDK version.
          */
-        MSPTI_PM_SAMPLING_METRIC_ID_HBM_BW_UTIL = 0,
-        /**
-         * HCCS transmit bandwidth in bytes/s, per link.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_HCCS_TX_BW = 1,
-        /**
-         * HCCS receive bandwidth in bytes/s, per link.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_HCCS_RX_BW = 2,
-        /**
-         * PCIe transmit bandwidth in bytes/s.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_PCIE_TX_BW = 3,
-        /**
-         * PCIe receive bandwidth in bytes/s.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_PCIE_RX_BW = 4,
-        /**
-         * RoCE transmit bandwidth in bytes/s.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_ROCE_TX_BW = 5,
-        /**
-         * RoCE receive bandwidth in bytes/s.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW = 6,
-        /**
-         * Power in 0.1 W (raw DCMI value).
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_POWER = 7,
-        /**
-         * Temperature in degrees Celsius.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_TEMPERATURE = 8,
+        MSPTI_PM_SAMPLING_METRIC_ID_NPU_UTIL = 0,
         /**
          * AI Core utilization in percent.
          */
-        MSPTI_PM_SAMPLING_METRIC_ID_AICORE_UTIL = 9,
+        MSPTI_PM_SAMPLING_METRIC_ID_AICORE_UTIL = 1,
         /**
          * AI Vector utilization in percent.
          */
-        MSPTI_PM_SAMPLING_METRIC_ID_AIV_UTIL = 10,
+        MSPTI_PM_SAMPLING_METRIC_ID_AIVECTOR_UTIL = 2,
         /**
          * AI Cube utilization in percent.
          */
-        MSPTI_PM_SAMPLING_METRIC_ID_AIC_UTIL = 11,
+        MSPTI_PM_SAMPLING_METRIC_ID_AICUBE_UTIL = 3,
+        /**
+         * HBM bandwidth utilization in percent.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_HBM_BW_UTIL = 4,
+        /**
+         * HBM memory utilization in percent (memory_usage / memory_size,
+         * normalized by the collector).
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_HBM_MEM_UTIL = 5,
+        /**
+         * HCCS transmit bandwidth in bytes/s, per link.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_HCCS_TX_BW = 6,
+        /**
+         * HCCS receive bandwidth in bytes/s, per link.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_HCCS_RX_BW = 7,
+        /**
+         * PCIe transmit bandwidth in bytes/s.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_PCIE_TX_BW = 8,
+        /**
+         * PCIe receive bandwidth in bytes/s.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_PCIE_RX_BW = 9,
+        /**
+         * RoCE transmit bandwidth in bytes/s.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_ROCE_TX_BW = 10,
+        /**
+         * RoCE receive bandwidth in bytes/s.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW = 11,
+        /**
+         * Power in 0.1 W (raw DCMI value).
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_POWER = 12,
+        /**
+         * Temperature in degrees Celsius.
+         */
+        MSPTI_PM_SAMPLING_METRIC_ID_TEMPERATURE = 13,
         /**
          * AI Core current frequency in MHz.
          */
-        MSPTI_PM_SAMPLING_METRIC_ID_AICORE_FREQ = 12,
-        /**
-         * AI Vector current frequency in MHz.
-         */
-        MSPTI_PM_SAMPLING_METRIC_ID_AIV_FREQ = 13,
-        MSPTI_PM_SAMPLING_METRIC_ID_COUNT = 14,
+        MSPTI_PM_SAMPLING_METRIC_ID_AICORE_FREQ = 14,
+        MSPTI_PM_SAMPLING_METRIC_ID_COUNT = 15,
         MSPTI_PM_SAMPLING_METRIC_ID_FORCE_INT = 0x7fffffff
     } msptiPmSamplingMetricId;
 
@@ -282,14 +287,15 @@ extern "C"
      */
     typedef struct
     {
-        size_t structSize;                                  /* [in] Size of this struct */
-        void *pPriv;                                        /* [in] Private pointer, passed through as is */
-        msptiPmSamplingObjectPtr pPmSamplingObject;         /* [in] PM sampling object */
-        uint32_t numMetrics;                                /* [in] Number of metrics to collect */
-        const uint32_t *pMetricIds;                         /* [in] Array of metric IDs */
-        uint64_t samplingInterval;                          /* [in] Sampling interval in ns, range [1ms, 1s] */
-        msptiPmSamplingTriggerMode triggerMode;             /* [in] Trigger mode */
-        size_t hardwareBufferSize;                          /* [in] Hardware buffer size in bytes, 0 for default */
+        size_t structSize;                          /* [in] Size of this struct */
+        void *pPriv;                                /* [in] Private pointer, passed through as is */
+        msptiPmSamplingObjectPtr pPmSamplingObject; /* [in] PM sampling object */
+        uint32_t numMetrics;                        /* [in] Number of metrics to collect */
+        const uint32_t *pMetricIds;                 /* [in] Array of metric IDs */
+        uint64_t samplingInterval;                  /* [in] Sampling interval in ns, range [1ms, 1s] */
+        msptiPmSamplingTriggerMode triggerMode;     /* [in] Trigger mode */
+        size_t hardwareBufferSize; /* [in] Engine sample queue capacity in bytes, 0 for default (10000 samples), min one
+                                      sample size, max 512MB */
         msptiPmSamplingBufferAppendMode hwBufferAppendMode; /* [in] Append mode when the buffer is full */
     } msptiPmSamplingSetConfigParams;
 
@@ -344,11 +350,10 @@ extern "C"
         size_t structSize;                          /* [in] Size of this struct */
         void *pPriv;                                /* [in] Private pointer, passed through as is */
         msptiPmSamplingObjectPtr pPmSamplingObject; /* [in] PM sampling object */
-        uint32_t numMetrics;                        /* [in] Number of metrics planned for the image */
-        const uint32_t *pMetricIds;                 /* [in] Array of metric IDs */
-        uint32_t maxEntriesPerSample;               /* [in] Max value entries a single sample can hold */
-        uint64_t maxSamples;                        /* [in] Max number of samples the image can hold */
-        size_t *pCounterDataSize;                   /* [out] Required image size in bytes */
+        uint32_t numMetrics; /* [in] Number of metrics planned for the image; 0 to reuse the SetConfig metric set */
+        const uint32_t *pMetricIds; /* [in] Array of metric IDs; NULL when numMetrics is 0 */
+        uint64_t maxSamples;        /* [in] Max number of samples the image can hold */
+        size_t *pCounterDataSize;   /* [out] Required image size in bytes */
     } msptiPmSamplingGetCounterDataSizeParams;
 
     /**
@@ -467,7 +472,7 @@ extern "C"
      * PM sampling object.
      *
      * Can be called in Created, Configured, or Stopped state; calling in
-     * Running state returns MSPTI_ERROR_PM_SAMPLING_INVALID_STATE.
+     * Running state returns MSPTI_ERROR_INVALID_OPERATION.
      * Reconfiguring a Stopped session clears its pending sample queue,
      * since the metric set may change and old samples do not match the
      * new entry layout.
@@ -477,26 +482,26 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_STATE if the session is Running
-     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range
-     * @return MSPTI_ERROR_PM_SAMPLING_UNSUPPORTED_METRIC if a metric is unavailable on this chip
-     * @return MSPTI_ERROR_PM_SAMPLING_INTERVAL_INVALID if the interval is out of [1ms, 1s]
+     * @return MSPTI_ERROR_INVALID_OPERATION if the session is Running
+     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range, duplicated, or unavailable on this
+     * chip
+     * @return MSPTI_ERROR_INVALID_PARAMETER if the interval is out of [1ms, 1s]
      */
     msptiResult msptiPmSamplingSetConfig(msptiPmSamplingSetConfigParams *params);
 
     /**
      * @brief Start the PM sampling window.
      *
-     * Can be called in Configured or Stopped state; repeated calls in
-     * Running state succeed with no side effect. Samples of all Start/Stop
-     * windows accumulate in the same session.
+     * Can be called in Configured or Stopped state. Samples of all
+     * Start/Stop windows accumulate in the same session.
      *
      * @param params [in] Pointer to @ref msptiPmSamplingStartParams
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_PM_SAMPLING_OBJECT_NOT_CONFIGURED if the session has no valid configuration
+     * @return MSPTI_ERROR_INVALID_OPERATION if the session is Running, Created, or has no valid configuration
+     * @return MSPTI_ERROR_DEVICE_OFFLINE if the DCMI data source is unavailable on this platform
      */
     msptiResult msptiPmSamplingStart(msptiPmSamplingStartParams *params);
 
@@ -512,7 +517,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_STATE if the session is not Running
+     * @return MSPTI_ERROR_INVALID_OPERATION if the session is not Running
      */
     msptiResult msptiPmSamplingStop(msptiPmSamplingStopParams *params);
 
@@ -545,17 +550,19 @@ extern "C"
      *
      * The counter data image is an opaque user-allocated buffer whose
      * layout is not exposed; it must only be accessed through the APIs of
-     * this header. Because per-instance metrics produce one value entry
-     * per reported instance, @p maxEntriesPerSample must bound the
-     * worst-case entry count of a single sample. Oversized values that
-     * would overflow the 64-bit size computation are rejected.
+     * this header. The per-sample entry capacity is derived internally
+     * from the metric set, so callers only decide how many samples the
+     * image should hold via @p maxSamples. When @p numMetrics is 0 and
+     * @p pMetricIds is NULL, the metric set configured by SetConfig is
+     * reused. Requests that would exceed the per-image budget are
+     * rejected; reduce @p maxSamples and retry.
      *
      * @param params [in] Pointer to @ref msptiPmSamplingGetCounterDataSizeParams
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL, fields are
-     *         invalid, or @p numMetrics/@p maxEntriesPerSample/@p maxSamples
-     *         would overflow the size computation
+     *         invalid, or the image derived from @p numMetrics/@p maxSamples
+     *         would exceed the per-image budget
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      */
     msptiResult msptiPmSamplingGetCounterDataSize(msptiPmSamplingGetCounterDataSizeParams *params);

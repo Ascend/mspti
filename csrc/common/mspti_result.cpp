@@ -36,18 +36,15 @@ const char* const kResultStrings[] = {
     "The parameter size is not sufficient.",                     /* 9  MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT */
     "A PM Sampling session is already enabled on this device.",  /* 10 MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED */
     "The PM Sampling session does not exist or is not enabled.", /* 11 MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED */
-    "The PM Sampling object is not configured.",                 /* 12 MSPTI_ERROR_PM_SAMPLING_OBJECT_NOT_CONFIGURED */
-    "The PM Sampling metric id is invalid or not in the session metric set.", /* 13
-                                                                                 MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC
-                                                                               */
-    "The PM Sampling metric is unsupported on this chip.",        /* 14 MSPTI_ERROR_PM_SAMPLING_UNSUPPORTED_METRIC */
-    "The PM Sampling counter data buffer overflowed.",            /* 15 MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW */
-    "The PM Sampling operation is invalid in the current state.", /* 16 MSPTI_ERROR_PM_SAMPLING_INVALID_STATE */
-    "The PM Sampling interval is out of range [1ms, 1s].",        /* 17 MSPTI_ERROR_PM_SAMPLING_INTERVAL_INVALID */
+    "The PM Sampling metric id is invalid, duplicated, or unavailable on this device.", /* 12
+                                                                                           MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC
+                                                                                         */
+    "The PM Sampling counter data buffer overflowed.",    /* 13 MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW */
+    "The operation is not allowed in the current state.", /* 14 MSPTI_ERROR_INVALID_OPERATION */
 };
 
 /* 编译期断言：表长度与枚举连续码数量自动对齐，消除硬编码魔数 */
-static_assert(sizeof(kResultStrings) / sizeof(kResultStrings[0]) == MSPTI_ERROR_PM_SAMPLING_INTERVAL_INVALID + 1,
+static_assert(sizeof(kResultStrings) / sizeof(kResultStrings[0]) == MSPTI_ERROR_INVALID_OPERATION + 1,
               "kResultStrings must cover all continuous result codes");
 /* 连续业务码必须仍以 9 结尾，防止中段插入新错误码导致索引表错位 */
 static_assert(MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT == 9,

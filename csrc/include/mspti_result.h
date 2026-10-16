@@ -40,15 +40,12 @@ typedef enum
     MSPTI_ERROR_NOT_INITIALIZED = 7,
     MSPTI_ERROR_INVALID_KIND = 8,
     MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT = 9,
-    /* PM Sampling 对象式 API（mspti_pm_sampling.h）专用错误码 */
-    MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED = 10,       /* 同设备会话已存在 */
-    MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED = 11,           /* 会话不存在或未 Enable */
-    MSPTI_ERROR_PM_SAMPLING_OBJECT_NOT_CONFIGURED = 12, /* 未 SetConfig 即执行该操作 */
-    MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC = 13,        /* metricId 非法或不在会话指标集内 */
-    MSPTI_ERROR_PM_SAMPLING_UNSUPPORTED_METRIC = 14,    /* 指标在当前芯片型号不可采 */
-    MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW = 15,       /* 镜像容量不足 */
-    MSPTI_ERROR_PM_SAMPLING_INVALID_STATE = 16,         /* 状态机非法操作（如 Running 内 SetConfig） */
-    MSPTI_ERROR_PM_SAMPLING_INTERVAL_INVALID = 17,      /* 采样周期超出 1ms~1s */
+    /* PM Sampling 特性新增错误码；INVALID_OPERATION 为通用状态拒绝码，其余为 PM Sampling 专用 */
+    MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED = 10, /* 同设备会话已存在 */
+    MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED = 11,     /* 会话不存在或未 Enable */
+    MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC = 12,  /* metricId 非法、重复或当前设备不可采 */
+    MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW = 13, /* 镜像容量不足 */
+    MSPTI_ERROR_INVALID_OPERATION = 14,           /* 当前状态下不允许该操作（状态机拒绝） */
     MSPTI_ERROR_INNER = 999,
     MSPTI_ERROR_FORCE_INT = 0x7fffffff
 } msptiResult;

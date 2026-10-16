@@ -49,6 +49,7 @@ file(GLOB_RECURSE SRC_FILE
     ${CMAKE_SOURCE_DIR}/csrc/activity/*.cpp
     ${CMAKE_SOURCE_DIR}/csrc/callback/*.cpp
     ${CMAKE_SOURCE_DIR}/csrc/common/*.cpp
+    ${CMAKE_SOURCE_DIR}/csrc/pm_sampling/*.cpp
 )
 
 add_library(mspti_shared SHARED

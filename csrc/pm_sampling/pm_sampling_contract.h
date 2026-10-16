@@ -25,8 +25,8 @@
  * 修改本文件的任何结构体、枚举值或布局常量，都必须同步评审采集与解析两侧的实现。
  */
 
-#ifndef MSPTI_PMSAMPLING_PM_SAMPLING_CONTRACT_H
-#define MSPTI_PMSAMPLING_PM_SAMPLING_CONTRACT_H
+#ifndef MSPTI_PM_SAMPLING_PM_SAMPLING_CONTRACT_H
+#define MSPTI_PM_SAMPLING_PM_SAMPLING_CONTRACT_H
 
 #include <cstdint>
 #include <vector>
@@ -40,7 +40,7 @@ namespace PmSampling
 
 /**
  * 互连带宽类型。DCMI 带宽接口自带采样窗口，采集方只做单位归一化为 bytes/s：
- * HCCS(dcmi_get_hccs_link_bandwidth_info, GB/s, 逐链路 0~15)、
+ * HCCS(dcmi_get_hccs_link_bandwidth_info, GB/s, 逐链路)、
  * PCIe(dcmi_get_pcie_link_bandwidth_info, MB/ms)、RoCE(dcmi_get_rdma_bandwidth_info, MB/s)。
  */
 enum PmBwType : uint32_t
@@ -57,8 +57,24 @@ enum PmBwType : uint32_t
 struct PmBwPoint
 {
     PmBwType type = PM_BW_HCCS_TX;
-    uint32_t instanceId = 0; /* HCCS 链路号 0~15；无实例概念时为 0 */
+    uint32_t instanceId = 0; /* HCCS 链路号；无实例概念时为 0 */
     double bytesPerSec = 0.0;
+};
+
+/**
+ * DCMI 接口组采集需求，由全部 Running 会话配置 metricId 的并集聚合而成。
+ * 采集方仅点查为 true 的接口组。
+ */
+struct DcmiCollectNeeds
+{
+    bool power = false;
+    bool temperature = false;
+    bool utilization = false;
+    bool frequency = false;
+    bool hbm = false;
+    bool hccsBw = false;
+    bool pcieBw = false;
+    bool roceBw = false;
 };
 
 /**
@@ -70,14 +86,15 @@ struct PmDcmiSample
 {
     uint32_t deviceId = 0;
     uint64_t tsNs = 0;
-    int32_t power = -1;                /* 0.1 W */
-    int32_t temperature = -1;          /* 摄氏度 */
-    uint32_t hbmBwUtil = 0xFFFFFFFFU;  /* HBM 带宽利用率 % */
-    uint32_t aicoreUtil = 0xFFFFFFFFU; /* AI Core 利用率 % */
-    uint32_t aivUtil = 0xFFFFFFFFU;    /* AI Vector 利用率 % */
-    uint32_t aicUtil = 0xFFFFFFFFU;    /* AI Cube 利用率 % */
-    uint32_t aicoreFreq = 0xFFFFFFFFU; /* AI Core 频率 MHz */
-    uint32_t aivFreq = 0xFFFFFFFFU;    /* AI Vector 频率 MHz */
+    uint32_t npuUtil = 0xFFFFFFFFU;      /* NPU 整体利用率 %（语义依赖 HDK 版本） */
+    uint32_t aicoreUtil = 0xFFFFFFFFU;   /* AI Core 利用率 % */
+    uint32_t aivectorUtil = 0xFFFFFFFFU; /* AI Vector 利用率 % */
+    uint32_t aicubeUtil = 0xFFFFFFFFU;   /* AI Cube 利用率 % */
+    uint32_t hbmBwUtil = 0xFFFFFFFFU;    /* HBM 带宽利用率 % */
+    uint32_t hbmMemUtil = 0xFFFFFFFFU;   /* HBM 内存占用率 %（采集方按用量归一化） */
+    int32_t power = -1;                  /* 0.1 W */
+    int32_t temperature = -1;            /* 摄氏度 */
+    uint32_t aicoreFreq = 0xFFFFFFFFU;   /* AI Core 频率 MHz */
     std::vector<PmBwPoint> bandwidths;
 };
 
@@ -85,14 +102,14 @@ struct PmDcmiSample
 struct PmSampleEntry
 {
     uint32_t metricId = 0;
-    uint32_t instanceId = 0; /* HCCS 链路号 0~15；无实例概念时为 0 */
+    uint32_t instanceId = 0; /* HCCS 链路号；无实例概念时为 0 */
     double value = 0.0;
 };
 
 /**
  * 会话样本。[startNs, endNs] 为样本窗口（host 纳秒），entries 逐实例一条，
  * 无实例概念的指标 instanceId 为 0，本窗口无数据时产出一条 {metricId, 0, 0.0}；
- * 带宽类指标 (1~6) 单位 bytes/s，其余为瞬时原值。
+ * 带宽类指标单位 bytes/s，其余为瞬时原值。
  */
 struct PmSessionSample
 {
@@ -148,7 +165,7 @@ constexpr uint64_t CalcImageSize(uint32_t numMetrics, uint64_t maxEntriesPerSamp
  * 镜像定位为批量搬运缓冲（长期存储是引擎内部样本队列，DecodeData 消费式分批搬运），
  * 预算相对引擎队列满载容量留足余量，正常情况下一次 decode 即可搬空队列。 */
 constexpr uint32_t PM_IMAGE_MAX_ENTRIES_PER_SAMPLE = 1024; /* 宽松上界：覆盖全指标配置（含逐实例指标展开）*/
-constexpr uint64_t PM_IMAGE_MAX_SIZE = 64ULL * 1024 * 1024; /* 64MiB */
+constexpr uint64_t PM_IMAGE_MAX_SIZE = 512ULL * 1024 * 1024; /* 512MB，与样本队列容量上界对齐 */
 
 /* GetCounterDataSize 入参合法性校验，全部通过返回 true；调用方校验失败返回 INVALID_PARAMETER */
 inline bool ValidateImageParams(uint32_t numMetrics, uint64_t maxEntriesPerSample, uint64_t maxSamples)
