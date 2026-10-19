@@ -8,14 +8,24 @@
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
-| Product Type                                   | Supported|
-| ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training products                         |    ×     |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ## Description <a name="section20806203412478"></a>
 
@@ -42,23 +52,23 @@ typedef void(*msptiBuffersCallbackCompleteFunc)(uint8_t *buffer, size_t size, si
 </thead>
 <tbody><tr id="row1131131265511"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p7669321185110"><a name="p7669321185110"></a><a name="p7669321185110"></a>buffer</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p599212241261"><a name="p599212241261"></a><a name="p599212241261"></a>Input </p>.
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p599212241261"><a name="p599212241261"></a><a name="p599212241261"></a>Input </p>
 </td>
-Address of the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a>Activity Buffer.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a>Address of the Activity Buffer.</p>
 </td>
 </tr>
 <tr id="row18118485118"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p17567995224"><a name="p17567995224"></a><a name="p17567995224"></a>size</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1399417247617"><a name="p1399417247617"></a><a name="p1399417247617"></a>Input </p>.
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1399417247617"><a name="p1399417247617"></a><a name="p1399417247617"></a>Input </p>
 </td>
-Size of the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p61315168385"><a name="p61315168385"></a><a name="p61315168385"></a>Activity Buffer, in bytes.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p61315168385"><a name="p61315168385"></a><a name="p61315168385"></a>Size of the Activity Buffer, in bytes.</p>
 </td>
 </tr>
 <tr id="row208099610258"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p16810567252"><a name="p16810567252"></a><a name="p16810567252"></a>validSize</p>
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p99964242613"><a name="p99964242613"></a><a name="p99964242613"></a> Input</p>
 </td>
-Size of the data recorded by the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p8810126142514"><a name="p8810126142514"></a><a name="p8810126142514"></a>Activity Buffer, in bytes.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p8810126142514"><a name="p8810126142514"></a><a name="p8810126142514"></a>Size of the data recorded by the Activity Buffer, in bytes.</p>
 </td>
 </tr>
 </tbody>

@@ -2,7 +2,7 @@
 
 Activity data source. either host or device.
 
-msptiActivitySourceKind is an enumeration class invoked in the [msptiActivityMarker](msptiActivityMarker.md) structure. It is defined as follows:
+msptiActivitySourceKind is an enumeration class used in the [msptiActivityMarker](msptiActivityMarker.md) structure. It is defined as follows:
 
 ```cpp
 typedef enum {

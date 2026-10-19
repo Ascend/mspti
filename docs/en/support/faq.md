@@ -15,14 +15,24 @@ msPTI provides the following core capabilities:
 
 ### Q3: Which Product Models Does msPTI Support?
 
-| Product Type | Supported |
-| --- | :---: |
-| Ascend 950 products | √ |
-| Atlas A3 training products/Atlas A3 inference products | √ |
-| Atlas A2 training products/Atlas A2 inference products | √ |
-| Atlas 200I/500 A2 inference products | √ |
-| Atlas inference products | × |
-| Atlas training products | × |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ### Q4: Does msPTI Support Windows Environments?
 
@@ -67,20 +77,20 @@ You can query the value of `{tools_name}` by running the `python ms_install.py h
 
 ### Q8: How Do I Upgrade msPTI?
 
-Upgrading means uninstalling the old version first and then installing the new one. Run the installation command of the new version directly. The tool automatically uninstalls the old version and guides you through the overwrite installation. Before upgrading, check the current version by running `pip show mspti` and pay attention to version compatibility. See [Release Notes](https://gitcode.com/Ascend/mspti/releases).
+Upgrading means uninstalling the old version first and then installing the new one. Run the installation command of the new version directly. The tool automatically uninstalls the old version and guides you through the overwrite installation. Before upgrading, check the current version by running `pip show mspti` and pay attention to version compatibility. See [Release Notes](https://atomgit.com/Ascend/mspti/releases).
 
 ### Q9: What Parameters Are Supported When Installing the Run Package?
 
 | Parameter | Description |
 | --- | --- |
-| `--install` | Installs the software package. You can use it with `--install-path` to specify the path. |
-| `--uninstall` | Uninstalls the software package. |
-| `--install-path=<path>` | Specifies the installation path, which must point to the CANN layer directory. |
-| `--install-for-all` | Allows other users to have the permissions of the installation user group. This poses a security risk. Therefore, use it with caution. |
+| --install | Installs the software package. You can use it with `--install-path` to specify the path. |
+| --uninstall | Uninstalls the software package. |
+| --install-path=\<path\> | Specifies the installation path, which must point to the CANN layer directory. |
+| --install-for-all | Allows other users to have the permissions of the installation user group. This poses a security risk. Therefore, use it with caution. |
 
 ### Q10: What If the MD5 Checksum Does Not Match?
 
-If the output of `md5sum -c -` shows `FAILED`, do not continue the installation. Delete the current file, download it again, and run the MD5 checksum again. If it still fails, check that the file name and version match those on the releases page, and report the issue through [Issues](https://gitcode.com/Ascend/mspti/issues).
+If the output of `md5sum -c -` shows `FAILED`, do not continue the installation. Delete the current file, download it again, and run the MD5 checksum again. If it still fails, check that the file name and version match those on the releases page, and report the issue through [Issues](https://atomgit.com/Ascend/mspti/issues).
 
 ---
 
@@ -90,7 +100,7 @@ If the output of `md5sum -c -` shows `FAILED`, do not continue the installation.
 
 - **Hardware**: a server equipped with Ascend NPUs
 - **Software**: CANN Toolkit and the ops operator package (version ≥ 8.5.0)
-- **Python version**: Python 3.10 or later if you use the Python API.
+- **Python version**: Python 3.10 or later if you use the Python API
 
 ### Q12: Can msPTI Be Used Together with Other Performance Collection Tools?
 
@@ -126,15 +136,15 @@ For detailed interface definitions, see [C API Reference](../api_reference/c_api
 
 | Sample | Interface Type | Applicable Scenario |
 | --- | --- | --- |
-| `callback_domain` | Callback API | Runtime API callback interception and pre- and post-processing |
-| `callback_mstx` | Callback API + MSTX | Launch Kernel marker collection and context pass-through |
-| `mspti_activity` | Activity API | Basic activity data collection and buffer processing |
-| `mspti_correlation` | Activity API | Correlation analysis between API dispatch and Kernel execution |
-| `mspti_external_correlation` | Activity API | Correlation analysis of cross-layer call chains |
-| `mspti_hccl_activity` | Activity API | HCCL communication behavior collection and analysis |
-| `mspti_mstx_activity_domain` | Activity API + MSTX | Domain-level marker collection control |
-| `python_monitor` | Python API | Python computation and communication time collection |
-| `python_mstx_monitor` | Python API + MSTX | Python custom marker analysis |
+| callback_domain | Callback API | Runtime API callback interception and pre- and post-processing |
+| callback_mstx | Callback API + MSTX | Launch Kernel marker collection and context pass-through |
+| mspti_activity | Activity API | Basic activity data collection and buffer processing |
+| mspti_correlation | Activity API | Correlation analysis between API dispatch and Kernel execution |
+| mspti_external_correlation | Activity API | Correlation analysis of cross-layer call chains |
+| mspti_hccl_activity | Activity API | HCCL communication behavior collection and analysis |
+| mspti_mstx_activity_domain | Activity API + MSTX | Domain-level marker collection control |
+| python_monitor | Python API | Python computation and communication time collection |
+| python_mstx_monitor | Python API + MSTX | Python custom marker analysis |
 
 ### Q16: What Additional Installation Do the Python Samples Require?
 

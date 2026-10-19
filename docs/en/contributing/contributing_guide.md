@@ -4,7 +4,7 @@ Thank you for considering contributing to the MindStudio Profiler Tools Interfac
 
 You can support this project in several ways:
 
-- Report issues through [Issues](https://gitcode.com/Ascend/mspti/issues).
+- Report issues through [Issues](https://atomgit.com/Ascend/mspti/issues).
 - Suggest or implement new features.
 - Improve or extend the documentation.
 - Review pull requests and assist other contributors.
@@ -17,7 +17,7 @@ Want to get started? Look for the following types of issues:
 - Good first issues
 - Call for contribution
 
-You can also learn about the development plans and roadmap of the project by browsing the [Issues list](https://gitcode.com/Ascend/mspti/issues).
+You can also learn about the development plans and roadmap of the project by browsing the [Issues list](https://atomgit.com/Ascend/mspti/issues).
 
 ## Contribution Workflow
 
@@ -33,7 +33,7 @@ You can also learn about the development plans and roadmap of the project by bro
 1. Fork the source code into your personal repository for development
 
    ```bash
-   git clone https://gitcode.com/<your-username>/mspti.git
+   git clone https://atomgit.com/<your-username>/mspti.git
    cd mspti
    ```
 
@@ -145,7 +145,7 @@ Before submitting a pull request, ensure that:
 
 4. **Creating a pull request**
 
-   Create a pull request on GitCode and fill in the following:
+   Create a pull request on AtomGit and fill in the following:
 
    1. A clear title
 
@@ -245,4 +245,4 @@ Thank you for contributing to msPTI. Your efforts make this project stronger and
 
 ---
 
-If you have any questions or need help, feel free to ask in [Issues](https://gitcode.com/Ascend/mspti/issues) or contact us through other community channels.
+If you have any questions or need help, feel free to ask in [Issues](https://atomgit.com/Ascend/mspti/issues) or contact us through other community channels.

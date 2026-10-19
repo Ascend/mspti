@@ -2,7 +2,7 @@
 
 Activity data source. either host or device.
 
-The MsptiActivitySourceKind is an enumeration class called in the [MarkerData](MarkerData.md) structure. It is defined as follows:
+The MsptiActivitySourceKind is an enumeration class used in the [MarkerData](MarkerData.md) structure. It is defined as follows:
 
 ```python
 class MsptiActivitySourceKind(Enum):

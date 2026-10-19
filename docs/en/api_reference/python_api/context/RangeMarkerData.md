@@ -1,6 +1,6 @@
 # RangeMarkerData<a name="ZH-CN_TOPIC_0000002279641170"></a>
 
-This section describes the range dotting data of the msTX API. For details about the msTX API, see [msTX API Reference](https://gitcode.com/Ascend/mstx/blob/master/docs/en/api_reference/README.md).
+This section describes the range dotting data of the msTX API. For details about the msTX API, see [msTX API Reference](https://atomgit.com/Ascend/mstx/blob/26.2.0/docs/en/api_reference/README.md).
 
 RangeMarkerData is the structure invoked by [MstxMonitor.start](MstxMonitor-start.md). The definition is as follows:
 

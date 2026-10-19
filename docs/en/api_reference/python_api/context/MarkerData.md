@@ -1,6 +1,6 @@
 # MarkerData<a name="ZH-CN_TOPIC_0000002154732221"></a>
 
-This section describes the instantaneous dotting data of the msTX API. For details about the msTX API, see [msTX API Reference](https://gitcode.com/Ascend/mstx/blob/master/docs/en/api_reference/README.md).
+This section describes the instantaneous dotting data of the msTX API. For details about the msTX API, see [msTX API Reference](https://atomgit.com/Ascend/mstx/blob/26.2.0/docs/en/api_reference/README.md).
 
 MarkerData is the structure invoked by [MstxMonitor.start](MstxMonitor-start.md). The definition is as follows:
 

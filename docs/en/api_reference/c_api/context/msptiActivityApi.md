@@ -8,8 +8,8 @@ typedef struct PACKED_ALIGNMENT {
     uint64_t start; // Start timestamp of API execution, in ns. If both the start and end timestamps are 0, the API timestamp information cannot be collected.
     uint64_t end; // End timestamp of API execution, in ns. If both the start and end timestamps are 0, the API timestamp information cannot be collected.
     struct {
-        uint32_t processId; // Process ID of the device where the API is running.
-        uint32_t threadId; // Thread ID of the stream where the API is running.
+        uint32_t processId; // Process ID of the process calling the API.
+        uint32_t threadId; // Thread ID of the thread calling the API.
     } pt;
     uint64_t correlationId; // Correlation ID of the API. Each API execution is assigned a unique correlation ID, which is the same as the correlation ID of the driver that starts the API or the runtime API Activity Record.
     const char* name; // Name of the API, which is consistent in the entire Activity Record. You are advised not to change it.

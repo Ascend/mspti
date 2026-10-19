@@ -16,6 +16,8 @@ You are advised to enable the **address space layout randomization** (ASLR) (lev
 
  4. If a tool depends on CANN, install the CANN package under the same non-privileged user. After running the `source` command, do not modify the environment variables in `set_env.sh`.
 
+ 5. This repository provides reference configurations for vscode and devcontainer to facilitate development and debugging. They can only be used to develop and debug this repository in a secure debugging environment. In addition, check the security of the configurations yourself and adjust them as required.
+
 ## File Permission Control
 
  1. Ensure that the directory permission is `750`.

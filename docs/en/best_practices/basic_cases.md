@@ -10,15 +10,15 @@ msPTI provides three sets of programming interfaces. Select the appropriate API 
 | Inserting custom logic before and after API calls | Callback API | ENTER/EXIT callback points, with userdata passing and correlationData sharing |
 | Quickly adding performance monitoring to Python training scripts | Python API | Monitor wrapper, one-line startup, and a built-in multithreaded consumer mode |
 | Correlating API calls with Kernel execution | Activity API + correlationId | Establishes a one-to-one mapping through the `correlationId` field. |
-| Distributed communication analysis (AllReduce and so on) | Activity API (Communication) + Python CommunicationMonitor | The C side collects all HCCL metadata, and the Python side integrates quickly |
-| Instrumenting and collecting custom code segments | Callback API + MSTX (C), MstxMonitor (Python) | Domain-based control, dynamic start/stop, and reduced unnecessary performance loss |
+| Distributed communication analysis (AllReduce and so on) | Activity API (Communication) + Python `CommunicationMonitor` | The C side collects all HCCL metadata, and the Python side integrates quickly |
+| Instrumenting and collecting custom code segments | Callback API + MSTX (C), `MstxMonitor` (Python) | Domain-based control, dynamic start/stop, and reduced unnecessary performance loss |
 
 ### Hybrid Usage Strategy
 
 The Callback API and Activity API can be enabled at the same time without conflicting with each other. Typical combinations:
 
 - **Callback instrumentation + Activity collection**: Use the Callback API to call `mstxMarkA` at the entry and exit of Launch Kernel, and enable the Activity API to collect `MSPTI_ACTIVITY_KIND_MARKER` and `MSPTI_ACTIVITY_KIND_KERNEL` at the same time, enabling correlation analysis between the API context and Kernel execution data.
-- **Activity collection + custom consumption**: Use the Activity API to enable multiple Kinds and customize data parsing and storage logic in CompleteFunc.
+- **Activity collection + custom consumption**: Use the Activity API to enable multiple Kinds and customize data parsing and storage logic in `CompleteFunc`.
 
 ---
 
@@ -66,7 +66,7 @@ void UserBufferComplete(uint8_t *buffer, size_t size, size_t validSize) {
 }
 ```
 
-**Avoid time-consuming operations in CompleteFunc** (such as file writes and network transfers). Instead, put the raw data into a queue and have a background thread process it asynchronously.
+**Avoid time-consuming operations in `CompleteFunc`** (such as file writes and network transfers). Instead, put the raw data into a queue and have a background thread process it asynchronously.
 
 ### 2.2 Activity Kind Enablement Principles
 
@@ -92,7 +92,7 @@ msptiActivityDisable(MSPTI_ACTIVITY_KIND_COMMUNICATION);
 
 `correlationId` is the key field for correlating API calls with Kernel execution. Best practices:
 
-1. **Deep-copy records**: The buffer is released after CompleteFunc returns. You must deep-copy the records that need to be retained.
+1. **Deep-copy records**: The buffer is released after `CompleteFunc` returns. You must deep-copy the records that need to be retained.
 2. **Index with a Map**: Build an `unordered_map` with `correlationId` as the key to achieve O(1) lookup.
 
 ```cpp
@@ -103,7 +103,7 @@ kernelMap[correlationId].push_back(copiedKernel);
 
 ### 2.4 Quick Dispatch
 
-Dispatch records quickly by `kind` in CompleteFunc:
+Dispatch records quickly by `kind` in `CompleteFunc`:
 
 ```cpp
 void DispatchRecord(msptiActivity *record) {
@@ -144,8 +144,8 @@ void DispatchRecord(msptiActivity *record) {
 
 | Subscription Method | Applicable Scenario | Performance Overhead |
 | --- | --- | --- |
-| `msptiEnableDomain` | Full API call tracking during the debugging phase | Higher (a callback is triggered on every API call) |
-| `msptiEnableCallback` | Only specific APIs are of interest (such as Launch Kernel) | Lower (callbacks are triggered only for the target APIs) |
+| msptiEnableDomain | Full API call tracking during the debugging phase | Higher (a callback is triggered on every API call) |
+| msptiEnableCallback | Only specific APIs are of interest (such as Launch Kernel) | Lower (callbacks are triggered only for the target APIs) |
 
 **Recommendation**: In production environments, use `msptiEnableCallback` to precisely locate the APIs you care about. During the debugging phase, you can use `msptiEnableDomain` for full observation.
 
@@ -295,7 +295,7 @@ When you use `torchrun` to start multiple processes, each process should create 
 
 **Scenario**: PyTorch training on a single device, where you suspect that an operator is the performance bottleneck.
 
-**Solution**: Use the Python KernelMonitor to collect Kernel execution durations.
+**Solution**: Use the Python `KernelMonitor` to collect Kernel execution durations.
 
 ```python
 import torch
@@ -342,7 +342,7 @@ for name, stat in sorted_kernels[:10]:
 
 **Scenario**: Distributed training on 8 devices, where AllReduce communication takes an abnormally long time.
 
-**Solution**: Use CommunicationMonitor and KernelMonitor to collect compute and communication durations separately.
+**Solution**: Use `CommunicationMonitor` and `KernelMonitor` to collect compute and communication durations separately.
 
 ```python
 import os
@@ -412,14 +412,14 @@ consumer_thread.join()
 **Analysis Points**:
 
 - **Compute/communication ratio**: If communication accounts for more than 30%, consider operator fusion or gradient accumulation.
-- **Communication bandwidth**: Use the `bandwidth` field of HcclData to determine whether the hardware upper limit is reached.
-- **Communication operator type**: Use the `alg_type` field of CommunicationData to confirm the communication algorithm used (such as `Ring` and `Tree`).
+- **Communication bandwidth**: Use the `bandwidth` field of `HcclData` to determine whether the hardware upper limit is reached.
+- **Communication operator type**: Use the `alg_type` field of `CommunicationData` to confirm the communication algorithm used (such as `Ring` and `Tree`).
 
 ### Case 3: Custom Operator Instrumentation Analysis
 
 **Scenario**: Add instrumentation before and after a PyTorch custom operator to measure the operator duration precisely.
 
-**Solution**: Use MstxMonitor and the `torch_npu.npu.mstx` API.
+**Solution**: Use `MstxMonitor` and the `torch_npu.npu.mstx` API.
 
 ```python
 import torch
@@ -563,9 +563,9 @@ mstxDomainRangeEnd(domainBackward, id2);
 | --- | --- | --- |
 | `msptiActivityEnable` to enable Kinds | Negligible | Only sets flag bits. |
 | Activity Buffer write | Low | Memory write operation, at the nanosecond level |
-| RequestFunc callback | Medium | Involves memory allocation or cache lookup. |
-| CompleteFunc callback | Depends on your logic | Keep it lightweight and avoid I/O. |
-| Callback ENTER/EXIT | Medium | A function call is triggered on every API call |
+| `RequestFunc` callback | Medium | Involves memory allocation or cache lookup. |
+| `CompleteFunc` callback | Depends on your logic | Keep it lightweight and avoid I/O. |
+| Callback ENTER/EXIT | Medium | A function call is triggered on every API call. |
 | Python Monitor callback | Medium | Conversion overhead from the Python C extension to the Python layer |
 
 ### 6.2 Tips for Reducing Overhead
@@ -589,7 +589,7 @@ mstxDomainRangeEnd(domainBackward, id2);
 
 | Pattern | Problem | Correct Approach |
 | --- | --- | --- |
-| Writing files in CompleteFunc | Blocks buffer recycling, causing data loss. | Enqueue the data and write it in a background thread. |
+| Writing files in `CompleteFunc` | Blocks buffer recycling, causing data loss. | Enqueue the data and write it in a background thread. |
 | Enabling all Activity Kinds | Unnecessary data collection increases overhead | Enable only the Kinds required for analysis. |
 | Not handling duplicate `correlationId` values | Missing 1:N Kernel records | Use a `vector` or `multimap`. |
 | Forgetting to call `msptiActivityRegisterCallbacks` | No data is returned after enabling Kinds | Register callbacks first, and then enable Kinds. |

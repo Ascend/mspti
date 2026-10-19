@@ -1,87 +1,98 @@
-# Development Guide
+# msPTI Development Guide
 
-## 1. MindStudio Profiler Tools Interface Development Software
+## 1. Compilation Environment Preparation
 
-| Software | Purpose |
+### 1.1 Method 1: One-Click devcontainer Development Environment (Recommended)
+
+msPTI includes a built-in [devcontainer](https://containers.dev/) development environment configuration. After opening the repository in VS Code, you can enter a standardized container with one click, without manually installing any dependencies. The container automatically completes the following preparations:
+
+- Python 3 environment and compilation toolchain (GCC 11.2.0 and CMake 3.14+)
+- Installation of system dependencies (python3-devel and pip packages)
+- Pre-download of third-party dependencies (googletest, mockcpp, boost, and securec)
+- Automatic enabling of pre-commit (including gitleaks secret scanning)
+- Ready-to-use clangd C++ language service
+- Git identity synchronization
+
+**Prerequisites:**
+
+| Environment | Requirement |
 | --- | --- |
-| CLion (recommended)/VS Code | Write and debug the C/C++ core code in the `csrc` directory. |
-| PyCharm (recommended)/VS Code | Write and debug the Python wrapper code in the `mspti` directory. |
-| Git | Fetch, manage, and commit code. |
-| CMake/Make | Build C/C++ code locally. |
-| Python virtual environment tool (venv) | Isolate Python development dependencies. |
+| PC | VS Code with the Dev Containers and Remote-SSH extensions installed |
+| Linux server | Docker service running |
 
-## 2. Development Environment Configuration
+**Procedure:**
 
-| Software | Version Requirement | Purpose |
+1. Clone the msPTI repository to the Linux server.
+2. Connect to the server through Remote-SSH in VS Code and open the repository directory.
+3. VS Code automatically detects the `.devcontainer` configuration. Click **"Reopen in Container"** in the bottom-left corner.
+4. The container automatically runs `post-create.sh` to complete the initialization (about 1 to 2 minutes).
+5. Press `Ctrl+Shift+P` → `Tasks: Run Task` and select a build task.
+
+**VS Code Built-in Tasks:**
+
+| Task | Shortcut | Description |
 | --- | --- | --- |
-| gcc/g++ | A stable version is recommended | Compile the C/C++ core code. |
-| CMake | 3.14 or later | C++ build |
-| Python | Match the target runtime environment | Run the Python interfaces and samples. |
-| pip | Match the Python version | Install Python dependencies. |
-| lcov/genhtml | Generate C++ coverage reports. | Coverage statistics |
+| Build: Release Mode | `Ctrl+Shift+B` | One-click Release build (equivalent to `bash scripts/build.sh`) |
+| Build: Debug Mode | — | Debug compilation (with debug symbols) |
+| Test: Run Unit Tests | — | Run all C++ unit tests. |
+| Clean: All Workspace | — | Clean all build artifacts (`build/`, `prefix/`, `output/`, `test/build_llt/`, and so on). |
 
-### 2.1 Prerequisites
+**Code Intelligence and Navigation:**
 
-To run and develop msPTI, you need a CANN environment of a matching version. Before you start development, you are advised to complete the following steps:
+- C++: After the build, use clangd for cross-file navigation (`F12`), reference search (`Shift+F12`), and code completion.
+- Python: Pylance provides semantic navigation and type inference.
 
-1. Install the matching version of the CANN Toolkit development kit and the ops operator package.
-2. Configure the CANN environment variables.
-3. Prepare the third-party dependencies required for the build.
+**Graphical Debugging:**
 
-A typical environment configuration command is as follows:
+- Open a Python source file and press `F5` to select `Python: Debug Active File` and start debugging with debugpy.
+- Breakpoints, variable inspection, the call stack, and other features all work normally.
 
-```bash
-source ${install_path}/set_env.sh
-```
+### 1.2 Method 2: Manual Environment Configuration
 
-Here, replace `${install_path}` with the CANN installation path, for example `/usr/local/Ascend/cann`.
+Follow the [msPTI Tool Installation Guide — Compilation Environment Preparation](../install_guide/mspti_install_guide.md#231-environment-preparation) section to set up the build and test environment.
 
-### 2.2 Third-Party Dependencies
+> **Note:** The environment image build method and the supporting software versions are maintained by the MindStudio Unified Build Image Creation Guide and are not redefined in this repository.
 
-The repository provides `scripts/download_thirdparty.sh` to download the dependencies required for the build. You are advised to run it before the first build:
+## 2. Development Steps
 
-```bash
-bash scripts/download_thirdparty.sh
-```
+### 2.1 Code Download
 
-## 3. Development Steps
-
-### 3.1 Code Download
+In the compilation container environment, run the following command to download the code:
 
 ```bash
-git clone https://gitcode.com/Ascend/mspti.git
+git clone https://atomgit.com/Ascend/mspti.git
 cd mspti
 ```
 
-### 3.2 Project Structure Description
+### 2.2 Project Structure Description
 
 The repository mainly consists of the following parts:
 
 | Directory | Description |
 | --- | --- |
-| `csrc` | C/C++ core implementation |
-| `csrc/activity` | Activity data collection and parsing |
-| `csrc/callback` | Callback subscription and callback management |
-| `csrc/common` | Common foundation capabilities |
-| `csrc/include` | msPTI C API header files |
-| `mspti` | Python wrapper |
-| `mspti/csrc` | Python extension binding implementation |
-| `mspti/monitor` | Kernel/HCCL/MSTX Monitor |
-| `samples` | C++/Python samples |
-| `scripts` | Build, packaging, installation, and testing scripts |
-| `test/mspti_cpp` | C++ tests |
-| `docs/zh` | Chinese documentation |
+| csrc | C/C++ core implementation |
+| csrc/activity | Activity data collection and parsing |
+| csrc/callback | Callback subscription and callback management |
+| csrc/common | Common foundation capabilities |
+| csrc/include | msPTI C API header files |
+| mspti | Python wrapper |
+| mspti/csrc | Python extension binding implementation |
+| mspti/monitor | Kernel/HCCL/MSTX Monitor |
+| samples | C++/Python samples |
+| scripts | Build, packaging, installation, and testing scripts |
+| test/mspti_cpp | C++ tests |
+| docs/zh | Chinese documentation |
 
-### 3.3 C/C++ Core Capability Development
+### 2.3 C/C++ Core Capability Development
 
 The `csrc` directory is the core implementation directory of msPTI. During development, focus on the following paths based on functionality:
 
 | Path | Description |
 | --- | --- |
-| `csrc/activity` | Collection, buffering, and parsing logic of the Activity API |
-| `csrc/callback` | Subscription, callback, and domain management of the Callback API |
-| `csrc/common` | Shared utilities, adaptation layer, and common capabilities |
-| `csrc/include` | C API header files exposed externally |
+| csrc/activity | Collection, buffering, and parsing logic of the Activity API |
+| csrc/callback | Subscription, callback, and domain management of the Callback API |
+| csrc/common | Shared utilities, adaptation layer, and common capabilities |
+| csrc/include | C API header files exposed externally |
 
 Applicable scenarios:
 
@@ -90,17 +101,17 @@ Applicable scenarios:
 3. Modify common data structures or interface definitions.
 4. Extend the externally exposed C API.
 
-### 3.4 Python Interface Development
+### 2.4 Python Interface Development
 
 The `mspti` directory provides the Python wrapper and monitoring capabilities. During development, focus on the following:
 
 | Path | Description |
 | --- | --- |
-| `mspti/csrc` | Python extension bindings |
-| `mspti/monitor` | `KernelMonitor`, `HcclMonitor`, `MstxMonitor`, `CommunicationMonitor`, and so on |
-| `mspti/activity_data.py` | Activity data wrapper |
-| `mspti/constant.py` | Constant definitions |
-| `mspti/utils.py` | Common utility functions |
+| mspti/csrc | Python extension bindings |
+| mspti/monitor | `KernelMonitor`, `HcclMonitor`, `MstxMonitor`, `CommunicationMonitor`, and so on |
+| mspti/activity_data.py | Activity data wrapper |
+| mspti/constant.py | Constant definitions |
+| mspti/utils.py | Common utility functions |
 
 Applicable scenarios:
 
@@ -109,7 +120,7 @@ Applicable scenarios:
 3. Adjust Python-layer data structures or return formats.
 4. Extend the Python sample capabilities.
 
-### 3.5 Sample Development
+### 2.5 Sample Development
 
 The `samples` directory demonstrates typical interface usage. The current samples cover:
 
@@ -123,11 +134,11 @@ The `samples` directory demonstrates typical interface usage. The current sample
 If you add new interfaces or enhance existing interface capabilities, you are advised to add corresponding samples and update the following files:
 
 - `samples/README.md`
-- `docs/en`
+- `docs/zh/README.md`
 
-### 3.6 Common Development Scenarios
+### 2.6 Common Development Scenarios
 
-#### 3.6.1 Activity API Development
+#### 2.6.1 Activity API Development
 
 If this change involves the Activity API:
 
@@ -136,7 +147,7 @@ If this change involves the Activity API:
 3. Add corresponding samples and documentation.
 4. Verify related samples such as `samples/mspti_activity` and `samples/mspti_hccl_activity`.
 
-#### 3.6.2 Callback API Development
+#### 2.6.2 Callback API Development
 
 If this change involves the Callback API:
 
@@ -145,7 +156,7 @@ If this change involves the Callback API:
 3. Verify `samples/callback_domain` and `samples/callback_mstx`.
 4. Update the C API documentation accordingly.
 
-#### 3.6.3 Python Monitor Development
+#### 2.6.3 Python Monitor Development
 
 If this change involves Python Monitor:
 
@@ -154,9 +165,17 @@ If this change involves Python Monitor:
 3. Verify `samples/python_monitor` and `samples/python_mstx_monitor`.
 4. Update the Python API documentation accordingly.
 
-## 4. Build and Installation
+## 3. Build and Installation
 
-### 4.1 Run Package Build
+### 3.1 Third-Party Dependencies
+
+The repository provides `scripts/download_thirdparty.sh` to download the dependencies required for the build. You are advised to run it before the first build:
+
+```bash
+bash scripts/download_thirdparty.sh
+```
+
+### 3.2 Run Package Build
 
 The repository provides a unified build script, `scripts/build.sh`. The script does the following:
 
@@ -184,7 +203,7 @@ After the build completes, the following file is generated in the `output` direc
 mindstudio-profiler-tools-interface_<version>_<arch>.run
 ```
 
-### 4.2 Installation Verification
+### 3.3 Installation Verification
 
 ```bash
 chmod +x mindstudio-profiler-tools-interface_<version>_<arch>.run
@@ -197,9 +216,9 @@ After installation, you are advised to verify at least the following:
 2. The samples in the `samples` directory run correctly.
 3. Basic calls to the C API and Python API work correctly.
 
-## 5. Testing and Validation
+## 4. Testing and Validation
 
-### 5.1 Unit Test Build
+### 4.1 Unit Test Build
 
 The repository provides `scripts/execute_test_case.sh` to build the C++ unit tests:
 
@@ -213,7 +232,7 @@ The script does the following:
 2. Run the CMake build in the `test/build_llt` directory.
 3. Build the test targets with `PACKAGE=ut`.
 
-### 5.2 C++ Coverage
+### 4.2 C++ Coverage
 
 To generate a C++ coverage report, run the following command:
 
@@ -233,13 +252,13 @@ To compare incremental coverage, run the following command:
 bash scripts/generate_coverage_cpp.sh diff
 ```
 
-### 5.3 Typical Test Targets
+### 4.3 Typical Test Targets
 
 According to the coverage script, the current key test targets include:
 
 - `activity_utest`
 - `mspti_channel_utest`
-- `dev_prof_task_utest`
+- `dev_task_utest`
 - `mspti_parser_utest`
 - `mspti_reporter_utest`
 - `callback_utest`
@@ -248,7 +267,7 @@ According to the coverage script, the current key test targets include:
 - `mspti_utils_utest`
 - `mspti_adapter_utest`
 
-### 5.4 Sample Verification
+### 4.4 Sample Verification
 
 After completing feature development, you are advised to verify at least one corresponding sample. A typical command is as follows:
 
@@ -258,12 +277,14 @@ cd ${install_path}/tools/mspti/samples/callback_domain
 bash sample_run.sh
 ```
 
+`${install_path}` should be replaced with the actual CANN installation path, for example `/usr/local/Ascend/cann`.
+
 If you are developing a Python Monitor, you are advised to additionally verify the following samples:
 
 - `samples/python_monitor`
 - `samples/python_mstx_monitor`
 
-## 6. Synchronized Documentation Updates
+## 5. Synchronized Documentation Updates
 
 After completing feature development, if the changes affect interfaces, samples, installation methods, or behavior descriptions, update the documentation accordingly.
 
@@ -274,9 +295,9 @@ After completing feature development, if the changes affect interfaces, samples,
 | C API changes | [C API Overview](../api_reference/c_api/README.md) and its sub-documents |
 | Python API changes | [Python API Overview](../api_reference/python_api/README.md) and its sub-documents |
 | Sample updates | [msPTI Sample Description](../../../samples/README.md) |
-| Version release information | [Release Notes](https://gitcode.com/Ascend/mspti/releases) |
+| Version release information | [Release Notes](https://atomgit.com/Ascend/mspti/releases) |
 
-## 7. Suggested Commit Process
+## 6. Suggested Commit Process
 
 1. After completing feature development, first verify the build locally.
 2. If external interfaces are affected, update the header files, samples, and documentation first.

@@ -25,18 +25,19 @@ You register callbacks → msPTI requests an empty buffer through RequestFunc �
 
 | Enumerated Value | Kind Constant | Description | Corresponding Data Structure |
 | --- | --- | --- | --- |
-| 1 | `MSPTI_ACTIVITY_KIND_MARKER` | User-defined marker | `msptiActivityMarker` |
-| 2 | `MSPTI_ACTIVITY_KIND_KERNEL` | NPU Kernel execution | `msptiActivityKernel` |
-| 3 | `MSPTI_ACTIVITY_KIND_API` | CANN API call | `msptiActivityApi` |
-| 4 | `MSPTI_ACTIVITY_KIND_HCCL` | HCCL communication operation | `msptiActivityHccl` |
-| 5 | `MSPTI_ACTIVITY_KIND_MEMORY` | Memory allocation/free | `msptiActivityMemory` |
-| 6 | `MSPTI_ACTIVITY_KIND_MEMSET` | Memory set operation | `msptiActivityMemset` |
-| 7 | `MSPTI_ACTIVITY_KIND_MEMCPY` | Memory copy operation | `msptiActivityMemcpy` |
-| 8 | `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` | External correlation ID | `msptiActivityExternalCorrelation` |
-| 9 | `MSPTI_ACTIVITY_KIND_COMMUNICATION` | Communication operator data | `msptiActivityCommunication` |
-| 10 | `MSPTI_ACTIVITY_KIND_ACL_API` | ACL-level API call | — |
-| 11 | `MSPTI_ACTIVITY_KIND_NODE_API` | Node-level API call | — |
-| 12 | `MSPTI_ACTIVITY_KIND_RUNTIME_API` | Runtime-level API call | — |
+| 1 | MSPTI_ACTIVITY_KIND_MARKER | User-defined marker | `msptiActivityMarker` |
+| 2 | MSPTI_ACTIVITY_KIND_KERNEL | NPU Kernel execution | `msptiActivityKernel` |
+| 3 | MSPTI_ACTIVITY_KIND_API | CANN API call | `msptiActivityApi` |
+| 4 | MSPTI_ACTIVITY_KIND_HCCL | HCCL communication operation | `msptiActivityHccl` |
+| 5 | MSPTI_ACTIVITY_KIND_MEMORY | Memory allocation/free | `msptiActivityMemory` |
+| 6 | MSPTI_ACTIVITY_KIND_MEMSET | Memory set operation | `msptiActivityMemset` |
+| 7 | MSPTI_ACTIVITY_KIND_MEMCPY | Memory copy operation | `msptiActivityMemcpy` |
+| 8 | MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION | External correlation ID | `msptiActivityExternalCorrelation` |
+| 9 | MSPTI_ACTIVITY_KIND_COMMUNICATION | Communication operator data | `msptiActivityCommunication` |
+| 10 | MSPTI_ACTIVITY_KIND_ACL_API | ACL-level API call | — |
+| 11 | MSPTI_ACTIVITY_KIND_NODE_API | Node-level API call | — |
+| 12 | MSPTI_ACTIVITY_KIND_RUNTIME_API | Runtime-level API call | — |
+| 13 | MSPTI_ACTIVITY_KIND_OVERHEAD | Overhead of msPTI itself (resource creation, buffer request/flush, and so on) | `msptiActivityOverhead` |
 
 ---
 
@@ -71,51 +72,57 @@ typedef struct {
 
 ### 3.3 Activity Memory (Memory Operation Record)
 
+Records memory allocation and release operations. They correspond to the memory management APIs of the CANN Runtime layer, such as `aclrtMalloc` and `aclrtFree`.
+
 ```c
 typedef struct {
     msptiActivityKind kind;              // Fixed to MSPTI_ACTIVITY_KIND_MEMORY
-    msptiActivityMemoryOperationType memoryOperationType; // Operation type (allocation/free)
-    msptiActivityMemoryKind memoryKind;   // Memory type
+    msptiActivityMemoryOperationType memoryOperationType; // Operation type (ALLOCATION/RELEASE)
+    msptiActivityMemoryKind memoryKind;   // Memory type (DEVICE device memory, HOST host memory, MANAGED unified management)
     uint64_t correlationId;              // Correlation ID
     uint64_t start;                      // Start timestamp (ns)
     uint64_t end;                        // End timestamp (ns)
     uint64_t address;                    // Memory address
-    uint64_t bytes;                      // Number of bytes
+    uint64_t bytes;                      // Number of bytes allocated or freed
     uint32_t processId;                  // Process ID
     uint32_t deviceId;                   // Device ID
-    uint32_t streamId;                   // Stream ID
+    uint32_t streamId;                   // Stream ID, set to MSPTI_INVALID_STREAM_ID when no stream is associated
 } msptiActivityMemory;
 ```
 
 ### 3.4 Activity Memcpy (Memory Copy Record)
 
+Records memory copy operations between the host and the device. They correspond to the memory copy APIs of the CANN Runtime layer, such as `aclrtMemcpy` and `aclrtMemcpyAsync`.
+
 ```c
 typedef struct {
     msptiActivityKind kind;              // Fixed to MSPTI_ACTIVITY_KIND_MEMCPY
-    msptiActivityMemcpyKind copyKind;    // Copy type (HTOD / DTOH / DTOD, and so on)
+    msptiActivityMemcpyKind copyKind;    // Copy direction (HTOH/HTOD/DTOH/DTOD/DEFAULT, and so on)
     uint64_t bytes;                      // Number of bytes copied
     uint64_t start;                      // Start timestamp (ns)
     uint64_t end;                        // End timestamp (ns)
     uint32_t deviceId;                   // Device ID
     uint32_t streamId;                   // Stream ID
     uint64_t correlationId;              // Correlation ID
-    uint8_t isAsync;                     // Whether the copy is asynchronous
+    uint8_t isAsync;                     // Whether the operation is asynchronous (invoked through asynchronous APIs such as aclrtMemcpyAsync)
 } msptiActivityMemcpy;
 ```
 
 ### 3.5 Activity Memset (Memory Set Record)
 
+Records memory set operations. They correspond to the memory set APIs of the CANN Runtime layer, such as `aclrtMemset` and `aclrtMemsetAsync`.
+
 ```c
 typedef struct {
     msptiActivityKind kind;              // Fixed to MSPTI_ACTIVITY_KIND_MEMSET
-    uint32_t value;                      // Value to set
+    uint32_t value;                      // Target value to set
     uint64_t bytes;                      // Number of bytes to set
     uint64_t start;                      // Start timestamp (ns)
     uint64_t end;                        // End timestamp (ns)
     uint32_t deviceId;                   // Device ID
     uint32_t streamId;                   // Stream ID
     uint64_t correlationId;              // Correlation ID
-    uint8_t isAsync;                     // Whether the operation is asynchronous
+    uint8_t isAsync;                     // Whether the operation is asynchronous (invoked through asynchronous APIs such as aclrtMemsetAsync)
 } msptiActivityMemset;
 ```
 
@@ -175,6 +182,30 @@ typedef struct {
     uint64_t correlationId;              // Correlation ID
 } msptiActivityExternalCorrelation;
 ```
+
+### 3.10 Activity Overhead (msPTI Overhead Record)
+
+Records the additional overhead that msPTI itself generates while collecting data. Use it to evaluate the performance impact of profiling on services. It currently covers the following phases:
+
+- `MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE`: creation and destruction of msPTI internal resources (enabling or disabling collection tasks)
+- `MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_REQUEST`: Activity Buffer requests (the time taken to invoke the Request callback)
+- `MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_FLUSH`: Activity Buffer flushes (the time taken to invoke the Complete callback)
+
+```c
+typedef struct {
+    msptiActivityKind kind;              // Fixed to MSPTI_ACTIVITY_KIND_OVERHEAD
+    msptiActivityOverheadKind overheadKind; // Type of overhead generated
+    msptiObjectId objectId;              // Object ID, whose valid fields are determined by objectKind
+    uint64_t start;                      // Start timestamp (ns)
+    uint64_t end;                        // End timestamp (ns)
+    uint64_t correlationId;              // Correlation ID (reserved)
+    void *overheadData;                  // Pointer to additional information (reserved)
+    msptiActivityObjectKind objectKind;  // Type of object associated with the overhead (PROCESS/THREAD/DEVICE)
+} msptiActivityOverhead;
+```
+
+After you enable `MSPTI_ACTIVITY_KIND_OVERHEAD`, each time you request or flush an Activity Buffer or enable or disable a profiling task,
+msPTI automatically records an overhead record and returns it to you through the CompleteFunc callback.
 
 ---
 
@@ -322,26 +353,26 @@ void PrintActivity(msptiActivity *record) {
     switch (record->kind) {
         case MSPTI_ACTIVITY_KIND_KERNEL: {
             auto *kernel = (msptiActivityKernel*)record;
-            printf("Kernel: %s (%s), start=%lu, end=%lu, device=%u, stream=%u\n",
+            printf("Kernel: %s (%s), start=%llu, end=%llu, device=%u, stream=%u\n",
                    kernel->name, kernel->type, kernel->start, kernel->end,
                    kernel->ds.deviceId, kernel->ds.streamId);
             break;
         }
         case MSPTI_ACTIVITY_KIND_API: {
             auto *api = (msptiActivityApi*)record;
-            printf("API: %s, start=%lu, end=%lu, correlationId=%lu\n",
+            printf("API: %s, start=%llu, end=%llu, correlationId=%llu\n",
                    api->name, api->start, api->end, api->correlationId);
             break;
         }
         case MSPTI_ACTIVITY_KIND_MEMCPY: {
             auto *memcpy = (msptiActivityMemcpy*)record;
-            printf("Memcpy: bytes=%lu, start=%lu, end=%lu\n",
+            printf("Memcpy: bytes=%llu, start=%llu, end=%llu\n",
                    memcpy->bytes, memcpy->start, memcpy->end);
             break;
         }
         case MSPTI_ACTIVITY_KIND_MEMORY: {
             auto *mem = (msptiActivityMemory*)record;
-            printf("Memory: op=%d, bytes=%lu, start=%lu, end=%lu\n",
+            printf("Memory: op=%d, bytes=%llu, start=%llu, end=%llu\n",
                    mem->memoryOperationType, mem->bytes, mem->start, mem->end);
             break;
         }
@@ -463,8 +494,11 @@ You must enable `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` to collect external c
 The following example dynamically enables or disables Marker collection for a specified domain:
 
 ```cpp
+#include "acl/acl.h"
 #include "mspti.h"
 #include "mstx/ms_tools_ext.h"
+
+aclrtStream stream;
 
 void DemoDomainControl() {
     // Create a domain
@@ -517,10 +551,10 @@ See the following samples in the `samples/` directory:
 
 | Sample | Description |
 | --- | --- |
-| `samples/mspti_activity/` | Basic Activity API usage: collecting Kernel, Memory, API, and Memcpy data |
-| `samples/mspti_correlation/` | Uses correlationId to associate APIs with Kernels. |
-| `samples/mspti_external_correlation/` | External correlation ID Push/Pop usage |
-| `samples/mspti_hccl_activity/` | HCCL communication data collection |
-| `samples/mspti_mstx_activity_domain/` | Domain-level Marker collection control |
+| samples/mspti_activity/ | Basic Activity API usage: collecting Kernel, Memory, API, and Memcpy data |
+| samples/mspti_correlation/ | Uses correlationId to associate APIs with Kernels. |
+| samples/mspti_external_correlation/ | External correlation ID Push/Pop usage |
+| samples/mspti_hccl_activity/ | HCCL communication data collection |
+| samples/mspti_mstx_activity_domain/ | Domain-level Marker collection control |
 
 For details, see [msPTI Sample Descriptions](../../../samples/README.md).

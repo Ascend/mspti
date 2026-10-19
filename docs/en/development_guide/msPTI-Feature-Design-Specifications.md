@@ -15,7 +15,7 @@
     </tr>
     <tr>
         <td>Date:</td>
-        <td>2026.01.21</td>
+        <td>Jan 21, 2026</td>
     </tr>
 </table>
 
@@ -36,7 +36,7 @@ You can obtain the complete CC BY-SA 4.0 license text at the following URL: <htt
         <th>Reviewer</th>
     </tr>
     <tr>
-        <td>2026.01.21</td>
+        <td>Jan 21, 2026</td>
         <td>1.0</td>
         <td>Initial draft</td>
         <td>chenhao</td>
@@ -120,7 +120,7 @@ Table 1 List of feature requirements
     <tr>
         <td>8</td>
         <td>MSTX integration capability</td>
-        <td>Supports working with MSTX (MindStudio Tools Extension) to perform custom markers in callbacks</td>
+        <td>Supports working with MindStudio Tools Extension (MSTX) to perform custom markers in callbacks</td>
         <td>Supports interfaces such as <code>mstxMarkA</code> and <code>mstxDomainRangeStartA</code>.</td>
     </tr>
     <tr>
@@ -157,7 +157,7 @@ With the widespread application of Ascend NPUs in AI training and inference scen
 **Usage**:
 
 - Python scenario: Use `KernelMonitor` and `CommunicationMonitor` to collect computing and communication time consumption.
-- C/C++ scenario: Use the Activity APIs to enable the KERNEL and API Kinds, and associate dispatch with execution through `correlationId`.
+- C/C++ scenario: Use the Activity APIs to collect the KERNEL and API Kinds, and associate dispatch with execution through `correlationId`.
 
 ### Scenario 2: Inference Latency Analysis
 
@@ -169,7 +169,7 @@ With the widespread application of Ascend NPUs in AI training and inference scen
 
 **Trigger condition**: In multi-device distributed training, when communication overhead accounts for an excessively high proportion, you need to analyze the time consumption and bandwidth of communication operations such as AllReduce.
 
-**Usage**: Use the Activity APIs to enable the HCCL Kind, or use the Python `CommunicationMonitor` to collect communication operator data.
+**Usage**: Use the Activity APIs to collect the HCCL Kind, or use the Python `CommunicationMonitor` to collect communication operator data.
 
 ### Scenario 4: Custom Marker Monitoring
 
@@ -181,14 +181,24 @@ With the widespread application of Ascend NPUs in AI training and inference scen
 
 ### 2.3.1 Hardware Restrictions
 
-| Product Type                                   | Supported |
-| ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products |    √     |
-| Atlas A2 training products/Atlas A2 inference products |    √     |
-| Atlas 200I/500 A2 inference products         |    √     |
-| Atlas inference products                     |    ×     |
-| Atlas training products               |    ×     |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ### 2.3.2 Technical Restrictions
 
@@ -197,13 +207,13 @@ With the widespread application of Ascend NPUs in AI training and inference scen
 | Operating system | Linux (Windows is not supported) |
 | Programming language | C/C++/Python |
 | Dependencies | CANN >= 8.5.0 |
-| Architecture | x86_64 / aarch64 |
+| Architecture | x86_64/aarch64 |
 | Python version | 3.10 or later is recommended |
 | Tool mutual exclusion | msPTI cannot be used together with other performance data collection tools. |
 
 ### 2.3.3 Performance Impact
 
-- After the Activity APIs enable a Kind, the collection logic records nanosecond-level timestamps and writes them to the buffer each time an Activity occurs. The performance impact on service code is within 5%.
+- After the Activity APIs enable data collection for a Kind, the collection logic records nanosecond-level timestamps and writes them to the buffer each time an Activity occurs. The performance impact on service code is within 5%.
 - The Callback APIs trigger function callbacks on each API call. The impact depends on the complexity of the callback functions.
 - The Python Monitor callbacks involve type conversion from the C extension to the Python layer. You are advised to perform only lightweight operations in callbacks.
 
@@ -406,75 +416,186 @@ Pop(INIT, &id)    → Leaves the initialization phase, id=0x1.
 
 Stacks of different `msptiExternalCorrelationKind` values are independent of each other and support nested usage.
 
+### 4.3.5 Timestamp Normalization Mechanism
+
+The `start`/`end` timestamps in Activity Records and the host-side API call events are based on different time bases (the host counter or the device counter). msPTI uses `ContextManager` to uniformly convert various counters into real time (in nanoseconds), ensuring that the `msptiGetTimestamp` return values of all events and the Record timestamps are on the same timeline and can be directly used in time consumption calculation.
+
+The timestamp source priority is as follows:
+
+```text
+msptiActivityRegisterTimestampCallback(funcTimestamp)
+  → ContextManager records the external timestamp callback (atomic storage).
+  → InitHostTimeInfo() recalibrates the Host time base based on this callback.
+msptiGetTimestamp(&ts)
+  → If an external callback exists, calls the custom callback to obtain the normalized timestamp.
+  → Otherwise, uses the system clock (GetClockRealTimeNs).
+```
+
+Features:
+
+- **Registration**: You can inject a custom time function (returning nanoseconds) through `msptiActivityRegisterTimestampCallback` to implement time alignment in distributed scenarios.
+- **Lazy initialization**: `GetHostTimeStampNs` uses `std::call_once` to ensure that the host time base is initialized only once.
+- **Counter conversion**: Depending on whether the driver supports the host frequency API, the `SysCnt→RealTime` or `Monotonic→RealTime` conversion path is selected. Both paths extrapolate based on the calibration value at the start time to avoid reading system calls every time.
+
+### 4.3.6 Version and Struct Size Compatibility Design
+
+The fields of Activity Record structs may be added or removed during cross-version evolution. To support forward compatibility, msPTI provides version and struct size query interfaces:
+
+```text
+msptiGetVersion(&version)                        → The version format is xxyyzz (for example, 260200=26.2.0).
+msptiActivityGetStructSize(kind, version, &size) → Returns the byte size of the struct of the specified Kind.
+msptiActivityGetNextRecord(buffer, size, &record) → Reads the corresponding size based on the kind in the record and skips invalid Kinds.
+```
+
+- `msptiGetVersion` parses the CANN module version string (`major.minor.patch`) and converts it into an integer (`major*10000 + minor*100 + patch`). If parsing fails, `MSPTI_ERROR_INNER` is returned.
+- `msptiActivityGetStructSize` internally maintains a static `sizeof` array indexed by Kind (`activityKindDataSize`). For an invalid Kind (`INVALID` or out of range), `MSPTI_ERROR_INVALID_KIND` is returned.
+- `msptiActivityGetNextRecord` locates record boundaries through this static size table rather than a dynamic `unordered_map`. When an unknown Kind is encountered (size 0), `MSPTI_ERROR_INVALID_KIND` is returned to avoid out-of-bounds parsing.
+
+### 4.3.7 Dropped Record Statistics
+
+When your `RequestFunc` does not return an empty buffer of sufficient size, or no buffer is available after the buffer is full, msPTI discards the current record in the `Record` phase and maintains two atomic counters, `cur_drop_num_` and `total_drop_num_`:
+
+```text
+Record(activity, size) fails
+  → cur_drop_num_++     (number of drops since the last query)
+  → total_drop_num_++   (total cumulative number of drops)
+msptiActivityGetNumDroppedRecords(..., &dropped)
+  → dropped = cur_drop_num_.exchange(0)  // Cleared after reading
+```
+
+Through this interface, analysis tools can quantify collection loss caused by insufficient buffer configuration and adjust the `RequestFunc` buffer size accordingly to improve collection completeness.
+
+### 4.3.8 Status and Domain Query Mechanism
+
+To help clients detect capabilities and the current collection scope at runtime, msPTI provides a set of query interfaces:
+
+- **Activity side**: `msptiActivityGetEnabledKinds` returns all currently enabled Kinds. When the buffer is insufficient, it backfills as many as the buffer can hold and returns the actual number through a parameter.
+- **Callback side**: `msptiSupportedDomains` returns the list of supported Domains. `msptiGetEnabledCallbacks` queries the enabled Callback IDs under the specified Domain. `msptiGetCallbackState` queries the on/off state of a single Callback.
+- **Callback names**: `msptiGetCallbackName` returns the API function name corresponding to a Callback ID based on the static `DOMAIN_CBID_MAP` mapping table (Domain→{Cbid→function name}), for use in logs and display.
+- **Tracing session**: `msptiIsTracingSessionRunning` determines whether the msPTI library has been loaded and is active based on the `init_` flag of CallbackManager, so that tools can determine whether it is safe to unload.
+
+### 4.3.9 Activity Attribute Configuration Mechanism
+
+To facilitate fine-grained configuration and query of Activity collection behavior, msPTI provides the `msptiActivitySetAttribute`/`msptiActivityGetAttribute` attribute interfaces, which identify different attributes through the `msptiActivityAttribute` enumeration. All attributes are fixed-length binary values. The interfaces carry the buffer size through `valueSize` to ensure memory safety.
+
+```text
+msptiActivityAttribute enumeration
+  ├── MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE    // Channel Buffer size (uint32_t, Byte)
+  └── MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK     // Timestamp callback function (msptiTimestampCallbackFunc)
+```
+
+**Fixed-length attribute verification process** (shared by `msptiActivitySetAttribute` and `msptiActivityGetAttribute`):
+
+1. Verify that `valueSize` and `value` are not NULL. Otherwise, return `MSPTI_ERROR_INVALID_PARAMETER`.
+2. Query the fixed number of bytes required by the attribute by enumeration value through `GetActivityAttributeSize` (driven by an internal switch mapping table). The size queried for an invalid attribute is 0, and `MSPTI_ERROR_INVALID_PARAMETER` is returned.
+3. If `*valueSize` is less than the size required by the attribute, return `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` to avoid out-of-bounds read and write at the source.
+4. After verification passes, execute the corresponding read and write logic based on the attribute type:
+
+```text
+Set CHANNEL_BUFFER_SIZE
+  → Copies the uint32_t value from value.
+  → ChannelPoolManager::SetChannelBufferSize(size)
+  → Returns MSPTI_ERROR_INVALID_PARAMETER if the value is outside the range [2MB, 10MB].
+Get CHANNEL_BUFFER_SIZE
+  → Returns the current channelBufferSize_ of ChannelPoolManager (default 2MB).
+
+Set TIMESTAMP_CALLBACK
+  → Copies msptiTimestampCallbackFunc from value.
+  → Registers it with ContextManager through msptiActivityRegisterTimestampCallback (a NULL callback returns INVALID_PARAMETER).
+Get TIMESTAMP_CALLBACK
+  → Returns the timestamp callback function currently registered with ContextManager.
+```
+
+Implementation points:
+
+- **Unified size source**: Both the Set and Get branches use the verified `size` as the target capacity and copy length of `memcpy_s`. The attribute enumeration and local variable types remain consistent to avoid out-of-bounds caused by divergent size definitions.
+- **Atomic storage**: The timestamp callback is stored by `ContextManager` as `std::atomic`. Therefore, concurrent Get reads are safe (see section 4.3.5).
+- **Timing constraint**: `MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE` takes effect only for Channel Buffers created after the setting. Existing Channels are not affected. You are advised to complete the setting before enabling Activity collection or creating a Channel.
+
 ## 4.4 Inter-Subsystem Interfaces
 
 ### 4.4.1 Activity API Function Interfaces
 
 | Function | Category | Description |
 | --- | --- | --- |
-| `msptiActivityRegisterCallbacks` | Lifecycle | Registers the buffer Request/Complete callbacks. |
-| `msptiActivityEnable` | Collection control | Enables collection of the specified Kind. |
-| `msptiActivityDisable` | Collection control | Disables collection of the specified Kind. |
-| `msptiActivityIsEnabled` | Collection control | Queries whether the specified Kind is enabled. |
-| `msptiActivityGetNextRecord` | Data reading | Traverses the Activity Records in the buffer. |
-| `msptiActivityFlushAll` | Buffer flush | Forcefully flushes all buffers. |
-| `msptiActivityFlushPeriod` | Buffer flush | Sets the periodic buffer flush interval. |
-| `msptiActivityPushExternalCorrelationId` | External correlation | Pushes an external correlation ID. |
-| `msptiActivityPopExternalCorrelationId` | External correlation | Pops an external correlation ID. |
-| `msptiActivityEnableMarkerDomain` | Domain control | Enables Marker collection of the specified Domain. |
-| `msptiActivityDisableMarkerDomain` | Domain control | Disables Marker collection of the specified Domain. |
+| msptiActivityRegisterCallbacks | Lifecycle | Registers the buffer Request/Complete callbacks. |
+| msptiActivityEnable | Collection control | Enables collection of the specified Kind. |
+| msptiActivityDisable | Collection control | Disables collection of the specified Kind. |
+| msptiActivityIsEnabled | Collection control | Queries whether the specified Kind is enabled. |
+| msptiActivityGetNextRecord | Data reading | Traverses the Activity Records in the buffer. |
+| msptiActivityFlushAll | Buffer flush | Forcefully flushes all buffers. |
+| msptiActivityFlushPeriod | Buffer flush | Sets the periodic buffer flush interval. |
+| msptiActivityPushExternalCorrelationId | External correlation | Pushes an external correlation ID. |
+| msptiActivityPopExternalCorrelationId | External correlation | Pops an external correlation ID. |
+| msptiActivityEnableMarkerDomain | Domain control | Enables Marker collection of the specified Domain. |
+| msptiActivityDisableMarkerDomain | Domain control | Disables Marker collection of the specified Domain. |
+| msptiGetVersion | Version query | Obtains the msPTI version number. The format is `xxyyzz` (for example, 26.2.0→260200). |
+| msptiActivityGetStructSize | Compatibility | Obtains the struct size of the specified Activity Kind to implement cross-version parsing together with the version. |
+| msptiActivityGetEnabledKinds | Status query | Queries the list of currently enabled Activity Kinds. |
+| msptiActivityGetNumDroppedRecords | Data statistics | Obtains the number of records dropped due to insufficient buffer (cleared after the call). |
+| msptiGetTimestamp | Timestamp | Obtains the current timestamp (ns) aligned with the normalized Activity Record timeline. |
+| msptiActivityRegisterTimestampCallback | Timestamp | Registers an external timestamp callback to unify the time base of Activity records. |
+| msptiActivitySetAttribute | Attribute configuration | Sets an Activity attribute. Currently, the Channel Buffer size and the timestamp callback function are supported. |
+| msptiActivityGetAttribute | Attribute query | Obtains the current value of an Activity attribute. |
 
 ### 4.4.2 Callback API Function Interfaces
 
 | Function | Category | Description |
 | --- | --- | --- |
-| `msptiSubscribe` | Lifecycle | Registers a callback subscriber. |
-| `msptiUnsubscribe` | Lifecycle | Unregisters a callback subscriber. |
-| `msptiEnableCallback` | Collection control | Enables/disables a specific Callback ID. |
-| `msptiEnableDomain` | Collection control | Enables/disables an entire Domain. |
+| msptiSubscribe | Lifecycle | Registers a callback subscriber. |
+| msptiUnsubscribe | Lifecycle | Unregisters a callback subscriber. |
+| msptiEnableCallback | Collection control | Enables/disables a specific Callback ID. |
+| msptiEnableDomain | Collection control | Enables/disables an entire Domain. |
+| msptiEnableAllDomains | Collection control | Enables/disables all Callbacks of all Domains. |
+| msptiGetCallbackState | Status query | Queries the enabled/disabled state of the specified Callback ID. |
+| msptiGetEnabledCallbacks | Status query | Obtains the list of enabled Callback IDs under the specified Domain. |
+| msptiGetCallbackName | Information query | Obtains the API function name corresponding to the specified Domain and Callback ID. |
+| msptiSupportedDomains | Information query | Obtains the list of currently supported Callback Domains. |
+| msptiIsTracingSessionRunning | Lifecycle | Queries whether the msPTI tracing session is still running. |
 
 ### 4.4.3 Python API Interfaces
 
 | Monitor | Method | Description |
 | --- | --- | --- |
-| `BaseMonitor` | start_monitor() | Starts the underlying collection engine. |
-| `BaseMonitor` | stop_monitor() | Stops the underlying collection engine and flushes. |
-| `BaseMonitor` | flush_all() | Manually flushes the buffer. |
-| `BaseMonitor` | set_buffer_size(size) | Sets the buffer size (MB). |
-| `KernelMonitor` | start(cb) | Starts Kernel data collection and registers callbacks. |
-| `KernelMonitor` | stop() | Stops Kernel data collection. |
-| `HcclMonitor` | start(cb) | Starts HCCL data collection and registers callbacks. |
-| `HcclMonitor` | stop() | Stops HCCL data collection. |
-| `CommunicationMonitor` | start(cb) | Starts communication operator collection and registers callbacks. |
-| `CommunicationMonitor` | stop() | Stops communication operator collection. |
-| `MstxMonitor` | start(mark_cb, range_cb) | Starts marker collection and registers instant and range callbacks. |
-| `MstxMonitor` | stop() | Stops marker collection. |
-| `MstxMonitor` | enable_domain(name) | Enables marker collection of the specified Domain. |
-| `MstxMonitor` | disable_domain(name) | Disables marker collection of the specified Domain. |
+| BaseMonitor | start_monitor() | Starts the underlying collection engine. |
+| BaseMonitor | stop_monitor() | Stops the underlying collection engine and flushes. |
+| BaseMonitor | flush_all() | Manually flushes the buffer. |
+| BaseMonitor | set_buffer_size(size) | Sets the buffer size (MB). |
+| KernelMonitor | start(cb) | Starts Kernel data collection and registers callbacks. |
+| KernelMonitor | stop() | Stops Kernel data collection. |
+| HcclMonitor | start(cb) | Starts HCCL data collection and registers callbacks. |
+| HcclMonitor | stop() | Stops HCCL data collection. |
+| CommunicationMonitor | start(cb) | Starts communication operator collection and registers callbacks. |
+| CommunicationMonitor | stop() | Stops communication operator collection. |
+| MstxMonitor | start(mark_cb, range_cb) | Starts marker collection and registers instant and range callbacks. |
+| MstxMonitor | stop() | Stops marker collection. |
+| MstxMonitor | enable_domain(name) | Enables marker collection of the specified Domain. |
+| MstxMonitor | disable_domain(name) | Disables marker collection of the specified Domain. |
 
 ### 4.4.4 Activity Kind Enumeration
 
 | Kind | Value | Corresponding Data Structure | Description |
 | --- | --- | --- | --- |
-| `MSPTI_ACTIVITY_KIND_MARKER` | 1 | `msptiActivityMarker` | User-defined markers (instant/range/device markers) |
-| `MSPTI_ACTIVITY_KIND_KERNEL` | 2 | `msptiActivityKernel` | NPU Kernel execution records |
-| `MSPTI_ACTIVITY_KIND_API` | 3 | `msptiActivityApi` | CANN API call records |
-| `MSPTI_ACTIVITY_KIND_HCCL` | 4 | `msptiActivityHccl` | HCCL communication operation records |
-| `MSPTI_ACTIVITY_KIND_MEMORY` | 5 | `msptiActivityMemory` | Memory allocation/deallocation records |
-| `MSPTI_ACTIVITY_KIND_MEMSET` | 6 | `msptiActivityMemset` | Memory setting records |
-| `MSPTI_ACTIVITY_KIND_MEMCPY` | 7 | `msptiActivityMemcpy` | Memory copy records |
-| `MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION` | 8 | `msptiActivityExternalCorrelation` | External correlation records |
-| `MSPTI_ACTIVITY_KIND_COMMUNICATION` | 9 | `msptiActivityCommunication` | Communication operator records |
-| `MSPTI_ACTIVITY_KIND_ACL_API` | 10 | — | ACL-level API calls |
-| `MSPTI_ACTIVITY_KIND_NODE_API` | 11 | — | Node-level API calls |
-| `MSPTI_ACTIVITY_KIND_RUNTIME_API` | 12 | — | Runtime-level API calls |
+| MSPTI_ACTIVITY_KIND_MARKER | 1 | msptiActivityMarker | User-defined markers (instant/range/device markers) |
+| MSPTI_ACTIVITY_KIND_KERNEL | 2 | msptiActivityKernel | NPU Kernel execution records |
+| MSPTI_ACTIVITY_KIND_API | 3 | msptiActivityApi | CANN API call records |
+| MSPTI_ACTIVITY_KIND_HCCL | 4 | msptiActivityHccl | HCCL communication operation records |
+| MSPTI_ACTIVITY_KIND_MEMORY | 5 | msptiActivityMemory | Memory allocation and deallocation records (CANN Runtime layer) |
+| MSPTI_ACTIVITY_KIND_MEMSET | 6 | msptiActivityMemset | Memory set operation records (CANN Runtime layer) |
+| MSPTI_ACTIVITY_KIND_MEMCPY | 7 | msptiActivityMemcpy | Memory copy operation records (CANN Runtime layer) |
+| MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION | 8 | msptiActivityExternalCorrelation | External correlation records |
+| MSPTI_ACTIVITY_KIND_COMMUNICATION | 9 | msptiActivityCommunication | Communication operator records |
+| MSPTI_ACTIVITY_KIND_ACL_API | 10 | msptiActivityApi | ACL-level API calls |
+| MSPTI_ACTIVITY_KIND_NODE_API | 11 | msptiActivityApi | Node-level API calls |
+| MSPTI_ACTIVITY_KIND_RUNTIME_API | 12 | msptiActivityApi | Runtime-level API calls |
+| MSPTI_ACTIVITY_KIND_OVERHEAD | 13 | msptiActivityOverhead | msPTI overhead records (resource creation, buffer request/flush, and so on) |
 
 ### 4.4.5 Callback Domain Enumeration
 
 | Domain | Value | Description |
 | --- | --- | --- |
-| `MSPTI_CB_DOMAIN_RUNTIME` | 1 | Runtime API callback Domain, covering device management, stream management, Kernel Launch, memory operations, and so on |
-| `MSPTI_CB_DOMAIN_HCCL` | 2 | HCCL communication callback Domain, covering communication operations such as AllReduce, Broadcast, and AllGather |
+| MSPTI_CB_DOMAIN_RUNTIME | 1 | Runtime API callback Domain, covering device management, stream management, Kernel Launch, memory operations, and so on |
+| MSPTI_CB_DOMAIN_HCCL | 2 | HCCL communication callback Domain, covering communication operations such as AllReduce, Broadcast, and AllGather |
 
 ## 4.5 Detailed Subsystem Design
 
@@ -482,25 +603,28 @@ Stacks of different `msptiExternalCorrelationKind` values are independent of eac
 
 The core modules in the `csrc/` directory are divided by function:
 
-**Activity module (`csrc/activity/`)**:
+**Activity Module (`csrc/activity/`)**:
 
 - Implements the Enable/Disable state management of Activity Kinds.
 - Captures Activity events in CANN Runtime through internal instrumentation points.
 - Manages the allocation, writing, and flush lifecycle of the Activity Buffer.
 - Calls the callback registered by you in `CompleteFunc`.
 
-**Callback module (`csrc/callback/`)**:
+**Callback Module (`csrc/callback/`)**:
 
 - Manages the subscriber list (currently only a single subscriber is supported).
 - Maintains the Enable/Disable state of Domains and Callback IDs.
+- Provides status query and domain enumeration capabilities: `msptiGetCallbackState`/`msptiGetEnabledCallbacks`/`msptiSupportedDomains`/`msptiGetCallbackName`.
+- Provides batch control and session liveness detection capabilities: `msptiEnableAllDomains`/`msptiEnableDomain`/`msptiIsTracingSessionRunning`.
 - Calls the user callback function when an enabled Domain or ID is detected at the API entry/exit.
 - Passes `msptiCallbackData` containing information such as the function name, parameters, return value, and `correlationId`.
 
-**Common module (`csrc/common/`)**:
+**Common Module (`csrc/common/`)**:
 
 - Provides concurrency infrastructure such as thread pools and lock-free queues.
 - Provides utility functions such as logging and error code mapping.
 - Provides the adapter layer to shield interface differences between different CANN versions.
+- Provides time calibration infrastructure (`ContextManager`) to maintain the conversion from host/device counters to real time and support external timestamp callback registration.
 
 ### 4.5.2 Python Extension Binding Layer
 
@@ -534,7 +658,7 @@ BaseMonitor (abstract base class)
 
 ### 4.5.3 MSTX Integration
 
-The integration between msPTI and MSTX (MindStudio Tools Extension) is reflected in the following aspects:
+The integration between msPTI and MindStudio Tools Extension (MSTX) is reflected in the following aspects:
 
 - **Callback + MSTX**: Call `mstxMarkA` in callbacks to perform markers, and enable the Activity APIs to collect MARKER and KERNEL data.
 - **Domain control**: Control the collection switch of MSTX Domains through `msptiActivityEnableMarkerDomain`/`msptiActivityDisableMarkerDomain`.
@@ -556,13 +680,14 @@ The integration between msPTI and MSTX (MindStudio Tools Extension) is reflected
 
 ### 4.6.2 Upgrade and Capacity Expansion Design
 
-**Version upgrade**:
+**Version Upgrade**:
 
 - msPTI is released as a run package. During an upgrade, the old version is automatically uninstalled and the new version is installed.
-- The version number matches the CANN version. Pay attention to version compatibility (see [Version Notes](https://gitcode.com/Ascend/mspti/releases)).
+- The version number matches the CANN version. Pay attention to version compatibility (see [Version Notes](https://atomgit.com/Ascend/mspti/releases)).
 - The APIs remain backward compatible. New Activity Kinds are added through enumeration extensions without affecting existing interfaces.
+- Clients can query the current version through `msptiGetVersion`, obtain the struct size of each Kind by version with `msptiActivityGetStructSize`, and parse Activity Records returned by different versions to implement binary-level forward compatibility.
 
-**Capacity expansion design**:
+**Capacity Expansion Design**:
 
 - In multi-device scenarios, msPTI runs independently in each process without interfering with each other.
 - The Activity Buffer is managed by process, and no cross-process data sharing is involved.
@@ -572,28 +697,31 @@ The integration between msPTI and MSTX (MindStudio Tools Extension) is reflected
 
 | Exception Scenario | Handling Method | User Notification |
 | --- | --- | --- |
-| Insufficient buffer | msPTI requests a new buffer through `RequestFunc`. If you return `NULL`, subsequent records are discarded. | Log warning `buffer request failed`. |
-| Device offline | Returns `MSPTI_ERROR_DEVICE_OFFLINE` | You are advised to check the `npu-smi` status |
-| `LD_PRELOAD` not set | Returns `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | Prompt `export LD_PRELOAD=...` |
-| Duplicate subscription | Returns `MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED` | Prompt the single-subscriber limit |
-| Invalid parameter | Returns `MSPTI_ERROR_INVALID_PARAMETER` | Print the details of the parameter error |
-| Memory allocation failure | Returns `NULL` in the callback, and msPTI discards the record | You are advised to increase the buffer size or reduce concurrency |
+| Insufficient buffer | msPTI requests a new buffer through `RequestFunc`. If you return NULL, subsequent records are discarded. | Log warning `buffer request failed`. |
+| Device offline | Returns `MSPTI_ERROR_DEVICE_OFFLINE`. | You are advised to check the `npu-smi` status. |
+| `LD_PRELOAD` not set | Returns `MSPTI_ERROR_WITHOUT_LD_PRELOAD`. | Prompt `export LD_PRELOAD=...`. |
+| Not initialized | Returns `MSPTI_ERROR_NOT_INITIALIZED` (subsequent APIs require initialization first). | Prompt the user to complete initialization processes such as `msptiSubscribe` first. |
+| Invalid Activity Kind | Returns `MSPTI_ERROR_INVALID_KIND`. | Print the Kind value and prompt the valid range. |
+| Insufficient parameter buffer size | Returns `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` (for example, the attribute interface `valueSize` is less than the size required by the attribute). | Prompt the user to enlarge the buffer according to the number of bytes required by the attribute. |
+| Duplicate subscription | Returns `MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED`. | Prompt the single-subscriber limit. |
+| Invalid parameter | Returns `MSPTI_ERROR_INVALID_PARAMETER`. | Print the details of the parameter error. |
+| Memory allocation failure | Returns NULL in the callback, and msPTI discards the record. | You are advised to increase the buffer size or reduce concurrency. |
 
 ### 4.6.4 Resource Management Design
 
-**Memory management**:
+**Memory Management**:
 
 - The Activity Buffer is provided and managed by you. msPTI is only responsible for filling data.
 - The buffer size is specified by you in `RequestFunc`. 8 to 64 MB is recommended.
 - Python Monitor sets the buffer size through `set_buffer_size()`, with an upper limit of 256 MB.
 
-**Thread safety**:
+**Thread Safety**:
 
 - msPTI ensures the thread safety of buffer writes internally.
 - The callback functions registered by you may be called concurrently by multiple threads. You need to ensure the thread safety of the callbacks.
 - The Python Monitor callbacks are executed in the C extension thread. Your callbacks should avoid time-consuming operations.
 
-**Resource release**:
+**Resource Release**:
 
 - At the end of collection, call `msptiActivityFlushAll` to ensure that all data has been returned.
 - The `stop()` method of Python Monitor automatically calls Flush internally.
@@ -601,13 +729,13 @@ The integration between msPTI and MSTX (MindStudio Tools Extension) is reflected
 
 ### 4.6.5 Compact Design
 
-**Version trimming**:
+**Version Trimming**:
 
 - The run package is built separately by architecture (`x86_64`/`aarch64`) and does not contain binaries of irrelevant architectures.
 - The Python whl packages are built separately by Python version.
 - Third-party dependencies are statically linked to reduce runtime dependencies.
 
-**Function trimming**:
+**Function Trimming**:
 
 - Activity Kinds are enabled on demand. Disabled Kinds do not incur any collection overhead.
 - Callbacks are enabled at the Domain/ID granularity. Disabled APIs do not trigger callbacks.
@@ -615,13 +743,13 @@ The integration between msPTI and MSTX (MindStudio Tools Extension) is reflected
 
 ### 4.6.6 Testability Design
 
-**Unit tests**:
+**Unit Tests**:
 
 - Based on the Google Test framework, covering all function points of the core modules.
 - Simulates CANN Runtime behavior through `MockCpp` to enable testing without a hardware environment.
 - Typical test targets: `activity_utest`, `callback_utest`, `mspti_adapter_utest`, and `activity_buffer_pool_utest`.
 
-**System tests**:
+**System Tests**:
 
 - Script-based automated tests that verify the complete process of samples on real NPU hardware.
 - Covers scenarios such as single-device training, multi-device communication, and custom markers.
@@ -680,22 +808,22 @@ There are no sensitive operations and no sensitive data is involved.
 
 #### 4.6.7.3 Design Implementation
 
-**Public interface declaration**:
+**Public Interface Declaration**:
 
 - The official external interfaces of msPTI are the Python APIs. The interfaces exposed by the C APIs are for internal use, and you are advised not to call them directly.
 - All external interfaces have been made public in the documentation. Undisclosed source interfaces should not be called externally.
 
-**Permission control**:
+**Permission Control**:
 
 - You are advised to install and run with the permissions of a common user. Operations with the root account are prohibited.
 - The `umask` value of the execution user should be greater than or equal to 0027.
 - Directory permissions of 750 and program file permissions of 550 are recommended.
 
-**External input verification**:
+**External Input Verification**:
 
 - The validity of the input parameters of all external interfaces is verified.
 - When verification fails, `MSPTI_ERROR_INVALID_PARAMETER` is returned for parameters such as buffer pointers, Domain enumerations, and Callback IDs.
-- Marker Domain names are string inputs and are checked for `NULL` during verification.
+- Marker Domain names are string inputs and are checked for NULL during verification.
 
 ## 4.7 External Interfaces
 
@@ -714,7 +842,7 @@ There are no sensitive operations and no sensitive data is involved.
 
 ### 4.7.3 Integration Methods
 
-**C/C++ integration**:
+**C/C++ Integration**:
 
 ```bash
 # Compile
@@ -726,7 +854,7 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 ./your_app
 ```
 
-**Python integration**:
+**Python Integration**:
 
 ```bash
 export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
@@ -747,7 +875,7 @@ typedef struct {
 } msptiActivity;
 ```
 
-### 5.1.2 ActivityKernel (Kernel Execution Record)
+### 5.1.2 `ActivityKernel` (Kernel Execution Record)
 
 Records the launch, execution, and completion time of kernels on the NPU.
 
@@ -763,7 +891,7 @@ typedef struct {
 } msptiActivityKernel;
 ```
 
-**Field description**:
+**Fields**:
 
 - `start`/`end`: NPU hardware timestamps with nanosecond precision.
 - `ds.deviceId`: The NPU device ID on which the kernel is executed.
@@ -772,7 +900,7 @@ typedef struct {
 - `type`: Identifies the computing unit type on which the kernel is executed (such as AI Core and AI CPU).
 - `name`: The full name of the kernel, including the operator type and parameter information.
 
-### 5.1.3 ActivityApi (API Call Record)
+### 5.1.3 `ActivityApi` (API Call Record)
 
 Records the call time of CANN Runtime APIs.
 
@@ -787,75 +915,84 @@ typedef struct {
 } msptiActivityApi;
 ```
 
-**Field description**:
+**Fields**:
 
 - `pt.processId`: The ID of the process that calls the API.
 - `pt.threadId`: The ID of the thread that calls the API.
 - `correlationId`: The correlation ID generated by the API call and passed to the kernels and memory operations triggered by the API.
 - `name`: The API function name, which can be directly mapped to the CANN Runtime API.
 
-### 5.1.4 ActivityMemory (Memory Operation Record)
+### 5.1.4 `ActivityMemory` (Memory Operation Record)
 
-Records memory allocation and deallocation operations.
+Records memory allocation and deallocation operations at the CANN Runtime layer (such as aclrtMalloc and aclrtFree). It is implemented by parsing the `memMngInfo` data in `MsprofCompactInfo`.
+The system internally maintains a mapping from addresses to byte counts to associate allocation and deallocation operations.
 
 ```c
 typedef struct {
     msptiActivityKind kind;                    // Fixed to MSPTI_ACTIVITY_KIND_MEMORY
     msptiActivityMemoryOperationType memoryOperationType;  // Operation type: ALLOCATION / RELEASE
-    msptiActivityMemoryKind memoryKind;        // Memory type: DEVICE
+    msptiActivityMemoryKind memoryKind;        // Memory type: DEVICE (device memory) / HOST (host memory) / MANAGED (managed memory)
     uint64_t correlationId;                    // Correlation ID
     uint64_t start;                            // Operation start timestamp (ns)
     uint64_t end;                              // Operation end timestamp (ns)
     uint64_t address;                          // Memory address
-    uint64_t bytes;                            // Memory size (bytes)
+    uint64_t bytes;                            // Size of the allocated or released memory (bytes)
     uint32_t processId;                        // Process ID
     uint32_t deviceId;                         // Device ID
-    uint32_t streamId;                         // Stream ID
+    uint32_t streamId;                         // Stream ID, set to MSPTI_INVALID_STREAM_ID when no stream is associated
 } msptiActivityMemory;
 ```
 
-### 5.1.5 ActivityMemcpy (Memory Copy Record)
+### 5.1.5 `ActivityMemcpy` (Memory Copy Record)
 
-Records memory copy operations between the host and the device.
+Records memory copy operations between the host and the device at the CANN Runtime layer (such as aclrtMemcpy and aclrtMemcpyAsync).
+It is implemented by parsing the `memcpyInfo` data in `MsprofCompactInfo`.
 
 ```c
 typedef struct {
     msptiActivityKind kind;                    // Fixed to MSPTI_ACTIVITY_KIND_MEMCPY
-    msptiActivityMemcpyKind copyKind;          // Copy direction: HTOD / DTOH / DTOD, and so on
+    msptiActivityMemcpyKind copyKind;          // Copy direction: HTOH / HTOD / DTOH / DTOD / DEFAULT, and so on
     uint64_t bytes;                            // Number of copied bytes
     uint64_t start;                            // Start timestamp (ns)
     uint64_t end;                              // End timestamp (ns)
     uint32_t deviceId;                         // Device ID
     uint32_t streamId;                         // Stream ID
     uint64_t correlationId;                    // Correlation ID
-    uint8_t isAsync;                           // Whether the copy is asynchronous
+    uint8_t isAsync;                           // Whether the copy is asynchronous (1 when called through an asynchronous API such as aclrtMemcpyAsync)
 } msptiActivityMemcpy;
 ```
 
-**copyKind enumeration**:
+**`copyKind` Enumeration**:
 
-- `MSPTI_ACTIVITY_MEMCPY_KIND_HTOH`: Host to host
-- `MSPTI_ACTIVITY_MEMCPY_KIND_HTOD`: Host to device
-- `MSPTI_ACTIVITY_MEMCPY_KIND_DTOH`: Device to host
-- `MSPTI_ACTIVITY_MEMCPY_KIND_DTOD`: Device to device
+| Enumeration Value | Description |
+| --- | --- |
+| MSPTI_ACTIVITY_MEMCPY_KIND_UNKNOWN | Unknown copy direction |
+| MSPTI_ACTIVITY_MEMCPY_KIND_HTOH | Host-to-host memory copy |
+| MSPTI_ACTIVITY_MEMCPY_KIND_HTOD | Host-to-device memory copy |
+| MSPTI_ACTIVITY_MEMCPY_KIND_DTOH | Device-to-host memory copy |
+| MSPTI_ACTIVITY_MEMCPY_KIND_DTOD | Device-to-device memory copy (including P2P) |
+| MSPTI_ACTIVITY_MEMCPY_KIND_DEFAULT | The system automatically infers the copy direction based on the address |
 
-### 5.1.6 ActivityMemset (Memory Setting Record)
+### 5.1.6 `ActivityMemset` (Memory Setting Record)
+
+Records memory value setting operations at the CANN Runtime layer (such as aclrtMemset and aclrtMemsetAsync).
+It is implemented by parsing the `memsetInfo` data in `MsprofCompactInfo`.
 
 ```c
 typedef struct {
     msptiActivityKind kind;                    // Fixed to MSPTI_ACTIVITY_KIND_MEMSET
-    uint32_t value;                            // Value to set
+    uint32_t value;                            // Target value to set (usually 0, indicating that the memory region is cleared)
     uint64_t bytes;                            // Number of bytes to set
     uint64_t start;                            // Start timestamp (ns)
     uint64_t end;                              // End timestamp (ns)
     uint32_t deviceId;                         // Device ID
     uint32_t streamId;                         // Stream ID
     uint64_t correlationId;                    // Correlation ID
-    uint8_t isAsync;                           // Whether the operation is asynchronous
+    uint8_t isAsync;                           // Whether the operation is asynchronous (1 when called through an asynchronous API such as aclrtMemsetAsync)
 } msptiActivityMemset;
 ```
 
-### 5.1.7 ActivityMarker (User Marker Record)
+### 5.1.7 `ActivityMarker` (User Marker Record)
 
 Records user-defined markers inserted through the MSTX APIs, supporting instant markers and range markers.
 
@@ -872,7 +1009,7 @@ typedef struct {
 } msptiActivityMarker;
 ```
 
-**flag enumeration**:
+**`flag` Enumeration**:
 
 - `MSPTI_ACTIVITY_FLAG_MARKER_INSTANTANEOUS`: A pure host instant marker
 - `MSPTI_ACTIVITY_FLAG_MARKER_START`: A host range start marker
@@ -881,7 +1018,7 @@ typedef struct {
 - `MSPTI_ACTIVITY_FLAG_MARKER_START_WITH_DEVICE`: A range start with the device
 - `MSPTI_ACTIVITY_FLAG_MARKER_END_WITH_DEVICE`: A range end with the device
 
-### 5.1.8 ActivityHccl (HCCL Communication Record)
+### 5.1.8 `ActivityHccl` (HCCL Communication Record)
 
 Records the execution information of HCCL collective communication operations.
 
@@ -897,7 +1034,7 @@ typedef struct {
 } msptiActivityHccl;
 ```
 
-### 5.1.9 ActivityCommunication (Communication Operator Record)
+### 5.1.9 `ActivityCommunication` (Communication Operator Record)
 
 Records detailed information of communication operators, including the data type and algorithm type.
 
@@ -916,7 +1053,7 @@ typedef struct {
 } msptiActivityCommunication;
 ```
 
-### 5.1.10 ActivityExternalCorrelation (External Correlation Record)
+### 5.1.10 `ActivityExternalCorrelation` (External Correlation Record)
 
 Records the mapping between the external correlation ID and the internal `correlationId`.
 
@@ -969,13 +1106,16 @@ typedef union {
 | MSPTI_ERROR_DEVICE_OFFLINE | 4 | The device is offline |
 | MSPTI_ERROR_QUEUE_EMPTY | 5 | The queue is empty |
 | MSPTI_ERROR_WITHOUT_LD_PRELOAD | 6 | `LD_PRELOAD` is not set |
+| MSPTI_ERROR_NOT_INITIALIZED | 7 | Not initialized |
+| MSPTI_ERROR_INVALID_KIND | 8 | Invalid Kind |
+| MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT | 9 | Insufficient parameter buffer size (for example, when setting or getting an Activity attribute, `valueSize` is less than the size required by the attribute) |
 | MSPTI_ERROR_INNER | 999 | Internal error |
 
 ### Callback ID
 
-**Runtime Domain Callback ID**: Defined in the `msptiCallbackIdRuntime` enumeration, with values ranging from 1 to 36, covering device management (1-3), context management (4-6), stream management (7-9), kernel launch (10-14), memory management (15-21), data copy (22-26), and memory setting (27-28).
+**Runtime Domain Callback ID**: Defined in the `msptiCallbackIdRuntime` enumeration, with values ranging from 1 to 36, covering device management (1 to 3), context management (4 to 6), stream management (7 to 9), kernel launch (10 to 14), memory management (15 to 21), data copy (22 to 26), and memory setting (27 to 28).
 
-**HCCL Domain Callback ID**: Defined in the `msptiCallbackIdHccl` enumeration, with values ranging from 1 to 13, covering AllReduce (1), Broadcast (2), AllGather (3), ReduceScatter (4), Reduce (5), AllToAll (6-7), Barrier (8), Scatter (9), and Send/Recv (10-12).
+**HCCL Domain Callback ID**: Defined in the `msptiCallbackIdHccl` enumeration, with values ranging from 1 to 13, covering AllReduce (1), Broadcast (2), AllGather (3), ReduceScatter (4), Reduce (5), AllToAll (6 to 7), Barrier (8), Scatter (9), and Send/Recv (10 to 12).
 
 ### Activity Flag
 
@@ -985,15 +1125,25 @@ The six Marker flag bits are combined through bit fields. The first three are pu
 
 Seventeen communication data types are supported, covering `INT8/16/32/64/128`, `UINT8/16/32/64`, `FP16/32/64`, `BFP16`, `HIF8`, `FP8E4M3/FP8E5M2/FP8E8M0`, and so on.
 
+### `msptiActivityAttribute` (Activity Attribute)
+
+Identifies configurable attributes during Activity collection and is used as a parameter of `msptiActivitySetAttribute`/`msptiActivityGetAttribute`.
+
+| Enumeration Value | Value | Value Type | Description |
+| --- | --- | --- | --- |
+| MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE | 0 | uint32_t | Channel Buffer size (Byte). The default value is 2 × 1024 × 1024. The value range is [2MB, 10MB]. After setting, it takes effect only for new Channels. |
+| MSPTI_ACTIVITY_ATTR_TIMESTAMP_CALLBACK | 1 | msptiTimestampCallbackFunc | Timestamp callback function, used to replace the default timestamp obtaining method of msPTI. |
+| MSPTI_ACTIVITY_ATTR_FORCE_INT | 0x7fffffff | - | Forced type identifier that ensures the enumeration occupies a full 32 bits. It must not be passed to the interfaces. |
+
 ## 5.4 Python Data Type Mapping
 
 The Python APIs wrap C structs into Python data classes:
 
 | C Struct | Python Class | Field Mapping |
 | --- | --- | --- |
-| `msptiActivityKernel` | `KernelData` | kind, start, end, device_id, stream_id, correlation_id, type, name |
-| `msptiActivityHccl` | `HcclData` | kind, start, end, device_id, stream_id, bandwidth, name, comm_name |
-| `msptiActivityCommunication` | `CommunicationData` | kind, data_type, count, device_id, stream_id, start, end, alg_type, name, comm_name, correlation_id |
-| `msptiActivityMarker` | `MarkerData` | kind, flag, source_kind, timestamp, id, object_id, name, domain |
-| (Combined from Start+End) | `RangeMarkerData` | kind, source_kind, id, object_id, name, domain, start, end |
-| `msptiObjectId` | `MsptiObjectId` | process_id, thread_id, device_id, stream_id |
+| `msptiActivityKernel` | KernelData | kind, start, end, device_id, stream_id, correlation_id, type, name |
+| `msptiActivityHccl` | HcclData | kind, start, end, device_id, stream_id, bandwidth, name, comm_name |
+| `msptiActivityCommunication` | CommunicationData | kind, data_type, count, device_id, stream_id, start, end, alg_type, name, comm_name, correlation_id |
+| `msptiActivityMarker` | MarkerData | kind, flag, source_kind, timestamp, id, object_id, name, domain |
+| (Combined from Start+End) | RangeMarkerData | kind, source_kind, id, object_id, name, domain, start, end |
+| `msptiObjectId` | MsptiObjectId | process_id, thread_id, device_id, stream_id |

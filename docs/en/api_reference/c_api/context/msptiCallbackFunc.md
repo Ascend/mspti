@@ -8,14 +8,24 @@
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
-| Product Type                                   | Supported|
-| ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training products                         |    ×     |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ## Description <a name="section20806203412478"></a>
 
@@ -32,7 +42,6 @@ typedef void (*msptiCallbackFunc)(void *userdata, msptiCallbackDomain domain, ms
 **Table 1** Parameter Description
 
 <a name="table827101275518"></a>
-
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a> Parameter Name</p>
 </th>
 <th class="cellrowborder" valign="top" width="13.661366136613662%" id="mcps1.2.4.1.2"><p id="p10230141454318"><a name="p10230141454318"></a><a name="p10230141454318"></a> Input/Output</p>
@@ -43,7 +52,7 @@ typedef void (*msptiCallbackFunc)(void *userdata, msptiCallbackDomain domain, ms
 </thead>
 <tbody><tr id="row1131131265511"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p7669321185110"><a name="p7669321185110"></a><a name="p7669321185110"></a>userdata</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p98288114171"><a name="p98288114171"></a><a name="p98288114171"></a>Input </p>.
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p98288114171"><a name="p98288114171"></a><a name="p98288114171"></a>Input </p>
 </td>
 <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a> user-side data address.</p>
 </td>
@@ -66,7 +75,7 @@ typedef void (*msptiCallbackFunc)(void *userdata, msptiCallbackDomain domain, ms
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1383541171719"><a name="p1383541171719"></a><a name="p1383541171719"></a> Input. </p>
 </td>
-Indicates the additional information triggered by the current callback of the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1624118151355"><a name="p1624118151355"></a><a name="p1624118151355"></a>When domain is MSPTI_CB_DOMAIN_RUNTIME, the cbdata type is <a href="msptiCallbackData.md">msptiCallbackData</a>.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1624118151355"><a name="p1624118151355"></a><a name="p1624118151355"></a>Indicates the additional information triggered by the current callback. When domain is MSPTI_CB_DOMAIN_RUNTIME, the cbdata type is <a href="msptiCallbackData.md">msptiCallbackData</a>.
 </td>
 </tr>
 </tbody>
