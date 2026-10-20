@@ -83,11 +83,45 @@ Activity buffer: Buffers activity record data and transfers one or more activity
 |**Data structure type**|**Data Structure Description**|
 |[msptiCallbackData](./context/msptiCallbackData.md)|Data to be passed to the callback function.|
 
-**Table 3** Result codes
+**Table 3** PM Sampling APIs
 
 |API|Description|
 |--|--|
 |**Function type**|**Function Description**|
-|[msptiGetResultString](./context/msptiGetResultString.md)|Obtains the descriptive string for a msPTI result code.|
+|[msptiPmSamplingEnable](./context/msptiPmSamplingEnable.md)|Creates a PM sampling session on the specified device and enables PM sampling.|
+|[msptiPmSamplingSetConfig](./context/msptiPmSamplingSetConfig.md)|Configures the metric set, sampling interval, and hardware buffer of a session.|
+|[msptiPmSamplingStart](./context/msptiPmSamplingStart.md)|Starts the PM sampling window.|
+|[msptiPmSamplingStop](./context/msptiPmSamplingStop.md)|Stops the PM sampling window.|
+|[msptiPmSamplingGetNumMetrics](./context/msptiPmSamplingGetNumMetrics.md)|Obtains the total number of configurable PM sampling metrics.|
+|[msptiPmSamplingGetMetricProperties](./context/msptiPmSamplingGetMetricProperties.md)|Obtains the static properties of a specified PM sampling metric.|
+|[msptiPmSamplingGetCounterDataSize](./context/msptiPmSamplingGetCounterDataSize.md)|Obtains the number of bytes required for a counter data image.|
+|[msptiPmSamplingCounterDataImageInitialize](./context/msptiPmSamplingCounterDataImageInitialize.md)|Initializes a user-allocated counter data image.|
+|[msptiPmSamplingGetCounterDataInfo](./context/msptiPmSamplingGetCounterDataInfo.md)|Obtains sample statistics of a counter data image or the internal sample queue.|
+|[msptiPmSamplingDecodeData](./context/msptiPmSamplingDecodeData.md)|Decodes samples from the internal sample queue into a counter data image.|
+|[msptiPmSamplingGetSampleInfo](./context/msptiPmSamplingGetSampleInfo.md)|Obtains the time window of a sample by index.|
+|[msptiPmSamplingGetCounterAvailability](./context/msptiPmSamplingGetCounterAvailability.md)|Queries metric availability on the target device.|
+|[msptiPmSamplingDisable](./context/msptiPmSamplingDisable.md)|Destroys the session and disables PM sampling.|
+|[msptiPmSamplingGetSampleEntries](./context/msptiPmSamplingGetSampleEntries.md)|Obtains the self-describing value entry list of a sample by index.|
+|**Typedef type**|**Typedef description**|
+|[msptiPmSamplingObjectPtr](./context/msptiPmSamplingObjectPtr.md)|Handle of a PM sampling session object.|
 |**Enumeration type**|**Enumeration description**|
-|[msptiResult](./context/msptiResult.md)|Error and result code returned by msPTI.|
+|[msptiPmSamplingMetricId](./context/msptiPmSamplingMetricId.md)|Metric IDs of the static PM sampling metric table.|
+|[msptiPmSamplingBufferAppendMode](./context/msptiPmSamplingBufferAppendMode.md)|Append mode when the hardware buffer is full.|
+|[msptiPmSamplingTriggerMode](./context/msptiPmSamplingTriggerMode.md)|PM sampling trigger mode.|
+|[msptiPmSamplingDecodeStopReason](./context/msptiPmSamplingDecodeStopReason.md)|Reason why decoding stopped.|
+|[msptiPmSamplingMetricDataType](./context/msptiPmSamplingMetricDataType.md)|Data type of a PM sampling metric value.|
+|[msptiPmSamplingMetricGroup](./context/msptiPmSamplingMetricGroup.md)|Group a PM sampling metric belongs to.|
+|**Data structure type**|**Data Structure Description**|
+|[msptiPmSamplingMetricProperties](./context/msptiPmSamplingMetricProperties.md)|Struct of the static properties of a PM sampling metric.|
+|[msptiPmSamplingSampleEntry](./context/msptiPmSamplingSampleEntry.md)|Self-describing value entry of a PM sampling sample.|
+
+PM Sampling: Periodic device-level performance sampling. It collects metrics such as HBM/HCCS/PCIe/RoCE bandwidth, power, temperature, utilization, and frequency at fixed intervals. A sample consists of self-describing value entries.
+
+**Table 4** Result codes
+
+|API|Description|
+|--|--|
+|**Function type**|**Function description**|
+|[msptiGetResultString](./context/msptiGetResultString.md)|Obtains the description string corresponding to an msPTI result code.|
+|**Enumeration type**|**Enumeration description**|
+|[msptiResult](./context/msptiResult.md)|Error and result codes returned by msPTI.|

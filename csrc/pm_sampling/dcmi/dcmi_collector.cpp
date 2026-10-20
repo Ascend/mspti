@@ -19,7 +19,12 @@
 #include "csrc/pm_sampling/dcmi/dcmi_collector.h"
 
 #include <chrono>
+#include <cstdarg>
+#include <cstdio>
 #include <iterator>
+#include <mutex>
+#include <string>
+#include <unordered_set>
 
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
@@ -44,6 +49,24 @@ constexpr uint32_t RDMA_PROF_MIN_MS = 100;
 constexpr uint32_t RDMA_PROF_MAX_MS = 10000;
 
 inline uint32_t ClampU32(uint32_t v, uint32_t lo, uint32_t hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+// 采集逐拍执行，同类失败仅首次告警，避免持续失败刷屏
+void WarnOnce(const std::string &key, const char *fmt, ...)
+{
+    static std::mutex mtx;
+    static std::unordered_set<std::string> logged;
+    std::lock_guard<std::mutex> lk(mtx);
+    if (!logged.insert(key).second)
+    {
+        return;
+    }
+    char buf[256] = {0};
+    va_list args;
+    va_start(args, fmt);
+    (void)vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    MSPTI_LOGW("%s", buf);
+}
 }  // namespace
 
 DcmiCollector *DcmiCollector::GetInstance()
@@ -64,9 +87,11 @@ msptiResult DcmiCollector::StartCollector()
     if (!DcmiApi::GetInstance()->Init())
     {
         // dcmi 不可用：Start 显式失败，避免会话 Running 却永远无数据的静默失败
+        MSPTI_LOGE("DcmiCollector: dcmi init failed, pm sampling start aborted");
         return MSPTI_ERROR_DEVICE_OFFLINE;
     }
-    for (const auto &dev : DcmiApi::GetInstance()->GetDevices())
+    const auto &devices = DcmiApi::GetInstance()->GetDevices();
+    for (const auto &dev : devices)
     {
         deviceIds_.push_back(dev.deviceId);
     }
@@ -309,49 +334,49 @@ void DcmiCollector::RunBandwidth(uint32_t deviceId, PmDcmiSample &sample, const 
 void DcmiCollector::CollectPower(uint32_t deviceId, PmDcmiSample &sample)
 {
     int power = -1;
-    (void)DcmiApi::GetInstance()->GetPower(deviceId, &power);
+    const int ret = DcmiApi::GetInstance()->GetPower(deviceId, &power);
+    if (ret != 0)
+    {
+        WarnOnce("power:" + std::to_string(deviceId), "DcmiCollector: get power failed, device %u, ret=%d", deviceId,
+                 ret);
+    }
     sample.power = power;
 }
 
 void DcmiCollector::CollectTemperature(uint32_t deviceId, PmDcmiSample &sample)
 {
     int temperature = -1;
-    (void)DcmiApi::GetInstance()->GetTemperature(deviceId, &temperature);
+    const int ret = DcmiApi::GetInstance()->GetTemperature(deviceId, &temperature);
+    if (ret != 0)
+    {
+        WarnOnce("temperature:" + std::to_string(deviceId), "DcmiCollector: get temperature failed, device %u, ret=%d",
+                 deviceId, ret);
+    }
     sample.temperature = temperature;
 }
 
 void DcmiCollector::CollectUtilization(uint32_t deviceId, PmDcmiSample &sample)
 {
     auto *api = DcmiApi::GetInstance();
-    if (api->HasMultiUtilizationRate())
+    if (!api->HasMultiUtilizationRate())
     {
-        DcmiMultiUtilizationInfo info{};
-        if (api->GetMultiUtilizationRate(deviceId, &info) == 0)
-        {
-            sample.aicoreUtil = info.aicore_util;
-            sample.aivectorUtil = info.aiv_util;
-            sample.aicubeUtil = info.aic_util;
-            sample.npuUtil = info.npu_util;
-        }
+        WarnOnce("multi_missing:" + std::to_string(deviceId),
+                 "DcmiCollector: multi utilization interface missing, device %u", deviceId);
         return;
     }
-    // multi 接口缺失时按 type 逐项兜底，单项失败保持哨兵值
-    unsigned int util = 0;
-    if (api->GetUtilizationRate(deviceId, UTIL_TYPE_NPU, &util) == 0)
+    DcmiMultiUtilizationInfo info{};
+    const int ret = api->GetMultiUtilizationRate(deviceId, &info);
+    if (ret == 0)
     {
-        sample.npuUtil = util;
+        sample.aicoreUtil = info.aicore_util;
+        sample.aivectorUtil = info.aiv_util;
+        sample.aicubeUtil = info.aic_util;
+        sample.npuUtil = info.npu_util;
     }
-    if (api->GetUtilizationRate(deviceId, UTIL_TYPE_AICORE, &util) == 0)
+    else
     {
-        sample.aicoreUtil = util;
-    }
-    if (api->GetUtilizationRate(deviceId, UTIL_TYPE_VECTOR, &util) == 0)
-    {
-        sample.aivectorUtil = util;
-    }
-    if (api->GetUtilizationRate(deviceId, UTIL_TYPE_AICUBE, &util) == 0)
-    {
-        sample.aicubeUtil = util;
+        WarnOnce("multi_util:" + std::to_string(deviceId),
+                 "DcmiCollector: get multi utilization failed, device %u, ret=%d", deviceId, ret);
     }
 }
 
@@ -360,12 +385,20 @@ void DcmiCollector::CollectFrequency(uint32_t deviceId, PmDcmiSample &sample)
     auto *api = DcmiApi::GetInstance();
     if (!api->HasFrequency())
     {
+        WarnOnce("freq_missing:" + std::to_string(deviceId),
+                 "DcmiCollector: frequency interface unavailable, device %u", deviceId);
         return;
     }
     unsigned int freq = 0;
-    if (api->GetFrequency(deviceId, FREQ_TYPE_AICORE, &freq) == 0)
+    const int ret = api->GetFrequency(deviceId, FREQ_TYPE_AICORE, &freq);
+    if (ret == 0)
     {
         sample.aicoreFreq = freq;
+    }
+    else
+    {
+        WarnOnce("freq:" + std::to_string(deviceId), "DcmiCollector: get frequency failed, device %u, ret=%d", deviceId,
+                 ret);
     }
 }
 
@@ -374,11 +407,16 @@ void DcmiCollector::CollectHbm(uint32_t deviceId, PmDcmiSample &sample)
     auto *api = DcmiApi::GetInstance();
     if (!api->HasHbmInfo())
     {
+        WarnOnce("hbm_missing:" + std::to_string(deviceId), "DcmiCollector: hbm info interface unavailable, device %u",
+                 deviceId);
         return;
     }
     DcmiHbmInfo hbm{};
-    if (api->GetHbmInfo(deviceId, &hbm) != 0)
+    const int ret = api->GetHbmInfo(deviceId, &hbm);
+    if (ret != 0)
     {
+        WarnOnce("hbm:" + std::to_string(deviceId), "DcmiCollector: get hbm info failed, device %u, ret=%d", deviceId,
+                 ret);
         return;
     }
     sample.hbmBwUtil = hbm.bandwith_util_rate;
@@ -394,12 +432,17 @@ void DcmiCollector::CollectHccsBandwidth(uint32_t deviceId, PmDcmiSample &sample
     auto *api = DcmiApi::GetInstance();
     if (!api->HasHccsBandwidth())
     {
+        WarnOnce("hccs_bw_missing:" + std::to_string(deviceId),
+                 "DcmiCollector: hccs bandwidth interface unavailable, device %u", deviceId);
         return;
     }
     DcmiHccsBandwidthInfo info{};
     info.profiling_time = static_cast<int>(ClampU32(intervalMs, HCCS_PROF_MIN_MS, HCCS_PROF_MAX_MS));
-    if (api->GetHccsBandwidth(deviceId, &info) != 0)
+    const int ret = api->GetHccsBandwidth(deviceId, &info);
+    if (ret != 0)
     {
+        WarnOnce("hccs_bw:" + std::to_string(deviceId), "DcmiCollector: get hccs bandwidth failed, device %u, ret=%d",
+                 deviceId, ret);
         return;
     }
     // 逐链路透传，GB/s -> bytes/s
@@ -415,12 +458,17 @@ void DcmiCollector::CollectPcieBandwidth(uint32_t deviceId, PmDcmiSample &sample
     auto *api = DcmiApi::GetInstance();
     if (!api->HasPcieBandwidth())
     {
+        WarnOnce("pcie_bw_missing:" + std::to_string(deviceId),
+                 "DcmiCollector: pcie bandwidth interface unavailable, device %u", deviceId);
         return;
     }
     DcmiPcieBandwidthInfo info{};
     info.profiling_time = static_cast<int>(ClampU32(intervalMs, 0, PCIE_PROF_MAX_MS));
-    if (api->GetPcieBandwidth(deviceId, &info) != 0)
+    const int ret = api->GetPcieBandwidth(deviceId, &info);
+    if (ret != 0)
     {
+        WarnOnce("pcie_bw:" + std::to_string(deviceId), "DcmiCollector: get pcie bandwidth failed, device %u, ret=%d",
+                 deviceId, ret);
         return;
     }
     // 有效带宽 = posted + completion（np 包不计），MB/ms == GB/s
@@ -440,11 +488,16 @@ void DcmiCollector::CollectRdmaBandwidth(uint32_t deviceId, PmDcmiSample &sample
     auto *api = DcmiApi::GetInstance();
     if (!api->HasRdmaBandwidth())
     {
+        WarnOnce("rdma_bw_missing:" + std::to_string(deviceId),
+                 "DcmiCollector: rdma bandwidth interface unavailable, device %u", deviceId);
         return;
     }
     DcmiRdmaBandwidthInfo info{};
-    if (api->GetRdmaBandwidth(deviceId, 0, ClampU32(intervalMs, RDMA_PROF_MIN_MS, RDMA_PROF_MAX_MS), &info) != 0)
+    const int ret = api->GetRdmaBandwidth(deviceId, 0, ClampU32(intervalMs, RDMA_PROF_MIN_MS, RDMA_PROF_MAX_MS), &info);
+    if (ret != 0)
     {
+        WarnOnce("rdma_bw:" + std::to_string(deviceId), "DcmiCollector: get rdma bandwidth failed, device %u, ret=%d",
+                 deviceId, ret);
         return;
     }
     // MB/s -> bytes/s

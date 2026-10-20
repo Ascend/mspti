@@ -33,6 +33,7 @@ msPTI provides the following capabilities:
 | --- | --- | --- |
 | Activity API | Collects activity data such as API, kernel, memory, HCCL, marker, and external correlation for building tracing and profiling tools. | [C API Reference](./docs/en/api_reference/c_api/README.md) |
 | Callback API | Subscribes to runtime and HCCL callbacks to execute custom logic or correlate profile data before and after API calls. | [C API Reference](./docs/en/api_reference/c_api/README.md) |
+| PM Sampling API | Periodic device-level performance sampling that collects metrics such as HBM/HCCS/PCIe/RoCE bandwidth, power, temperature, utilization, and frequency. | [C API Reference](./docs/en/api_reference/c_api/README.md) |
 | Python API | Provides APIs such as `KernelMonitor`, `HcclMonitor`, `MstxMonitor`, and `CommunicationMonitor` for quick integration into Python analysis. | [Python API Reference](./docs/en/api_reference/python_api/README.md) |
 | Samples | Covers typical scenarios such as callback, activity, correlation, HCCL, and Python monitor for quick onboarding. | [Sample Description](./samples/README.md)/[Sample Guide](./docs/en/user_guide/samples_guide.md) |
 

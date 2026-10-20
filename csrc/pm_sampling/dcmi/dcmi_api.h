@@ -37,13 +37,6 @@ namespace Mspti
 namespace PmSampling
 {
 
-// dcmi_get_device_utilization_rate 的 input_type 码位（DCMI API 参考）：
-// 2=AI Core 3=AI CPU 12=vector core 13=NPU整体 14=AI Cube
-constexpr int UTIL_TYPE_AICORE = 2;
-constexpr int UTIL_TYPE_AICUBE = 14;
-constexpr int UTIL_TYPE_VECTOR = 12;
-constexpr int UTIL_TYPE_NPU = 13;
-
 // dcmi_get_device_frequency 的 freq_type 码位：7=AI Core 当前频率
 // （接口仅支持 2/6/7/9，Vector 频率无可用码位）
 constexpr int FREQ_TYPE_AICORE = 7;
@@ -111,7 +104,7 @@ class DcmiApi
    public:
     static DcmiApi *GetInstance();
 
-    // 加载 libdcmi.so、init 并枚举设备拓扑；失败返回 false（后续采集静默跳过）。
+    // 加载 libdcmi.so、init 并枚举设备拓扑；失败返回 false（Start 显式失败）。
     // 幂等：成功后重复调用直接返回 true。
     bool Init();
 
@@ -127,7 +120,6 @@ class DcmiApi
     // 统一采集访问器（按扁平 deviceId），返回 0 表示成功；符号缺失返回 -1。
     int GetPower(uint32_t deviceId, int *out) const;
     int GetTemperature(uint32_t deviceId, int *out) const;
-    int GetUtilizationRate(uint32_t deviceId, int type, unsigned int *out) const;
     int GetMultiUtilizationRate(uint32_t deviceId, DcmiMultiUtilizationInfo *out) const;
     int GetFrequency(uint32_t deviceId, int type, unsigned int *out) const;
     int GetHbmInfo(uint32_t deviceId, DcmiHbmInfo *out) const;
@@ -136,22 +128,31 @@ class DcmiApi
     int GetRdmaBandwidth(uint32_t deviceId, unsigned int portId, unsigned int profTimeMs,
                          DcmiRdmaBandwidthInfo *out) const;
 
-    // 符号可用性查询（采集侧决定是否产对应指标点）
+    // 会话代际内符号可用性（采集侧决定是否产对应指标点，防空调符号指针）；
+    // 对外可采预期由指标表按芯片型号判定，不依赖本组接口
     bool HasMultiUtilizationRate() const
     {
-        return dcmiGetDeviceMultiUtilizationRate_ != nullptr || dcmiv2GetDeviceMultiUtilizationRate_ != nullptr;
+        return gen_ == DcmiGen::V2 ? dcmiv2GetDeviceMultiUtilizationRate_ != nullptr
+                                   : dcmiGetDeviceMultiUtilizationRate_ != nullptr;
     }
-    bool HasFrequency() const { return dcmiGetDeviceFrequency_ != nullptr || dcmiv2GetDeviceFrequency_ != nullptr; }
-    bool HasHbmInfo() const { return dcmiGetDeviceHbmInfo_ != nullptr || dcmiv2GetDeviceHbmInfo_ != nullptr; }
+    bool HasFrequency() const
+    {
+        return gen_ == DcmiGen::V2 ? dcmiv2GetDeviceFrequency_ != nullptr : dcmiGetDeviceFrequency_ != nullptr;
+    }
+    bool HasHbmInfo() const
+    {
+        return gen_ == DcmiGen::V2 ? dcmiv2GetDeviceHbmInfo_ != nullptr : dcmiGetDeviceHbmInfo_ != nullptr;
+    }
     bool HasHccsBandwidth() const
     {
-        return dcmiGetHccsLinkBandwidth_ != nullptr || dcmiv2GetHccsLinkBandwidth_ != nullptr;
+        return gen_ == DcmiGen::V2 ? dcmiv2GetHccsLinkBandwidth_ != nullptr : dcmiGetHccsLinkBandwidth_ != nullptr;
     }
     bool HasPcieBandwidth() const
     {
-        return dcmiGetPcieLinkBandwidth_ != nullptr || dcmiv2GetPcieLinkBandwidth_ != nullptr;
+        return gen_ == DcmiGen::V2 ? dcmiv2GetPcieLinkBandwidth_ != nullptr : dcmiGetPcieLinkBandwidth_ != nullptr;
     }
-    bool HasRdmaBandwidth() const { return dcmiGetRdmaBandwidth_ != nullptr || dcmiv2GetRdmaBandwidth_ != nullptr; }
+    // rdma 仅 v1 有接口；v2 及之后代际不可用（V6/950 驱动确认不支持）
+    bool HasRdmaBandwidth() const { return gen_ == DcmiGen::V1 && dcmiGetRdmaBandwidth_ != nullptr; }
 
    private:
     DcmiApi() = default;
@@ -165,6 +166,14 @@ class DcmiApi
 
     void *handle_ = nullptr;
     bool inited_ = false;
+    // DCMI 接口代际：Init 成功路径决定；Get*/Has* 分发以此为口径。
+    // 新增代际（如 v3）时扩展枚举、Init 追加分支，并同步带 v1/v2 二选一分发的访问器
+    enum class DcmiGen
+    {
+        V1 = 1,
+        V2 = 2
+    };
+    DcmiGen gen_ = DcmiGen::V1;
     std::vector<DcmiDevice> devices_;
 
     // v1 符号：(card_id, device_id) 双参
@@ -173,7 +182,6 @@ class DcmiApi
     int (*dcmiGetDeviceIdInCard_)(int, int *, int *, int *) = nullptr;
     int (*dcmiGetDevicePowerInfo_)(int, int, int *) = nullptr;
     int (*dcmiGetDeviceTemperature_)(int, int, int *) = nullptr;
-    int (*dcmiGetDeviceUtilizationRate_)(int, int, int, unsigned int *) = nullptr;
     int (*dcmiGetDeviceMultiUtilizationRate_)(int, int, DcmiMultiUtilizationInfo *) = nullptr;
     int (*dcmiGetDeviceFrequency_)(int, int, int, unsigned int *) = nullptr;
     int (*dcmiGetDeviceHbmInfo_)(int, int, DcmiHbmInfo *) = nullptr;
@@ -181,18 +189,16 @@ class DcmiApi
     int (*dcmiGetPcieLinkBandwidth_)(int, int, DcmiPcieBandwidthInfo *) = nullptr;
     int (*dcmiGetRdmaBandwidth_)(int, int, unsigned int, unsigned int, DcmiRdmaBandwidthInfo *) = nullptr;
 
-    // v2 符号：扁平 dev_id 单参
+    // v2 符号：扁平 dev_id 单参（V6/950 无 v2 hccs，v2 rdma 驱动确认不支持故不加载）
     int (*dcmiv2Init_)(void) = nullptr;
     int (*dcmiv2GetDeviceList_)(int *, int *, int) = nullptr;
     int (*dcmiv2GetDevicePowerInfo_)(int, int *) = nullptr;
     int (*dcmiv2GetDeviceTemperature_)(int, int *) = nullptr;
-    int (*dcmiv2GetDeviceUtilizationRate_)(int, int, unsigned int *) = nullptr;
     int (*dcmiv2GetDeviceMultiUtilizationRate_)(int, DcmiMultiUtilizationInfo *) = nullptr;
     int (*dcmiv2GetDeviceFrequency_)(int, int, unsigned int *) = nullptr;
     int (*dcmiv2GetDeviceHbmInfo_)(int, DcmiHbmInfo *) = nullptr;
     int (*dcmiv2GetHccsLinkBandwidth_)(int, DcmiHccsBandwidthInfo *) = nullptr;
     int (*dcmiv2GetPcieLinkBandwidth_)(int, DcmiPcieBandwidthInfo *) = nullptr;
-    int (*dcmiv2GetRdmaBandwidth_)(int, unsigned int, unsigned int, DcmiRdmaBandwidthInfo *) = nullptr;
 };
 
 }  // namespace PmSampling

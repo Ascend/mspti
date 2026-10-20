@@ -21,7 +21,7 @@
 
 namespace
 {
-/* 按 mspti_result.h 枚举顺序一一对应（0..9 连续码位直接索引）。
+/* 按 mspti_result.h 枚举顺序一一对应（连续码位直接索引）。
  * 枚举尾部新增错误码时必须同步在此扩表 */
 const char* const kResultStrings[] = {
     "Success.",                                                  /* 0  MSPTI_SUCCESS */

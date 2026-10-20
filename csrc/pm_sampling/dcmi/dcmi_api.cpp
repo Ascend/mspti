@@ -20,6 +20,7 @@
 
 #include <dlfcn.h>
 
+#include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/utils.h"
 
@@ -85,42 +86,63 @@ bool DcmiApi::Init()
     MSPTI_LOAD_DCMI_SYM(dcmiGetDeviceIdInCard_, "dcmi_get_device_id_in_card");
     MSPTI_LOAD_DCMI_SYM(dcmiGetDevicePowerInfo_, "dcmi_get_device_power_info");
     MSPTI_LOAD_DCMI_SYM(dcmiGetDeviceTemperature_, "dcmi_get_device_temperature");
-    MSPTI_LOAD_DCMI_SYM(dcmiGetDeviceUtilizationRate_, "dcmi_get_device_utilization_rate");
     MSPTI_LOAD_DCMI_SYM(dcmiGetDeviceMultiUtilizationRate_, "dcmi_get_device_multi_utilization_rate");
     MSPTI_LOAD_DCMI_SYM(dcmiGetDeviceFrequency_, "dcmi_get_device_frequency");
     MSPTI_LOAD_DCMI_SYM(dcmiGetDeviceHbmInfo_, "dcmi_get_device_hbm_info");
     MSPTI_LOAD_DCMI_SYM(dcmiGetHccsLinkBandwidth_, "dcmi_get_hccs_link_bandwidth_info");
     MSPTI_LOAD_DCMI_SYM(dcmiGetPcieLinkBandwidth_, "dcmi_get_pcie_link_bandwidth_info");
     MSPTI_LOAD_DCMI_SYM(dcmiGetRdmaBandwidth_, "dcmi_get_rdma_bandwidth_info");
-    // v2 符号（新代际扁平寻址；缺失时回退 v1）
+    // v2 符号（新代际扁平寻址；V6/950 无 v2 hccs，v2 rdma 驱动确认不支持故不加载）
     MSPTI_LOAD_DCMI_SYM(dcmiv2Init_, "dcmiv2_init");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetDeviceList_, "dcmiv2_get_device_list");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetDevicePowerInfo_, "dcmiv2_get_device_power_info");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetDeviceTemperature_, "dcmiv2_get_device_temperature");
-    MSPTI_LOAD_DCMI_SYM(dcmiv2GetDeviceUtilizationRate_, "dcmiv2_get_device_utilization_rate");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetDeviceMultiUtilizationRate_, "dcmiv2_get_device_multi_utilization_rate");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetDeviceFrequency_, "dcmiv2_get_device_frequency");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetDeviceHbmInfo_, "dcmiv2_get_device_hbm_info");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetHccsLinkBandwidth_, "dcmiv2_get_hccs_link_bandwidth_info");
     MSPTI_LOAD_DCMI_SYM(dcmiv2GetPcieLinkBandwidth_, "dcmiv2_get_pcie_link_bandwidth_info");
-    MSPTI_LOAD_DCMI_SYM(dcmiv2GetRdmaBandwidth_, "dcmiv2_get_rdma_bandwidth_info");
 #undef MSPTI_LOAD_DCMI_SYM
 
-    // 优先 v2（扁平寻址），失败回退 v1（card/chip 两级寻址）
-    if (dcmiv2Init_ != nullptr && dcmiv2GetDeviceList_ != nullptr && dcmiv2Init_() == DCMI_OK && EnumerateTopologyV2())
+    // 按芯片代际选择接口代际（驱动确认：910B/310B 仅 v1，V6/950 仅 v2，无交叉回退）；
+    // 芯片型号整机一致，以设备 0 为代表查询
+    const Common::PlatformType chip = Common::ContextManager::GetInstance()->GetChipType(0);
+    if (chip == Common::PlatformType::CHIP_V6)
     {
-        inited_ = true;
-        MSPTI_LOGI("DcmiApi: init ok (v2), deviceNum=%zu", devices_.size());
-        return true;
+        if (dcmiv2Init_ == nullptr || dcmiv2GetDeviceList_ == nullptr)
+        {
+            MSPTI_LOGE("DcmiApi: v2 symbols missing on v2 chip, dcmi metrics disabled");
+            return false;
+        }
+        const int ret = dcmiv2Init_();
+        if (ret == DCMI_OK && EnumerateTopologyV2())
+        {
+            inited_ = true;
+            gen_ = DcmiGen::V2;
+            MSPTI_LOGI("DcmiApi: init ok (v2), deviceNum=%zu", devices_.size());
+            return true;
+        }
+        MSPTI_LOGE("DcmiApi: v2 init or topology enumeration failed, ret=%d, dcmi metrics disabled", ret);
+        return false;
     }
-    if (dcmiInit_ != nullptr && dcmiGetCardList_ != nullptr && dcmiGetDeviceIdInCard_ != nullptr &&
-        dcmiInit_() == DCMI_OK && EnumerateTopologyV1())
+    if (chip == Common::PlatformType::CHIP_910B || chip == Common::PlatformType::CHIP_310B)
     {
-        inited_ = true;
-        MSPTI_LOGI("DcmiApi: init ok (v1), deviceNum=%zu", devices_.size());
-        return true;
+        if (dcmiInit_ == nullptr || dcmiGetCardList_ == nullptr || dcmiGetDeviceIdInCard_ == nullptr)
+        {
+            MSPTI_LOGE("DcmiApi: v1 symbols missing on v1 chip, dcmi metrics disabled");
+            return false;
+        }
+        const int ret = dcmiInit_();
+        if (ret == DCMI_OK && EnumerateTopologyV1())
+        {
+            inited_ = true;
+            MSPTI_LOGI("DcmiApi: init ok (v1), deviceNum=%zu", devices_.size());
+            return true;
+        }
+        MSPTI_LOGE("DcmiApi: v1 init or topology enumeration failed, ret=%d, dcmi metrics disabled", ret);
+        return false;
     }
-    MSPTI_LOGW("DcmiApi: dcmi init or topology enumeration failed, dcmi metrics disabled");
+    MSPTI_LOGE("DcmiApi: unsupported chip type %d, dcmi metrics disabled", static_cast<int>(chip));
     return false;
 }
 
@@ -129,10 +151,15 @@ bool DcmiApi::EnumerateTopologyV2()
     // v2：dcmiv2_get_device_list 直接返回扁平 dev_id 列表
     std::vector<int> devList(MAX_DEV_NUM, 0);
     int devNum = 0;
-    int ret = dcmiv2GetDeviceList_(&devNum, devList.data(), MAX_DEV_NUM);
-    if (ret != DCMI_OK || devNum <= 0 || devNum > MAX_DEV_NUM)
+    int ret = dcmiv2GetDeviceList_(devList.data(), &devNum, MAX_DEV_NUM);
+    if (ret != DCMI_OK)
     {
-        MSPTI_LOGW("DcmiApi: dcmiv2_get_device_list failed, ret=%d, devNum=%d", ret, devNum);
+        MSPTI_LOGW("DcmiApi: dcmiv2_get_device_list failed, ret=%d", ret);
+        return false;
+    }
+    if (devNum <= 0 || devNum > MAX_DEV_NUM)
+    {
+        MSPTI_LOGW("DcmiApi: dcmiv2_get_device_list returned invalid device number, devNum=%d", devNum);
         return false;
     }
     devices_.clear();
@@ -150,9 +177,14 @@ bool DcmiApi::EnumerateTopologyV1()
     std::vector<int> cardList(MAX_CARD_NUM, 0);
     int cardNum = 0;
     int ret = dcmiGetCardList_(&cardNum, cardList.data(), MAX_CARD_NUM);
-    if (ret != DCMI_OK || cardNum <= 0 || cardNum > MAX_CARD_NUM)
+    if (ret != DCMI_OK)
     {
-        MSPTI_LOGW("DcmiApi: dcmi_get_card_list failed, ret=%d, cardNum=%d", ret, cardNum);
+        MSPTI_LOGW("DcmiApi: dcmi_get_card_list failed, ret=%d", ret);
+        return false;
+    }
+    if (cardNum <= 0 || cardNum > MAX_CARD_NUM)
+    {
+        MSPTI_LOGW("DcmiApi: dcmi_get_card_list returned invalid card number, cardNum=%d", cardNum);
         return false;
     }
     devices_.clear();
@@ -219,22 +251,6 @@ int DcmiApi::GetTemperature(uint32_t deviceId, int *out) const
         return dcmiv2GetDeviceTemperature_ != nullptr ? dcmiv2GetDeviceTemperature_(dev->deviceId, out) : -1;
     }
     return dcmiGetDeviceTemperature_ != nullptr ? dcmiGetDeviceTemperature_(dev->cardId, dev->chipId, out) : -1;
-}
-
-int DcmiApi::GetUtilizationRate(uint32_t deviceId, int type, unsigned int *out) const
-{
-    const DcmiDevice *dev = ResolveDevice(deviceId);
-    if (dev == nullptr || out == nullptr)
-    {
-        return -1;
-    }
-    if (dev->isV2)
-    {
-        return dcmiv2GetDeviceUtilizationRate_ != nullptr ? dcmiv2GetDeviceUtilizationRate_(dev->deviceId, type, out)
-                                                          : -1;
-    }
-    return dcmiGetDeviceUtilizationRate_ != nullptr ? dcmiGetDeviceUtilizationRate_(dev->cardId, dev->chipId, type, out)
-                                                    : -1;
 }
 
 int DcmiApi::GetMultiUtilizationRate(uint32_t deviceId, DcmiMultiUtilizationInfo *out) const
@@ -315,14 +331,9 @@ int DcmiApi::GetRdmaBandwidth(uint32_t deviceId, unsigned int portId, unsigned i
                               DcmiRdmaBandwidthInfo *out) const
 {
     const DcmiDevice *dev = ResolveDevice(deviceId);
-    if (dev == nullptr || out == nullptr)
+    if (dev == nullptr || out == nullptr || dev->isV2)  // V6/950 无 rdma 能力，v2 设备直接短路
     {
         return -1;
-    }
-    if (dev->isV2)
-    {
-        return dcmiv2GetRdmaBandwidth_ != nullptr ? dcmiv2GetRdmaBandwidth_(dev->deviceId, portId, profTimeMs, out)
-                                                  : -1;
     }
     return dcmiGetRdmaBandwidth_ != nullptr ? dcmiGetRdmaBandwidth_(dev->cardId, dev->chipId, portId, profTimeMs, out)
                                             : -1;

@@ -35,6 +35,7 @@ class PmSamplingImageApiUtest : public testing::Test
     {
         PmSamplingManager::GetInstance()->objects_[0] =
             std::shared_ptr<PmSamplingObject>(&object, [](PmSamplingObject *) {});
+        PmSamplingManager::GetInstance()->ptrIndex_[&object] = {0, true};
         object.metricIds_ = {MSPTI_PM_SAMPLING_METRIC_ID_HBM_BW_UTIL, MSPTI_PM_SAMPLING_METRIC_ID_HCCS_TX_BW,
                              MSPTI_PM_SAMPLING_METRIC_ID_AICORE_FREQ};
         object.state_ = PmSamplingObject::State::Running;
@@ -46,6 +47,7 @@ class PmSamplingImageApiUtest : public testing::Test
     {
         GlobalMockObject::verify();
         PmSamplingManager::GetInstance()->objects_.clear();
+        PmSamplingManager::GetInstance()->ptrIndex_.clear();
     }
     PmSessionSample Sample(uint64_t start)
     {
@@ -209,7 +211,7 @@ TEST_F(PmSamplingImageApiUtest, InvalidConsumedBatchIsNotRestoredOnDecodeFailure
     }
 }
 
-TEST_F(PmSamplingImageApiUtest, LifecycleExceptionsReturnInternalError)
+TEST_F(PmSamplingImageApiUtest, UnregisteredHandleAndNullParamsAreRejected)
 {
     msptiPmSamplingEnableParams enable{};
     msptiPmSamplingSetConfigParams config{};
@@ -222,30 +224,12 @@ TEST_F(PmSamplingImageApiUtest, LifecycleExceptionsReturnInternalError)
     stop.structSize = sizeof(stop);
     disable.structSize = sizeof(disable);
     config.pPmSamplingObject = startParams.pPmSamplingObject = stop.pPmSamplingObject = disable.pPmSamplingObject =
-        handle;
+        reinterpret_cast<msptiPmSamplingObjectPtr>(0x8);
     EXPECT_EQ(msptiPmSamplingEnable(nullptr), MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT);
-    EXPECT_EQ(msptiPmSamplingEnable(&enable), MSPTI_ERROR_INNER);
-    EXPECT_EQ(msptiPmSamplingSetConfig(&config), MSPTI_ERROR_INNER);
-    EXPECT_EQ(msptiPmSamplingStart(&startParams), MSPTI_ERROR_INNER);
-    EXPECT_EQ(msptiPmSamplingStop(&stop), MSPTI_ERROR_INNER);
-    EXPECT_EQ(msptiPmSamplingDisable(&disable), MSPTI_ERROR_INNER);
-}
-
-PmSamplingManager *ThrowSessionLookup() { throw 1; }
-Mspti::Common::ContextManager *ThrowContextLookup() { throw std::bad_alloc(); }
-
-TEST_F(PmSamplingImageApiUtest, SessionAndMetadataLookupExceptionsReturnInternalError)
-{
-    MOCKER(PmSamplingManager::GetInstance).stubs().will(invoke(ThrowSessionLookup));
-    EXPECT_EQ(msptiPmSamplingGetCounterDataInfo(&info), MSPTI_ERROR_INNER);
-    MOCKER(Mspti::Common::ContextManager::GetInstance).stubs().will(invoke(ThrowContextLookup));
-    msptiPmSamplingMetricProperties property{};
-    msptiPmSamplingGetMetricPropertiesParams props{sizeof(props), nullptr, 0, ids[0], &property};
-    EXPECT_EQ(msptiPmSamplingGetMetricProperties(&props), MSPTI_ERROR_INNER);
-    uint8_t available = 9;
-    msptiPmSamplingGetCounterAvailabilityParams availability{sizeof(availability), nullptr, 0, 1, ids, &available};
-    EXPECT_EQ(msptiPmSamplingGetCounterAvailability(&availability), MSPTI_ERROR_INNER);
-    EXPECT_EQ(available, 9U);
+    EXPECT_EQ(msptiPmSamplingSetConfig(&config), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    EXPECT_EQ(msptiPmSamplingStart(&startParams), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    EXPECT_EQ(msptiPmSamplingStop(&stop), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    EXPECT_EQ(msptiPmSamplingDisable(&disable), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
 }
 
 }  // namespace

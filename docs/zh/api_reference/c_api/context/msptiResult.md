@@ -14,6 +14,11 @@ typedef enum {
     MSPTI_ERROR_NOT_INITIALIZED = 7,    // msPTI未初始化时返回，表示msPTI执行失败
     MSPTI_ERROR_INVALID_KIND = 8,    // Activity Kind无效时返回，表示msPTI执行失败
     MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT = 9,    // 参数缓冲区大小不足时返回，表示msPTI执行失败
+    MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED = 10,    // 同设备已存在PM Sampling会话时返回，表示msPTI执行失败
+    MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED = 11,    // PM Sampling会话不存在或未使能时返回，表示msPTI执行失败
+    MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC = 12,    // 指标ID非法、重复或当前设备不可采时返回，表示msPTI执行失败
+    MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW = 13,    // counter data image容量不足时返回，表示msPTI执行失败
+    MSPTI_ERROR_INVALID_OPERATION = 14,    // 当前状态下不允许该操作时返回，表示msPTI执行失败
     MSPTI_ERROR_INNER = 999,    // msPTI内部错误时返回，表示msPTI执行失败
     MSPTI_ERROR_FORCE_INT = 0x7fffffff
 } msptiResult;

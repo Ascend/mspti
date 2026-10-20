@@ -104,7 +104,41 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 |**Data Structure类型**|**Data Structure说明**|
 |[msptiCallbackData](./context/msptiCallbackData.md)|用于指定传递到回调函数的数据。|
 
-**表 3**  Result Codes
+**表 3**  PM Sampling API
+
+|接口|说明|
+|--|--|
+|**Function类型**|**Function说明**|
+|[msptiPmSamplingEnable](./context/msptiPmSamplingEnable.md)|在指定设备上创建PM Sampling会话并使能PM采样。|
+|[msptiPmSamplingSetConfig](./context/msptiPmSamplingSetConfig.md)|配置会话的指标集、采样周期与硬件缓冲区。|
+|[msptiPmSamplingStart](./context/msptiPmSamplingStart.md)|启动PM采样窗口。|
+|[msptiPmSamplingStop](./context/msptiPmSamplingStop.md)|停止PM采样窗口。|
+|[msptiPmSamplingGetNumMetrics](./context/msptiPmSamplingGetNumMetrics.md)|获取可配置的PM采样指标总数。|
+|[msptiPmSamplingGetMetricProperties](./context/msptiPmSamplingGetMetricProperties.md)|获取指定PM采样指标的静态属性。|
+|[msptiPmSamplingGetCounterDataSize](./context/msptiPmSamplingGetCounterDataSize.md)|获取counter data image所需字节数。|
+|[msptiPmSamplingCounterDataImageInitialize](./context/msptiPmSamplingCounterDataImageInitialize.md)|初始化用户分配的counter data image。|
+|[msptiPmSamplingGetCounterDataInfo](./context/msptiPmSamplingGetCounterDataInfo.md)|获取counter data image或内部样本队列的样本统计信息。|
+|[msptiPmSamplingDecodeData](./context/msptiPmSamplingDecodeData.md)|将内部样本队列中的样本解码写入counter data image。|
+|[msptiPmSamplingGetSampleInfo](./context/msptiPmSamplingGetSampleInfo.md)|按索引获取样本的时间窗口。|
+|[msptiPmSamplingGetCounterAvailability](./context/msptiPmSamplingGetCounterAvailability.md)|查询指标在目标设备上的可用性。|
+|[msptiPmSamplingDisable](./context/msptiPmSamplingDisable.md)|销毁会话并去使能PM采样。|
+|[msptiPmSamplingGetSampleEntries](./context/msptiPmSamplingGetSampleEntries.md)|按索引获取样本的自描述值条目列表。|
+|**Typedef类型**|**Typedef说明**|
+|[msptiPmSamplingObjectPtr](./context/msptiPmSamplingObjectPtr.md)|PM Sampling会话对象句柄。|
+|**Enumeration类型**|**Enumeration说明**|
+|[msptiPmSamplingMetricId](./context/msptiPmSamplingMetricId.md)|PM采样静态指标表的指标ID。|
+|[msptiPmSamplingBufferAppendMode](./context/msptiPmSamplingBufferAppendMode.md)|硬件缓冲区满时的追加模式。|
+|[msptiPmSamplingTriggerMode](./context/msptiPmSamplingTriggerMode.md)|PM采样触发模式。|
+|[msptiPmSamplingDecodeStopReason](./context/msptiPmSamplingDecodeStopReason.md)|解码停止原因。|
+|[msptiPmSamplingMetricDataType](./context/msptiPmSamplingMetricDataType.md)|PM采样指标值的数据类型。|
+|[msptiPmSamplingMetricGroup](./context/msptiPmSamplingMetricGroup.md)|PM采样指标所属分组。|
+|**Data Structure类型**|**Data Structure说明**|
+|[msptiPmSamplingMetricProperties](./context/msptiPmSamplingMetricProperties.md)|PM采样指标的静态属性结构体。|
+|[msptiPmSamplingSampleEntry](./context/msptiPmSamplingSampleEntry.md)|PM采样样本的自描述值条目。|
+
+PM Sampling：周期性设备级性能采样，按固定时间间隔采集HBM/HCCS/PCIe/RoCE带宽、功耗、温度、利用率、频率等指标，样本由自描述值条目组成。
+
+**表 4**  Result Codes
 
 |接口|说明|
 |--|--|

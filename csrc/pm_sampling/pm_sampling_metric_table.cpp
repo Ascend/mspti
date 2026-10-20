@@ -19,6 +19,8 @@
 #include "csrc/pm_sampling/pm_sampling_metric_table.h"
 
 #include <array>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace Mspti
 {
@@ -50,6 +52,14 @@ const std::array<PmMetricInfo, MSPTI_PM_SAMPLING_METRIC_ID_COUNT> kMetricTable =
 const PmMetricInfo kInvalidMetricInfo = {"", MSPTI_PM_SAMPLING_METRIC_GROUP_MEMORY,
                                          MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_RATIO, ""};
 
+// 芯片×指标预期支持矩阵：列出各芯片不支持的指标，未列出者默认可采；
+// 新增芯片型号或不支持项时只扩展本表
+const std::unordered_map<Common::PlatformType, std::unordered_set<uint32_t>> kChipMetricExclusions = {
+    {Common::PlatformType::CHIP_V6,
+     {MSPTI_PM_SAMPLING_METRIC_ID_HCCS_TX_BW, MSPTI_PM_SAMPLING_METRIC_ID_HCCS_RX_BW,
+      MSPTI_PM_SAMPLING_METRIC_ID_ROCE_TX_BW, MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW}},
+};
+
 }  // namespace
 
 const PmMetricInfo &PmSamplingMetricTable::Get(uint32_t metricId)
@@ -67,8 +77,18 @@ bool PmSamplingMetricTable::IsAvailable(uint32_t metricId, Common::PlatformType 
     {
         return false;
     }
-    return chipType == Common::PlatformType::CHIP_910B || chipType == Common::PlatformType::CHIP_310B ||
-           chipType == Common::PlatformType::CHIP_V6;
+    if (chipType != Common::PlatformType::CHIP_910B && chipType != Common::PlatformType::CHIP_310B &&
+        chipType != Common::PlatformType::CHIP_V6)
+    {
+        return false;
+    }
+    // 芯片×指标预期支持矩阵见 kChipMetricExclusions
+    const auto it = kChipMetricExclusions.find(chipType);
+    if (it == kChipMetricExclusions.end())
+    {
+        return true;
+    }
+    return it->second.find(metricId) == it->second.end();
 }
 
 }  // namespace PmSampling

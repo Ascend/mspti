@@ -113,7 +113,7 @@ extern "C"
          */
         MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_THROUGHPUT,
         /**
-         * Power in 0.1 W (raw DCMI value).
+         * Power in watts.
          */
         MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_POWER,
         /**
@@ -208,7 +208,7 @@ extern "C"
          */
         MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW = 11,
         /**
-         * Power in 0.1 W (raw DCMI value).
+         * Power in watts.
          */
         MSPTI_PM_SAMPLING_METRIC_ID_POWER = 12,
         /**
@@ -294,8 +294,8 @@ extern "C"
         const uint32_t *pMetricIds;                 /* [in] Array of metric IDs */
         uint64_t samplingInterval;                  /* [in] Sampling interval in ns, range [1ms, 1s] */
         msptiPmSamplingTriggerMode triggerMode;     /* [in] Trigger mode */
-        size_t hardwareBufferSize; /* [in] Engine sample queue capacity in bytes, 0 for default (10000 samples), min one
-                                      sample size, max 512MB */
+        size_t hardwareBufferSize; /* [in] Internal sample queue capacity in bytes, 0 for default (10000 samples), min
+                                      one sample size, max 512MB */
         msptiPmSamplingBufferAppendMode hwBufferAppendMode; /* [in] Append mode when the buffer is full */
     } msptiPmSamplingSetConfigParams;
 
@@ -379,7 +379,7 @@ extern "C"
         uint64_t *pNumTotalSamples;                 /* [out] Total number of sample slots in the image */
         uint64_t *pNumPopulatedSamples;   /* [out] Number of populated samples (queue depth if image is NULL) */
         uint64_t *pNumCompletedSamples;   /* [out] Number of completed samples */
-        const uint8_t *pCounterDataImage; /* [in] Optional; query the engine sample queue if NULL */
+        const uint8_t *pCounterDataImage; /* [in] Optional; query the internal sample queue if NULL */
     } msptiPmSamplingGetCounterDataInfoParams;
 
     /**
@@ -404,7 +404,7 @@ extern "C"
         size_t structSize;                          /* [in] Size of this struct */
         void *pPriv;                                /* [in] Private pointer, passed through as is */
         msptiPmSamplingObjectPtr pPmSamplingObject; /* [in] PM sampling object */
-        const uint8_t *pCounterDataImage;           /* [in] Optional; query the engine sample queue if NULL */
+        const uint8_t *pCounterDataImage;           /* [in] Optional; query the internal sample queue if NULL */
         uint64_t sampleIndex;                       /* [in] Sample index */
         uint64_t *pStartTimestamp;                  /* [out] Sample start timestamp in host ns */
         uint64_t *pEndTimestamp;                    /* [out] Sample end timestamp in host ns */
@@ -441,7 +441,7 @@ extern "C"
         size_t structSize;                          /* [in] Size of this struct */
         void *pPriv;                                /* [in] Private pointer, passed through as is */
         msptiPmSamplingObjectPtr pPmSamplingObject; /* [in] PM sampling object */
-        const uint8_t *pCounterDataImage;           /* [in] Optional; query the engine sample queue if NULL */
+        const uint8_t *pCounterDataImage;           /* [in] Optional; query the internal sample queue if NULL */
         uint64_t sampleIndex;                       /* [in] Sample index */
         uint32_t maxEntries;                        /* [in] Capacity of pEntries, ignored if pEntries is NULL */
         msptiPmSamplingSampleEntry *pEntries;       /* [out] Entry array, NULL to only query the entry count */
@@ -591,8 +591,8 @@ extern "C"
     /**
      * @brief Get sample statistics of a counter data image.
      *
-     * If @p pCounterDataImage is NULL, the statistics of the engine
-     * internal sample queue are returned instead.
+     * If @p pCounterDataImage is NULL, the statistics of the internal
+     * sample queue are returned instead.
      *
      * @param params [in] Pointer to @ref msptiPmSamplingGetCounterDataInfoParams
      *
@@ -604,10 +604,10 @@ extern "C"
     msptiResult msptiPmSamplingGetCounterDataInfo(msptiPmSamplingGetCounterDataInfoParams *params);
 
     /**
-     * @brief Decode engine samples into a counter data image.
+     * @brief Decode samples into a counter data image.
      *
      * Can be called in Running or Stopped state. Samples written into the
-     * image are consumed from the engine sample queue, so each call moves
+     * image are consumed from the internal sample queue, so each call moves
      * only the samples that have not been decoded before; the image is
      * rewritten from its first slot with the newly consumed samples.
      * Validation failures before queue consumption leave the queue unchanged.
@@ -635,7 +635,7 @@ extern "C"
     /**
      * @brief Get the start and end timestamps of a sample by index.
      *
-     * If @p pCounterDataImage is NULL, the engine internal sample queue is
+     * If @p pCounterDataImage is NULL, the internal sample queue is
      * queried instead.
      *
      * @param params [in] Pointer to @ref msptiPmSamplingGetSampleInfoParams
