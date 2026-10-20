@@ -244,7 +244,7 @@ extern "C"
         msptiPmSamplingMetricDataType dataType;
 
         /**
-         * Unit of the metric value, e.g. "bytes/s", "%", "0.1W".
+         * Unit of the metric value, e.g. "bytes/s", "%", "W".
          */
         char unit[32];
 
@@ -464,6 +464,7 @@ extern "C"
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_DEVICE_OFFLINE if the target device is offline
      * @return MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED if a session already exists on the device
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingEnable(msptiPmSamplingEnableParams *params);
 
@@ -486,6 +487,7 @@ extern "C"
      * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range, duplicated, or unavailable on this
      * chip
      * @return MSPTI_ERROR_INVALID_PARAMETER if the interval is out of [1ms, 1s]
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingSetConfig(msptiPmSamplingSetConfigParams *params);
 
@@ -502,6 +504,7 @@ extern "C"
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      * @return MSPTI_ERROR_INVALID_OPERATION if the session is Running, Created, or has no valid configuration
      * @return MSPTI_ERROR_DEVICE_OFFLINE if the DCMI data source is unavailable on this platform
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingStart(msptiPmSamplingStartParams *params);
 
@@ -518,6 +521,7 @@ extern "C"
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      * @return MSPTI_ERROR_INVALID_OPERATION if the session is not Running
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingStop(msptiPmSamplingStopParams *params);
 
@@ -542,6 +546,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if the metric ID is out of range
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingGetMetricProperties(msptiPmSamplingGetMetricPropertiesParams *params);
 
@@ -564,6 +569,7 @@ extern "C"
      *         invalid, or the image derived from @p numMetrics/@p maxSamples
      *         would exceed the per-image budget
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingGetCounterDataSize(msptiPmSamplingGetCounterDataSizeParams *params);
 
@@ -577,6 +583,8 @@ extern "C"
      *         invalid, or counterDataImageSize does not match the
      *         GetCounterDataSize output
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range or duplicated
+     * @return MSPTI_ERROR_INNER if an internal memory operation fails
      */
     msptiResult msptiPmSamplingCounterDataImageInitialize(msptiPmSamplingCounterDataImageInitializeParams *params);
 
@@ -591,6 +599,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INNER if an internal memory operation fails
      */
     msptiResult msptiPmSamplingGetCounterDataInfo(msptiPmSamplingGetCounterDataInfoParams *params);
 
@@ -601,13 +610,25 @@ extern "C"
      * image are consumed from the engine sample queue, so each call moves
      * only the samples that have not been decoded before; the image is
      * rewritten from its first slot with the newly consumed samples.
+     * Validation failures before queue consumption leave the queue unchanged.
+     * Once a batch has been removed from the queue, a subsequent decoding error
+     * discards that batch without rollback; retrying cannot recover it. On such
+     * failure, the image must not be used as the result of this call, and
+     * pOverflow/pDecodeStopReason are not updated. pOverflow reports queue
+     * overflow only, not batches discarded due to decoding errors.
      *
      * @param params [in] Pointer to @ref msptiPmSamplingDecodeDataParams
      *
      * @return MSPTI_SUCCESS on success
-     * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_INVALID_PARAMETER if fields or sample data are invalid;
+     *         invalid sample data discovered after consumption discards the batch
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW if the image has no free slot for new samples
+     * @return MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW if a consumed batch exceeds
+     *         the image capacity; the consumed batch is discarded
+     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a consumed sample contains
+     *         an unconfigured metric ID; the consumed batch is discarded
+     * @return MSPTI_ERROR_INNER if an internal operation fails; any already
+     *         consumed batch is not restored to the queue
      */
     msptiResult msptiPmSamplingDecodeData(msptiPmSamplingDecodeDataParams *params);
 
@@ -622,6 +643,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INNER if an internal memory operation fails
      */
     msptiResult msptiPmSamplingGetSampleInfo(msptiPmSamplingGetSampleInfoParams *params);
 
@@ -633,6 +655,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingGetCounterAvailability(msptiPmSamplingGetCounterAvailabilityParams *params);
 
@@ -649,6 +672,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingDisable(msptiPmSamplingDisableParams *params);
 
@@ -661,6 +685,9 @@ extern "C"
      * count. If @p pCounterDataImage is NULL, the engine internal sample
      * queue is queried instead. If @p pEntries is NULL, only
      * @p pNumEntries is filled for a capacity query.
+     * If the entry array is too small, its contents are left unchanged and
+     * @p pNumEntries reports the required capacity with INVALID_PARAMETER.
+     * Other failures leave @p pNumEntries unchanged.
      *
      * Complements @ref msptiPmSamplingGetSampleInfo, which only returns
      * timestamps.
@@ -670,6 +697,7 @@ extern "C"
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INNER if an internal memory operation fails
      */
     msptiResult msptiPmSamplingGetSampleEntries(msptiPmSamplingGetSampleEntriesParams *params);
 
