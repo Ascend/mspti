@@ -232,4 +232,177 @@ TEST_F(PmSamplingImageApiUtest, UnregisteredHandleAndNullParamsAreRejected)
     EXPECT_EQ(msptiPmSamplingDisable(&disable), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
 }
 
+TEST_F(PmSamplingImageApiUtest, ResultApisRejectInvalidParameterSizeAndHandleWithoutSideEffects)
+{
+    object.queue_ = {Sample(10)};
+    const auto before = image;
+    size = 97;
+    total = populated = completed = start = end = 71;
+    count = 73;
+    auto check = [](auto api, auto params)
+    {
+        EXPECT_EQ(api(nullptr), MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT);
+        --params.structSize;
+        EXPECT_EQ(api(&params), MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT);
+        ++params.structSize;
+        params.pPmSamplingObject = nullptr;
+        EXPECT_EQ(api(&params), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    };
+    check(msptiPmSamplingGetCounterDataSize, sizeParams);
+    check(msptiPmSamplingCounterDataImageInitialize, init);
+    check(msptiPmSamplingDecodeData, decode);
+    check(msptiPmSamplingGetCounterDataInfo, info);
+    check(msptiPmSamplingGetSampleInfo, sampleInfo);
+    check(msptiPmSamplingGetSampleEntries, entries);
+    EXPECT_EQ(size, 97U);
+    EXPECT_EQ(total, 71U);
+    EXPECT_EQ(populated, 71U);
+    EXPECT_EQ(completed, 71U);
+    EXPECT_EQ(start, 71U);
+    EXPECT_EQ(end, 71U);
+    EXPECT_EQ(count, 73U);
+    EXPECT_FALSE(overflow);
+    EXPECT_EQ(reason, MSPTI_PM_SAMPLING_DECODE_STOP_REASON_OTHER);
+    EXPECT_EQ(image, before);
+    EXPECT_EQ(object.QueueCount(), 1U);
+}
+
+TEST_F(PmSamplingImageApiUtest, MissingResultPointersAreRejectedBeforeConsumingSamples)
+{
+    object.queue_ = {Sample(10)};
+    object.overflowed_ = true;
+    const auto before = image;
+    const auto validInfo = info;
+    for (auto member : {&msptiPmSamplingGetCounterDataInfoParams::pNumTotalSamples,
+                        &msptiPmSamplingGetCounterDataInfoParams::pNumPopulatedSamples,
+                        &msptiPmSamplingGetCounterDataInfoParams::pNumCompletedSamples})
+    {
+        info = validInfo;
+        info.*member = nullptr;
+        EXPECT_EQ(msptiPmSamplingGetCounterDataInfo(&info), MSPTI_ERROR_INVALID_PARAMETER);
+    }
+    const auto validSample = sampleInfo;
+    for (auto member :
+         {&msptiPmSamplingGetSampleInfoParams::pStartTimestamp, &msptiPmSamplingGetSampleInfoParams::pEndTimestamp})
+    {
+        sampleInfo = validSample;
+        sampleInfo.*member = nullptr;
+        EXPECT_EQ(msptiPmSamplingGetSampleInfo(&sampleInfo), MSPTI_ERROR_INVALID_PARAMETER);
+    }
+    sizeParams.pCounterDataSize = nullptr;
+    EXPECT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_ERROR_INVALID_PARAMETER);
+    entries.pNumEntries = nullptr;
+    EXPECT_EQ(msptiPmSamplingGetSampleEntries(&entries), MSPTI_ERROR_INVALID_PARAMETER);
+    decode.pOverflow = nullptr;
+    EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_INVALID_PARAMETER);
+    decode.pOverflow = &overflow;
+    decode.pDecodeStopReason = nullptr;
+    EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(object.QueueCount(), 1U);
+    EXPECT_TRUE(object.overflowed_);
+    EXPECT_EQ(image, before);
+    EXPECT_EQ(total, 0U);
+    EXPECT_EQ(populated, 0U);
+    EXPECT_EQ(completed, 0U);
+    EXPECT_EQ(start, 0U);
+    EXPECT_EQ(end, 0U);
+}
+
+TEST_F(PmSamplingImageApiUtest, InvalidSizeRequestsPreservePreviouslyUsablePlan)
+{
+    const auto valid = sizeParams;
+    size = 97;
+    auto check = [&](msptiResult expected)
+    {
+        EXPECT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), expected);
+        EXPECT_EQ(size, 97U);
+        // A rejected size request must not replace the previous valid image plan.
+        EXPECT_EQ(msptiPmSamplingCounterDataImageInitialize(&init), MSPTI_SUCCESS);
+        sizeParams = valid;
+    };
+    sizeParams.numMetrics = MSPTI_PM_SAMPLING_METRIC_ID_COUNT + 1;
+    check(MSPTI_ERROR_INVALID_PARAMETER);
+    sizeParams.numMetrics = 0;
+    check(MSPTI_ERROR_INVALID_PARAMETER);
+    sizeParams.pMetricIds = nullptr;
+    check(MSPTI_ERROR_INVALID_PARAMETER);
+    sizeParams.numMetrics = 2;
+    check(MSPTI_ERROR_INVALID_PARAMETER);
+    for (const auto &badIds :
+         std::array<std::array<uint32_t, 3>, 3>{{{{ids[0], ids[0], ids[2]}},
+                                                 {{ids[0], ids[1], MSPTI_PM_SAMPLING_METRIC_ID_COUNT}},
+                                                 {{ids[0], ids[1], MSPTI_PM_SAMPLING_METRIC_ID_POWER}}}})
+    {
+        sizeParams.pMetricIds = badIds.data();
+        check(MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC);
+    }
+    for (uint64_t samples : {uint64_t{0}, UINT64_MAX})
+    {
+        sizeParams.maxSamples = samples;
+        check(MSPTI_ERROR_INVALID_PARAMETER);
+    }
+    sizeParams.numMetrics = 0;
+    sizeParams.pMetricIds = nullptr;
+    ASSERT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_SUCCESS);
+    EXPECT_EQ(size, image.size());  // Reuse the configured metric set.
+    object.metricIds_.clear();
+    size = 97;
+    EXPECT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_ERROR_INVALID_OPERATION);
+    EXPECT_EQ(size, 97U);
+}
+
+TEST_F(PmSamplingImageApiUtest, ReconfiguredMetricsRejectOldImageWithoutConsumingQueue)
+{
+    object.queue_ = {Sample(10)};
+    const auto before = image;
+    object.metricIds_[2] = MSPTI_PM_SAMPLING_METRIC_ID_POWER;
+    EXPECT_EQ(msptiPmSamplingCounterDataImageInitialize(&init), MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC);
+    EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC);
+    EXPECT_EQ(object.QueueCount(), 1U);
+    EXPECT_EQ(image, before);
+}
+
+TEST_F(PmSamplingImageApiUtest, InvalidQueueIndexesAndTimestampsLeaveOutputsUnchanged)
+{
+    object.queue_ = {Sample(10)};
+    sampleInfo.pCounterDataImage = entries.pCounterDataImage = nullptr;
+    start = 71;
+    end = 73;
+    count = 97;
+    for (uint64_t index : {uint64_t{1}, UINT64_MAX})
+    {
+        sampleInfo.sampleIndex = entries.sampleIndex = index;
+        EXPECT_EQ(msptiPmSamplingGetSampleInfo(&sampleInfo), MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(msptiPmSamplingGetSampleEntries(&entries), MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(start, 71U);
+        EXPECT_EQ(end, 73U);
+        EXPECT_EQ(count, 97U);
+    }
+    sampleInfo.sampleIndex = 0;
+    object.queue_.front().startNs = 21;
+    EXPECT_EQ(msptiPmSamplingGetSampleInfo(&sampleInfo), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(start, 71U);
+    EXPECT_EQ(end, 73U);
+    EXPECT_EQ(object.QueueCount(), 1U);
+}
+
+msptiResult FailSizeWithAllocationException(uint32_t, uint32_t, uint64_t, size_t &) { throw std::bad_alloc(); }
+
+TEST_F(PmSamplingImageApiUtest, AllocationExceptionDoesNotEscapeResultApiOrConsumeQueue)
+{
+    object.queue_ = {Sample(10)};
+    object.overflowed_ = true;
+    const auto before = image;
+    size = 97;
+    MOCKER(PmSamplingDecoder::GetSize).stubs().will(invoke(FailSizeWithAllocationException));
+    EXPECT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_ERROR_INNER);
+    EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_INNER);
+    EXPECT_EQ(size, 97U);
+    EXPECT_EQ(object.QueueCount(), 1U);
+    EXPECT_TRUE(object.overflowed_);
+    EXPECT_FALSE(overflow);
+    EXPECT_EQ(reason, MSPTI_PM_SAMPLING_DECODE_STOP_REASON_OTHER);
+    EXPECT_EQ(image, before);
+}
+
 }  // namespace

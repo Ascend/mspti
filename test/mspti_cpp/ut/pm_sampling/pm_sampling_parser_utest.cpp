@@ -181,4 +181,74 @@ TEST_F(PmSamplingParserUtest, FlushShouldDiscardBaseline)
     parser_->OnDcmiSample(MakeSample(2000, 0));
     EXPECT_EQ(0U, obj->QueueCount());
 }
+
+TEST_F(PmSamplingParserUtest, AllScalarMetricsPreserveValuesAndNormalizeMissingFields)
+{
+    const std::vector<uint32_t> ids = {
+        MSPTI_PM_SAMPLING_METRIC_ID_NPU_UTIL,      MSPTI_PM_SAMPLING_METRIC_ID_AICORE_UTIL,
+        MSPTI_PM_SAMPLING_METRIC_ID_AIVECTOR_UTIL, MSPTI_PM_SAMPLING_METRIC_ID_AICUBE_UTIL,
+        MSPTI_PM_SAMPLING_METRIC_ID_HBM_BW_UTIL,   MSPTI_PM_SAMPLING_METRIC_ID_HBM_MEM_UTIL,
+        MSPTI_PM_SAMPLING_METRIC_ID_POWER,         MSPTI_PM_SAMPLING_METRIC_ID_TEMPERATURE,
+        MSPTI_PM_SAMPLING_METRIC_ID_AICORE_FREQ};
+    auto obj = SetupSession(ids);
+    PmDcmiSample current = MakeSample(1000, 1052);
+    current.npuUtil = 11;
+    current.aicoreUtil = 22;
+    current.aivectorUtil = 33;
+    current.aicubeUtil = 44;
+    current.hbmBwUtil = 55;
+    current.hbmMemUtil = 66;
+    current.temperature = -5;  // Negative temperature is valid unless it is the -1 sentinel.
+    current.aicoreFreq = 800;
+    parser_->OnDcmiSample(current);
+    current.tsNs = 2000;
+    parser_->OnDcmiSample(current);
+    PmSessionSample result;
+    ASSERT_TRUE(obj->GetQueueSample(0, result));
+    const double expected[]{11, 22, 33, 44, 55, 66, 105.2, -5, 800};
+    ASSERT_EQ(result.entries.size(), ids.size());
+    for (size_t i = 0; i < ids.size(); ++i)
+    {
+        EXPECT_EQ(result.entries[i].metricId, ids[i]);
+        EXPECT_EQ(result.entries[i].instanceId, 0U);
+        EXPECT_DOUBLE_EQ(result.entries[i].value, expected[i]);
+    }
+    current = MakeSample(3000, -1);
+    parser_->OnDcmiSample(current);
+    ASSERT_TRUE(obj->GetQueueSample(1, result));
+    ASSERT_EQ(result.entries.size(), ids.size());
+    for (const auto &entry : result.entries) EXPECT_DOUBLE_EQ(entry.value, 0.0);
+}
+
+TEST_F(PmSamplingParserUtest, PcieAndRoceDirectionsSelectFirstMatchingPoint)
+{
+    auto obj = SetupSession({MSPTI_PM_SAMPLING_METRIC_ID_PCIE_RX_BW, MSPTI_PM_SAMPLING_METRIC_ID_ROCE_TX_BW,
+                             MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW});
+    parser_->OnDcmiSample(MakeSample(1000, 0));
+    auto sample = MakeSample(2000, 0);
+    sample.bandwidths = {{PM_BW_HCCS_RX, 3, 999},
+                         {PM_BW_PCIE_RX, 0, 11},
+                         {PM_BW_ROCE_TX, 0, 22},
+                         {PM_BW_ROCE_RX, 0, 33},
+                         {PM_BW_ROCE_TX, 0, 999}};
+    parser_->OnDcmiSample(sample);
+    PmSessionSample result;
+    ASSERT_TRUE(obj->GetQueueSample(0, result));
+    ASSERT_EQ(result.entries.size(), 3U);
+    EXPECT_DOUBLE_EQ(result.entries[0].value, 11);
+    EXPECT_DOUBLE_EQ(result.entries[1].value, 22);
+    EXPECT_DOUBLE_EQ(result.entries[2].value, 33);
+}
+
+TEST_F(PmSamplingParserUtest, EmptyOrUnknownMetricPlanDoesNotDeliverSamples)
+{
+    auto obj = SetupSession({MSPTI_PM_SAMPLING_METRIC_ID_POWER});
+    for (const auto &ids : std::vector<std::vector<uint32_t>>{{}, {MSPTI_PM_SAMPLING_METRIC_ID_COUNT}})
+    {
+        PmSamplingParser parser(ids);
+        parser.OnDcmiSample(MakeSample(1000, 10));
+        parser.OnDcmiSample(MakeSample(2000, 20));
+        EXPECT_EQ(obj->QueueCount(), 0U);
+    }
+}
 }  // namespace

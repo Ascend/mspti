@@ -17,6 +17,8 @@
  */
 
 #include <array>
+#include <utility>
+#include <vector>
 
 #include "csrc/pm_sampling/pm_sampling_decoder.h"
 #include "gtest/gtest.h"
@@ -154,6 +156,116 @@ TEST_F(PmSamplingDecoderUtest, FailedLookupsLeaveOutputCountsAndTimestampsUnchan
     EXPECT_EQ(PmSamplingDecoder::GetSampleEntries(image.data(), size, 0, 0, nullptr, count),
               MSPTI_ERROR_INVALID_PARAMETER);
     EXPECT_EQ(count, 97U);
+}
+
+TEST_F(PmSamplingDecoderUtest, SizeAndInitializationRejectInvalidBoundsWithoutPublishing)
+{
+    size_t required = 97;
+    for (uint64_t samples : {uint64_t{0}, UINT64_MAX})
+    {
+        EXPECT_EQ(PmSamplingDecoder::GetSize(3, 4, samples, required), MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(required, 97U);
+    }
+    EXPECT_EQ(PmSamplingDecoder::GetSize(3, 2, 1, required), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(required, 97U);
+    const uint64_t limit = (PM_IMAGE_MAX_SIZE - SampleAreaOffset(3)) / SampleStride(4);
+    ASSERT_EQ(PmSamplingDecoder::GetSize(3, 4, limit, required), MSPTI_SUCCESS);
+    EXPECT_LE(required, PM_IMAGE_MAX_SIZE);
+    const auto validSize = required;
+    EXPECT_EQ(PmSamplingDecoder::GetSize(3, 4, limit + 1, required), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(required, validSize);
+
+    const auto before = image;
+    EXPECT_EQ(PmSamplingDecoder::Initialize(nullptr, size, {0, 1, 12}, 4, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::Initialize(image.data() + 1, size, {0, 1, 12}, 4, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::Initialize(image.data(), size - 1, {0, 1, 12}, 4, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::Initialize(image.data(), size, {}, 4, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::Initialize(image.data(), size,
+                                            std::vector<uint32_t>(MSPTI_PM_SAMPLING_METRIC_ID_COUNT + 1, 0), 4, 2),
+              MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(image, before);
+}
+
+TEST_F(PmSamplingDecoderUtest, CorruptHeaderAndDirectoryDoNotChangeOutputsOrImage)
+{
+    const auto valid = image;
+    auto check = [&]()
+    {
+        const auto before = image;
+        uint64_t total = 71, populated = 73, completed = 79;
+        EXPECT_EQ(PmSamplingDecoder::GetInfo(image.data(), size, total, populated, completed),
+                  MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(total, 71U);
+        EXPECT_EQ(populated, 73U);
+        EXPECT_EQ(completed, 79U);
+        EXPECT_EQ(PmSamplingDecoder::WriteSamples(image.data(), size, {Sample()}), MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(image, before);
+    };
+    // Corrupt one documented field at a time: version, counts, metric directory.
+    for (const auto &field : std::vector<std::pair<size_t, uint32_t>>{
+             {4, PM_IMAGE_VERSION + 1}, {8, 0}, {12, 2}, {32, 1}, {32, MSPTI_PM_SAMPLING_METRIC_ID_COUNT}})
+    {
+        SCOPED_TRACE(field.first);
+        image = valid;
+        ASSERT_EQ(memcpy_s(image.data() + field.first, image.size() - field.first, &field.second, sizeof(field.second)),
+                  EOK);
+        check();
+    }
+    for (const auto &field : std::vector<std::pair<size_t, uint64_t>>{{16, 3}, {24, 0}, {24, 3}})
+    {
+        SCOPED_TRACE(field.first);
+        image = valid;
+        ASSERT_EQ(memcpy_s(image.data() + field.first, image.size() - field.first, &field.second, sizeof(field.second)),
+                  EOK);
+        check();
+    }
+}
+
+TEST_F(PmSamplingDecoderUtest, CorruptSampleIsRejectedBeforeReturningTimestampsOrEntries)
+{
+    ASSERT_EQ(PmSamplingDecoder::WriteSamples(image.data(), size, {Sample()}), MSPTI_SUCCESS);
+    const auto valid = image;
+    const size_t offset = SampleAreaOffset(3);
+    // Too many entries, reversed time, unconfigured metric, out-of-range metric.
+    for (const auto &field : std::vector<std::pair<size_t, uint32_t>>{
+             {offset + 16, 5}, {offset, 21}, {offset + 24, 2}, {offset + 24, MSPTI_PM_SAMPLING_METRIC_ID_COUNT}})
+    {
+        SCOPED_TRACE(field.first);
+        image = valid;
+        ASSERT_EQ(memcpy_s(image.data() + field.first, image.size() - field.first, &field.second, sizeof(field.second)),
+                  EOK);
+        uint64_t start = 71, end = 73;
+        uint32_t count = 97;
+        std::array<msptiPmSamplingSampleEntry, 4> output{};
+        for (auto &entry : output) entry = {9, 11, 13.0};
+        EXPECT_EQ(PmSamplingDecoder::GetSampleInfo(image.data(), size, 0, start, end), MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(start, 71U);
+        EXPECT_EQ(end, 73U);
+        EXPECT_EQ(PmSamplingDecoder::GetSampleEntries(image.data(), size, 0, output.size(), output.data(), count),
+                  MSPTI_ERROR_INVALID_PARAMETER);
+        EXPECT_EQ(count, 97U);
+        for (const auto &entry : output)
+        {
+            EXPECT_EQ(entry.metricId, 9U);
+            EXPECT_EQ(entry.instanceId, 11U);
+            EXPECT_DOUBLE_EQ(entry.value, 13.0);
+        }
+    }
+}
+
+TEST_F(PmSamplingDecoderUtest, MismatchedPlanAndTruncatedImageAreRejected)
+{
+    const auto before = image;
+    EXPECT_EQ(PmSamplingDecoder::CheckPlan(image.data(), size, {0, 1}, 4, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::CheckPlan(image.data(), size, {0, 1, 12}, 5, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::CheckPlan(image.data(), size, {0, 1, 12}, 4, 3), MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(PmSamplingDecoder::CheckPlan(image.data(), size, {1, 0, 12}, 4, 2), MSPTI_ERROR_INVALID_PARAMETER);
+    uint64_t start = 71, end = 73;
+    EXPECT_EQ(PmSamplingDecoder::GetSampleInfo(image.data(), PM_IMAGE_HEADER_SIZE - 1, 0, start, end),
+              MSPTI_ERROR_INVALID_PARAMETER);
+    EXPECT_EQ(start, 71U);
+    EXPECT_EQ(end, 73U);
+    EXPECT_EQ(image, before);
 }
 
 }  // namespace
