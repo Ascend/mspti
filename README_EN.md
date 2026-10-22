@@ -16,6 +16,8 @@ English | [简体中文](./README.md)
 
 ## ✨ What's New
 
+🔹 [Oct 22, 2026]: Added PM Sampling, which continuously collects system-level metrics, including power, temperature, frequency, NPU/Aicore/Aivector/Aicube utilization, HBM bandwidth utilization and memory utilization, and HCCS/PCIe bandwidths, at a minimum sampling interval of 1 ms. For details, see the [PM Sampling User Guide](./docs/en/user_guide/pm_sampling_api.md).
+
 🔹 [Feb 6, 2026]: Added the `26.0.0-alpha.1` release record to the Release Notes, compatible with CANN 8.5.0 or later. For details, see [Release Notes](https://gitcode.com/Ascend/mspti/releases).
 
 ## ℹ️ Introduction

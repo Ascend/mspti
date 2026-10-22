@@ -16,6 +16,8 @@
 
 ## ✨ 最新消息
 
+🔹 [2026.10.22]：新增 PM Sampling 采集能力，支持以最小 1ms 的采样周期持续采集功耗、温度、频率、NPU/Aicore/Aivector/Aicube 利用率、HBM 带宽利用率及内存利用率、HCCS/PCIe 带宽等系统级指标，详情请参见 《[PM Sampling 用户指南](./docs/zh/user_guide/pm_sampling_api.md)》。
+
 🔹 [2026.02.06]：版本说明新增 `26.0.0-alpha.1` 发布记录，兼容 CANN `> 8.5.0`，详情请参见 《[版本说明](https://gitcode.com/Ascend/mspti/releases)》。
 
 ## ℹ️ 简介
