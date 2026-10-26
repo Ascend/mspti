@@ -140,20 +140,12 @@ static const char* GetActivityMemoryKindString(msptiActivityMemoryKind memoryKin
 
 static const char* GetResultCodeString(msptiResult result)
 {
-    static const std::unordered_map<msptiResult, const char*> STRING_MAP = {
-        {MSPTI_SUCCESS, "SUCCESS"},
-        {MSPTI_ERROR_INVALID_PARAMETER, "ERROR_INVALID_PARAMETER"},
-        {MSPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED, "MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED"},
-        {MSPTI_ERROR_DEVICE_OFFLINE, "DEVICE_OFFLINE"},
-        {MSPTI_ERROR_QUEUE_EMPTY, "QUEUE_EMPTY"},
-        {MSPTI_ERROR_WITHOUT_LD_PRELOAD, "WITHOUT_LD_PRELOAD"},
-        {MSPTI_ERROR_NOT_INITIALIZED, "NOT_INITIALIZED"},
-        {MSPTI_ERROR_INVALID_KIND, "INVALID_KIND"},
-        {MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT, "PARAMETER_SIZE_NOT_SUFFICIENT"},
-        {MSPTI_ERROR_INNER, "ERROR_INNER"}};
-
-    auto it = STRING_MAP.find(result);
-    return it != STRING_MAP.end() ? it->second : "<unknown>";
+    const char* resultString = nullptr;
+    if (msptiGetResultString(result, &resultString) != MSPTI_SUCCESS || resultString == nullptr)
+    {
+        return "<unknown>";
+    }
+    return resultString;
 }
 
 static void ShowKernelInfo(msptiActivityKernel* kernel)
