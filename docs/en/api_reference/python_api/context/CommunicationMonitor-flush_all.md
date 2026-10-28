@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002143882701_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -29,7 +29,7 @@
 
 ## Function Usage
 
-The user (subscriber) calls the callback function to transfer all activity data (including communication, kernel, and msTX data) from the buffer to the user memory.
+The user (subscriber) calls the callback function to transfer all activity data (including communication, Kernel, and msTX data) from the buffer to the user memory.
 
 ## Function Prototype<a name="section759854510169"></a>
 

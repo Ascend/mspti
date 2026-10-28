@@ -395,7 +395,7 @@ monitor.start(callback)
 
 - Python 3.8+
 - CANN 软件（含 msPTI Python 包）
-- PyTorch + torch_npu（执行 NPU 计算时需要）
+- PyTorch + TorchNPU（执行 NPU 计算时需要）
 - 需设置 `LD_PRELOAD` 环境变量：
 
 ```bash

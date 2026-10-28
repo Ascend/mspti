@@ -20,8 +20,8 @@ APIs are listed below.
 |[HcclMonitor.flush_all](./context/HcclMonitor-flush_all.md)|Calls the callback function to write all activity data in the buffer to the user memory.|
 |[HcclMonitor.set_buffer_size](./context/HcclMonitor-set_buffer_size.md)|Sets the size of the activity buffer before profiling starts.|
 |**KernelMonitor Type**|**KernelMonitor Description**|
-|[KernelMonitor.start](./context/KernelMonitor-start.md)|Marks the start of the kernel profiling.|
-|[KernelMonitor.stop](./context/KernelMonitor-stop.md)|Marks the end of the kernel profiling.|
+|[KernelMonitor.start](./context/KernelMonitor-start.md)|Marks the start of the Kernel profiling.|
+|[KernelMonitor.stop](./context/KernelMonitor-stop.md)|Marks the end of the Kernel profiling.|
 |[KernelMonitor.flush_all](./context/KernelMonitor-flush_all.md)|Calls the callback function to write all activity data in the buffer to the user memory.|
 |[KernelMonitor.set_buffer_size](./context/KernelMonitor-set_buffer_size.md)|Sets the size of the activity buffer before profiling starts.|
 |**MstxMonitor Type**|**Description of MstxMonitor**|

@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -54,7 +54,7 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p18311931172217"><a name="p18311931172217"></a><a name="p18311931172217"></a> input. </p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p712111021"><a name="p712111021"></a><a name="p712111021"></a>Type of the external API activity associated with it. Currently, the valid value is xxx_CUSTOM0.
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p712111021"><a name="p712111021"></a><a name="p712111021"></a>Type of the external API activity associated with it. Currently, the valid value is xxx_CUSTOM0.</p>
 </td>
 </tr>
 <tr id="row12929154417467"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p10930104415467"><a name="p10930104415467"></a><a name="p10930104415467"></a>lastId</p>

@@ -9,7 +9,7 @@ class RangeMarkerData:
     self.kind # Activity Record type MSPTI_ACTIVITY_KIND_MARKER
     self.source_kind: MsptiActivitySourceKind # Source type of the marker data
     self.id # Marker ID
-    self.object_id: MsptiObjectId # Process ID, thread ID, device ID, and stream ID that identify the marker
+    self.object_id: MsptiObjectId # Process ID, thread ID, Device ID, and stream ID that identify the marker
     self.name # Marker name. The value is empty when the marker ends
     self.domain # Name of the domain to which the marker belongs. The default domain is default
     self.start # Start time of the range dotting

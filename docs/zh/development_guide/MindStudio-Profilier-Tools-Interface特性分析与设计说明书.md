@@ -838,7 +838,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 
 - 安装方式：`pip install mspti`（集成于CANN whl包中）
 - 运行时依赖：Python 3.8+、CANN环境
-- 可选依赖：PyTorch + torch_npu（Python Monitor样例需要）
+- 可选依赖：PyTorch + TorchNPU（Python Monitor样例需要）
 
 ### 4.7.3 集成方式
 

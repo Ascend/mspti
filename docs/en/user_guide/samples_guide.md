@@ -11,7 +11,7 @@ This document provides msPTI sample sets to help you understand and use the msPT
 > For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -48,7 +48,7 @@ This section provides examples of using msPTI APIs for users to understand how t
 
 **Building and Executing Samples<a name="zh-cn_topic_0000002257378834_section6122533557"></a>**
 
-1. After installing the CANN software, log in to the environment as the CANN running user and run the `source /${install_path}/set_env.sh` command to set environment variables. In the preceding command, `${install_path}` indicates the path for storing the CANN software installation files, for example, `/usr/local/Ascend/cann`.
+1. After installing the CANN software, log in to the environment as the CANN running user and run the `source ${install_path}/set_env.sh` command to set environment variables. In the preceding command, `${install_path}` indicates the path for storing the CANN software installation files, for example, `/usr/local/Ascend/cann`.
    Example:
 
    ```bash
@@ -89,7 +89,7 @@ The following table describes the samples provided currently.
   | [mspti_activity](../../../samples/mspti_activity)               | 1. Demonstrates the basic functions of the Activity API. It shows how to profile kernels and memory.<br> 2. This sample demonstrates the basic running of the Activity API, including the basic usage of the Activity API, such as activity buffer allocation and buffer consumption.|
   | [mspti_correlation](../../../samples/mspti_correlation)         | 1. Demonstrates the basic functions of the Activity API. It shows how to use the `correlationId` field to correlate the API with the kernel data.<br> 2. This sample demonstrates the association between the runtime API delivery and the actual kernel execution data. After the association, the operator delivery and execution can be mapped to each other, facilitating performance bottleneck analysis.|
   | [mspti_external_correlation](../../../samples/mspti_external_correlation) | 1. This sample demonstrates the msPTI external correlation function.<br>2. This sample demonstrates the usage of the `msptiActivityPopExternalCorrelationId` and `msptiActivityPushExternalCorrelationId` APIs. You can use these APIs to associate various APIs to facilitate the backtracking of the function call stack.|
-  | [mspti_hccl_activity](../../../samples/mspti_hccl_activity)     | 1. This sample demonstrates the basic functions of the Activity API and how to collect communication data by using the Hccl switch.|
+  | [mspti_hccl_activity](../../../samples/mspti_hccl_activity)     | 1. This sample demonstrates the basic functions of the Activity API and how to collect communication data by using the HCCL switch.|
   | [mspti_mstx_activity_domain](../../../samples/mspti_mstx_activity_domain) | 1. This sample demonstrates the function of controlling the mstxDomain by using msPTI. You can use the switch to control whether to collect the dotting data.<br> 2. You can use the msPTI switch to enable or disable the collection of dotting data in real time, reducing performance loss.|
 
 - Python API

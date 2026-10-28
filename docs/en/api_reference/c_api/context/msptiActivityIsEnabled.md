@@ -4,11 +4,11 @@
 
 > [!NOTE]
 >
-> For the specific models of Ascend products, see [AAscend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
+> For the specific models of Ascend products, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported

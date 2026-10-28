@@ -85,8 +85,6 @@ You are welcome to contribute to the community. If you have any questions or sug
 
 ## 🙏 Acknowledgments
 
-This tool is contributed by the following departments of Huawei:
+This tool is jointly contributed by Huawei Technologies Co., Ltd. and developers.
 
-🔹 Ascend Computing MindStudio Development Dept.
-
-We appreciate every PR from the community and welcome your contributions.
+Thank you for every PR from the community. Contributions are welcome!

@@ -19,7 +19,7 @@ MindStudio Profiler Tools Interface (msPTI) is a set of performance profiling AP
 - **CANN (including msPTI)**: You are advised to install the CANN software (Toolkit + ops packages) first, because msPTI is integrated into CANN. If CANN is already installed, you can use it directly.
   - Quick CANN installation: [Ascend Community CANN download](https://www.hiascend.com/en/cann/download)
 - **Python environment**: If you use the msPTI Python API, ensure that a Python 3.10+ environment is configured.
-- **PyTorch + torch_npu** (optional): The Python Monitor sample depends on the PyTorch framework and TorchNPU ([installation guide](https://www.hiascend.com/en/developer/software/ai-frameworks/pytorch/download)).
+- **PyTorch + TorchNPU** (optional): The Python Monitor sample depends on the PyTorch framework and TorchNPU ([installation guide](https://www.hiascend.com/en/developer/software/ai-frameworks/pytorch/download)).
 
 ### 2.3 Constraints
 

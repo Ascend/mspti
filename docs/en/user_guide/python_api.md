@@ -395,7 +395,7 @@ The maximum buffer size is 256 MB, and the default value is determined by the C 
 
 - Python 3.8+
 - CANN software (including the msPTI Python package)
-- PyTorch + torch_npu (required for NPU computation)
+- PyTorch + TorchNPU (required for NPU computation)
 - Set the `LD_PRELOAD` environment variable:
 
 ```bash

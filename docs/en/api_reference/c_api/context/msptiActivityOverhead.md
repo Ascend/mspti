@@ -17,7 +17,7 @@ typedef struct PACKED_ALIGNMENT {
 
 The overhead types currently recorded are as follows:
 
-| `overheadKind` | Description |
+| overheadKind | Description |
 | --- | --- |
 | MSPTI_ACTIVITY_OVERHEAD_MSPTI_RESOURCE | Overhead of creating and destroying msPTI internal resources (for example, enabling or disabling a collection task) |
 | MSPTI_ACTIVITY_OVERHEAD_ACTIVITY_BUFFER_REQUEST | Overhead of requesting an Activity Buffer (the time taken to invoke the Request callback to request a buffer) |

@@ -1,6 +1,6 @@
 # msptiObjectId<a name="ZH-CN_TOPIC_0000002012690846"></a>
 
-msptiObjectId is called by [msptiActivityMarker](msptiActivityMarker.md) to identify the process ID, thread ID, device ID, and stream ID of a marker. The definition is as follows:
+msptiObjectId is called by [msptiActivityMarker](msptiActivityMarker.md) to identify the process ID, thread ID, Device ID, and stream ID of a marker. The definition is as follows:
 
 ```cpp
 typedef union PACKED_ALIGNMENT {

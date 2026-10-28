@@ -182,7 +182,7 @@ With the widespread application of Ascend NPUs in AI training and inference scen
 ### 2.3.1 Hardware Restrictions
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -632,7 +632,7 @@ The `mspti/csrc/` directory implements the extension binding from Python to C:
 
 - **Adapter**: The C++ wrapper layer that wraps the C APIs into C++ classes and methods to simplify Python extension calls.
 - **Stub**: The dynamic library loader that loads `libmspti.so` through `dlopen` to implement runtime symbol resolution.
-- `BufferPool`: The memory pool management of the Activity Buffer to reduce frequent malloc/free calls.
+- **BufferPool**: The memory pool management of the Activity Buffer to reduce frequent malloc/free calls.
 
 The `mspti/monitor/` directory implements the Monitor classes:
 

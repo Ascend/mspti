@@ -69,7 +69,7 @@ APIs are listed below.
 |[msptiActivityCommunication](./context/msptiActivityCommunication.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_COMMUNICATION.|
 |[msptiActivityOverhead](./context/msptiActivityOverhead.md)|Struct corresponding to the activity record type MSPTI_ACTIVITY_KIND_OVERHEAD.|
 |**Union Type**|**Union Description**|
-|[msptiObjectId](./context/msptiObjectId.md)|Identifies the process ID, thread ID, device ID, and stream ID of the marker.|
+|[msptiObjectId](./context/msptiObjectId.md)|Identifies the process ID, thread ID, Device ID, and stream ID of the marker.|
 
 Activity record: NPU profiling record, which is represented by a struct, such as `msptiActivityApi` or `msptiActivityMarker`.
 

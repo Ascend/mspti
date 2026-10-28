@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -78,4 +78,4 @@ msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber,
 
 ## Returns<a name="section16621124213476"></a>
 
-`MSPTI_SUCCESS` indicates that the operation is successful. `MSPTI_ERROR_INVALID_PARAMETER` is returned if the user or domain is invalid, indicating that the operation fails.
+`MSPTI_SUCCESS` indicates that the operation is successful. `MSPTI_ERROR_INVALID_PARAMETER` is returned if the subscriber or domain is invalid, indicating that the operation fails.

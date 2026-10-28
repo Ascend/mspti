@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -70,7 +70,7 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1599514253189"><a name="p1599514253189"></a><a name="p1599514253189"></a>Input </p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1840545320573"><a name="p1840545320573"></a><a name="p1840545320573"></a> Component. Currently, only Runtime and Hccl are supported.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1840545320573"><a name="p1840545320573"></a><a name="p1840545320573"></a> Component. Currently, only Runtime and HCCL are supported.</p>
 </td>
 </tr>
 <tr id="row255615065712"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p1655711508571"><a name="p1655711508571"></a><a name="p1655711508571"></a>cbid</p>

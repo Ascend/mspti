@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -75,7 +75,7 @@ typedef void (*msptiCallbackFunc)(void *userdata, msptiCallbackDomain domain, ms
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1383541171719"><a name="p1383541171719"></a><a name="p1383541171719"></a> Input. </p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1624118151355"><a name="p1624118151355"></a><a name="p1624118151355"></a>Indicates the additional information triggered by the current callback. When domain is MSPTI_CB_DOMAIN_RUNTIME, the cbdata type is <a href="msptiCallbackData.md">msptiCallbackData</a>.
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1624118151355"><a name="p1624118151355"></a><a name="p1624118151355"></a>Indicates the additional information triggered by the current callback. When domain is MSPTI_CB_DOMAIN_RUNTIME, the cbdata type is <a href="msptiCallbackData.md">msptiCallbackData</a>.</p>
 </td>
 </tr>
 </tbody>

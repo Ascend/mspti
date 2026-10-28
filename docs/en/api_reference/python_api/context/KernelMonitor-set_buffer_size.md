@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002143882701_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -55,7 +55,7 @@ def set_buffer_size(cls, size: int) -> MsptiResult:
 <td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.2 "><p id="p187904392335"><a name="p187904392335"></a><a name="p187904392335"></a>Input </p>
 </td>
 <td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p4641190193411"><a name="p4641190193411"></a><a name="p4641190193411"></a>size: size of the activity buffer, in MB. The default value is 8 MB.</p>
-<p id="p10641802345"><a name="p10641802345"></a><a name="p10641802345"></a>The value of size must be a positive integer. If the value is invalid, a failure message is returned and the default activity buffer size is used.
+<p id="p10641802345"><a name="p10641802345"></a><a name="p10641802345"></a>The value of size must be a positive integer. If the value is invalid, a failure message is returned and the default activity buffer size is used.</p>
 </td>
 </tr>
 </tbody>

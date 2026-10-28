@@ -11,7 +11,7 @@ class MarkerData:
     self.source_kind: MsptiActivitySourceKind # Source type of the marker data
     self.timestamp # Timestamp of the marker, in ns. If the value is 0, the timestamp information cannot be collected for the marker
     self.id # ID of the marker
-    self.object_id: MsptiObjectId # Process ID, thread ID, device ID, and stream ID that identify the marker
+    self.object_id: MsptiObjectId # Process ID, thread ID, Device ID, and stream ID that identify the marker
     self.name # Name of the marker. When the marker ends, the value is empty
     self.domain # Name of the domain to which the marker belongs. The default domain is default
 class MsptiObjectId:

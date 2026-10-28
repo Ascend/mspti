@@ -104,7 +104,7 @@ If your changes affect how users use the product, update the related documentati
 
 #### Documentation Standards
 
-- Use clear and concise Chinese
+- Use clear and concise English
 - Provide complete sample code
 - Include the necessary screenshots or diagrams
 - Ensure that links remain valid
