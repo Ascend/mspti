@@ -206,6 +206,32 @@ msptiResult DevTaskManager::FlushDevProfData(uint32_t deviceId, msptiActivityKin
     return ret;
 }
 
+msptiResult DevTaskManager::DrainDevProfData(uint32_t deviceId, msptiActivityKind kind, bool wait)
+{
+    if (!CheckDeviceOnline(deviceId))
+    {
+        MSPTI_LOGE("Device: %u is offline.", deviceId);
+        return MSPTI_ERROR_INNER;
+    }
+    MSPTI_LOGI("Drain DevProfData, deviceId: %u, kind: %d, wait: %d", deviceId, kind, wait ? 1 : 0);
+    std::lock_guard<std::mutex> lk(task_map_mtx_);
+    auto taskIter = task_map_.find({deviceId, kind});
+    if (taskIter == task_map_.end())
+    {
+        return MSPTI_SUCCESS;
+    }
+    auto ret = MSPTI_SUCCESS;
+    for (auto& profTask : taskIter->second)
+    {
+        if (profTask->Drain(wait) != MSPTI_SUCCESS)
+        {
+            MSPTI_LOGE("The device %u, kind: %d drain DevProfTask failed.", deviceId, kind);
+            ret = MSPTI_ERROR_INNER;
+        }
+    }
+    return ret;
+}
+
 bool DevTaskManager::CheckDeviceOnline(uint32_t deviceId)
 {
     std::call_once(get_device_flag_, [this]() { this->InitDeviceList(); });

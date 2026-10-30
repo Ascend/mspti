@@ -51,7 +51,7 @@ bool TransV6Tsfw(const void *const buffer, StepTraceBasic &stepTraceData)
 }
 }  // namespace
 
-TsfwConvert::TransFunc TsfwConvert::GetTransFunc(uint32_t deviceId, Common::PlatformType chipType) const
+TsfwConvert::TransFunc TsfwConvert::GetTransFunc(Common::PlatformType chipType) const
 {
     switch (chipType)
     {
@@ -62,7 +62,7 @@ TsfwConvert::TransFunc TsfwConvert::GetTransFunc(uint32_t deviceId, Common::Plat
     }
 }
 
-size_t TsfwConvert::GetStructSize(uint32_t deviceId, Common::PlatformType chipType) const
+size_t TsfwConvert::GetStructSize(Common::PlatformType chipType) const
 {
     switch (chipType)
     {

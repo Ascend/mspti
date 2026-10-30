@@ -123,6 +123,13 @@ void RetryFlushUntilDrained(msptiActivityKind kind, const std::unordered_set<uin
             Ascend::DevTaskManager::GetInstance()->FlushDevProfData(device, kind);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(ActivityManager::FLUSH_RETRY_WAIT_MS));
+        // flush 后 reader 会把驱动数据读入 buffer_ 并交接；这里强制排空残留，
+        // 让 pending 有机会归零（否则阈值攒批下的残留永远排不出去）。
+        // 循环内只交接不等待：等待放到循环外统一做一次，避免 FLUSH_RETRY_MAX_COUNT 轮叠加等待
+        for (auto device : localDevices)
+        {
+            Ascend::DevTaskManager::GetInstance()->DrainDevProfData(device, kind, /*wait=*/false);
+        }
     }
     auto remainCount = getPendingCount();
     if (remainCount > 0)
@@ -479,6 +486,12 @@ msptiResult ActivityManager::UnRegisterLocked(msptiActivityKind kind)
             std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
         }
         RetryFlushUntilDrained(kind, localDevices);
+        // 关开关前兜底：把各 reader 的 buffer_ 残留和消费队列残留都处理完，
+        // 否则 activity_switch_[kind] 关闭后 parser 会丢弃这些数据（阈值攒批场景必现）
+        for (auto device : localDevices)
+        {
+            Ascend::DevTaskManager::GetInstance()->DrainDevProfData(device, kind);
+        }
     }
     Parser::ParserManager::GetInstance()->StopAnalysisTask(kind);
     activity_switch_[kind] = false;

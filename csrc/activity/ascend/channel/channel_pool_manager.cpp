@@ -46,7 +46,8 @@ ChannelPoolManager::~ChannelPoolManager()
     if (drvChannelPoll_ != nullptr)
     {
         drvChannelPoll_->Stop();
-        drvChannelPoll_.reset(nullptr);
+        // shared_ptr 没有 reset(nullptr) 重载，直接 reset() 释放引用
+        drvChannelPoll_.reset();
     }
 }
 
@@ -71,7 +72,7 @@ msptiResult ChannelPoolManager::Init()
         dev_num = MAX_DEV_NUM;
     }
 
-    Mspti::Common::MsptiMakeUniquePtr(drvChannelPoll_, dev_num);
+    Mspti::Common::MsptiMakeSharedPtr(drvChannelPoll_, dev_num);
     if (!drvChannelPoll_)
     {
         MSPTI_LOGE("Failed to init ChannelPool.");
@@ -86,7 +87,8 @@ void ChannelPoolManager::UnInit()
     if (drvChannelPoll_ != nullptr)
     {
         drvChannelPoll_->Stop();
-        drvChannelPoll_.reset(nullptr);
+        // shared_ptr 没有 reset(nullptr) 重载，直接 reset() 释放引用
+        drvChannelPoll_.reset();
     }
 }
 
@@ -154,6 +156,18 @@ msptiResult ChannelPoolManager::FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL chan
         return drvChannelPoll_->FlushDrvBuff(devId, channelId);
     }
     return MSPTI_SUCCESS;
+}
+
+msptiResult ChannelPoolManager::DrainReader(uint32_t devId, AI_DRV_CHANNEL channelId, bool wait)
+{
+    std::shared_ptr<ChannelPool> poll{nullptr};
+    {
+        // 锁内只取一份引用：排空最长等待 1s，不能持 channelPollMutex_ 执行，
+        // 否则会阻塞 Init/UnInit/AddReader/RemoveReader
+        std::lock_guard<std::mutex> lock(channelPollMutex_);
+        poll = drvChannelPoll_;
+    }
+    return poll != nullptr ? poll->DrainReader(devId, channelId, wait) : MSPTI_SUCCESS;
 }
 
 msptiResult ChannelPoolManager::SetChannelBufferSize(uint32_t bufferSize)

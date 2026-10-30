@@ -40,6 +40,7 @@ class ChannelPool
     msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId, uint32_t bufferSize);
     msptiResult RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId);
+    msptiResult DrainReader(uint32_t devId, AI_DRV_CHANNEL channelId, bool wait = true);
     msptiResult Start();
     void Stop();
 

@@ -44,6 +44,7 @@ class ChannelPoolManager
     msptiResult AddReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult RemoveReader(uint32_t devId, AI_DRV_CHANNEL channelId);
     msptiResult FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId);
+    msptiResult DrainReader(uint32_t devId, AI_DRV_CHANNEL channelId, bool wait = true);
     msptiResult SetChannelBufferSize(uint32_t bufferSize);
     uint32_t GetChannelBufferSize() const { return channelBufferSize_; };
 
@@ -56,7 +57,9 @@ class ChannelPoolManager
     ChannelPoolManager &operator=(ChannelPoolManager &&obj) = delete;
 
    private:
-    std::unique_ptr<ChannelPool> drvChannelPoll_;
+    // 用 shared_ptr 持有：DrainReader 需要在锁外调用它（排空最长等待 1s），
+    // 锁内取一份引用即可保证 UnInit 并发 reset 时对象仍然存活
+    std::shared_ptr<ChannelPool> drvChannelPoll_;
     std::mutex channelPollMutex_;
     std::unordered_map<uint32_t, std::set<uint32_t>> channels_;
     std::mutex channels_mtx_;

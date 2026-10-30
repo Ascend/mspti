@@ -44,6 +44,8 @@ class DevTaskManager
     msptiResult StartDevProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
     msptiResult StopDevProfTask(uint32_t deviceId, const ActivitySwitchType& kinds);
     msptiResult FlushDevProfData(uint32_t deviceId, msptiActivityKind kind);
+    // wait=false 只交接不等待，供 flush 重试循环内使用，避免每轮都等满 1s
+    msptiResult DrainDevProfData(uint32_t deviceId, msptiActivityKind kind, bool wait = true);
     bool CheckDeviceOnline(uint32_t deviceId);
     void RegisterReportCallback();
     void UnRegisterReportCallback();

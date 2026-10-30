@@ -46,6 +46,9 @@ class DevProfTask
     msptiResult Start();
     msptiResult Stop();
     virtual msptiResult Flush();
+    // 非破坏性排空：把对应 reader 的 buffer 残留与消费队列残留处理完（UnRegister 关开关前调用）。
+    // wait=false 只交接不等待，供 flush 重试循环内使用
+    msptiResult Drain(bool wait = true);
 
    private:
     void Run();

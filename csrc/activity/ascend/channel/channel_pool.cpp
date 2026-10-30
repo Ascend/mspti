@@ -43,20 +43,37 @@ size_t ChannelPool::GetChannelIndex(uint32_t devId, AI_DRV_CHANNEL channelId)
 msptiResult ChannelPool::AddReader(uint32_t devId, AI_DRV_CHANNEL channelId, uint32_t bufferSize)
 {
     size_t channel_index = GetChannelIndex(devId, channelId);
-    std::lock_guard<std::mutex> lk(mtx_);
-    if (readers_map_.find(channel_index) == readers_map_.end())
     {
-        std::shared_ptr<ChannelReader> reader = nullptr;
-        Mspti::Common::MsptiMakeSharedPtr(reader, devId, channelId, bufferSize);
-        MSPTI_LOGI("Create channel reader, devId: %u, channelId: %d, bufferSize: %u", devId, channelId, bufferSize);
-        if (!reader)
+        std::lock_guard<std::mutex> lk(mtx_);
+        if (readers_map_.find(channel_index) != readers_map_.end())
         {
-            MSPTI_LOGE("Create channel reader failed.");
-            return MSPTI_ERROR_INNER;
+            return MSPTI_SUCCESS;
         }
-        reader->Init();
-        readers_map_[channel_index] = reader;
     }
+    // 创建与 Init 放到锁外：Init 会查 chipType、建队列、起消费线程，持锁执行会拖住
+    // DispatchChannel/RemoveReader/FlushDrvBuff/DrainReader
+    std::shared_ptr<ChannelReader> reader = nullptr;
+    Mspti::Common::MsptiMakeSharedPtr(reader, devId, channelId, bufferSize);
+    MSPTI_LOGI("Create channel reader, devId: %u, channelId: %d, bufferSize: %u", devId, channelId, bufferSize);
+    if (!reader)
+    {
+        MSPTI_LOGE("Create channel reader failed.");
+        return MSPTI_ERROR_INNER;
+    }
+    msptiResult initRet = reader->Init();
+    if (initRet != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("Init channel reader failed, devId: %u, channelId: %d, ret: %d", devId, channelId,
+                   static_cast<int>(initRet));
+        return initRet;
+    }
+    std::lock_guard<std::mutex> lk(mtx_);
+    if (readers_map_.find(channel_index) != readers_map_.end())
+    {
+        // 并发创建：已有 reader 入表，丢弃自己新建的（析构会停掉刚起的消费线程）
+        return MSPTI_SUCCESS;
+    }
+    readers_map_[channel_index] = reader;
     return MSPTI_SUCCESS;
 }
 
@@ -87,6 +104,22 @@ msptiResult ChannelPool::FlushDrvBuff(uint32_t devId, AI_DRV_CHANNEL channelId)
         }
     }
     return reader != nullptr ? reader->FlushDrvBuff() : MSPTI_ERROR_INNER;
+}
+
+msptiResult ChannelPool::DrainReader(uint32_t devId, AI_DRV_CHANNEL channelId, bool wait)
+{
+    size_t channel_index = GetChannelIndex(devId, channelId);
+    std::shared_ptr<ChannelReader> reader{nullptr};
+    {
+        std::lock_guard<std::mutex> lk(mtx_);
+        auto channel_iter = readers_map_.find(channel_index);
+        if (channel_iter != readers_map_.end())
+        {
+            reader = channel_iter->second;
+        }
+    }
+    // reader 不存在说明该 channel 未启动，无需排空
+    return reader != nullptr ? reader->DrainToConsumer(wait) : MSPTI_SUCCESS;
 }
 
 msptiResult ChannelPool::Start()

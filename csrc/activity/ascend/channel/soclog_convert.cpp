@@ -60,7 +60,7 @@ bool Trans910BSocLog(const void *const buffer, HalLogData &halLogData)
     }
     else
     {
-        MSPTI_LOGW("unkonw funcType, funcType is %u", static_cast<uint32_t>(originHeader->funcType));
+        MSPTI_LOGW("unknown funcType, funcType is %u", static_cast<uint32_t>(originHeader->funcType));
         return false;
     }
     return true;
@@ -81,14 +81,14 @@ bool TransSocLogV6(const void *const buffer, HalLogData &halLogData)
     }
     else
     {
-        MSPTI_LOGW("unkonw funcType, funcType is %u", static_cast<uint32_t>(originData->funcType));
+        MSPTI_LOGW("unknown funcType, funcType is %u", static_cast<uint32_t>(originData->funcType));
         return false;
     }
     return true;
 }
 }  // namespace
 
-SocLogConvert::TransFunc SocLogConvert::GetTransFunc(uint32_t deviceId, Common::PlatformType chipType) const
+SocLogConvert::TransFunc SocLogConvert::GetTransFunc(Common::PlatformType chipType) const
 {
     switch (chipType)
     {
@@ -103,7 +103,7 @@ SocLogConvert::TransFunc SocLogConvert::GetTransFunc(uint32_t deviceId, Common::
     }
 }
 
-size_t SocLogConvert::GetStructSize(uint32_t deviceId, Common::PlatformType chipType) const
+size_t SocLogConvert::GetStructSize(Common::PlatformType chipType) const
 {
     switch (chipType)
     {

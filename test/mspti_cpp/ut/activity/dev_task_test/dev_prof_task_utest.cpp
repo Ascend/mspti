@@ -418,4 +418,72 @@ TEST_F(DevProfTaskUtest, DevProfTaskAiCustomCpuShouldRunSuccessfullyWhenRunNorma
 
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
 }
+
+// Test a failing AddReader aborts the start and leaves the device reportable as
+// "not enabled": the ref counter must go back to its pre-start state, otherwise the
+// paired StopTask underflows it and the device can never be enabled again.
+TEST_F(DevProfTaskUtest, DevProfTaskStarsShouldReturnInnerErrorWhenAddReaderFail)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskStars> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::AddReader).stubs().will(returnValue(MSPTI_ERROR_INNER));
+    EXPECT_EQ(MSPTI_ERROR_INNER, task->StartTask());
+    EXPECT_FALSE(task->CanFlush());
+
+    // the paired stop must be harmless and must not resurrect the task
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+    EXPECT_FALSE(task->CanFlush());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
+
+TEST_F(DevProfTaskUtest, DevProfTaskTsFwShouldReturnInnerErrorWhenAddReaderFail)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskTsFw> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::AddReader).stubs().will(returnValue(MSPTI_ERROR_INNER));
+    EXPECT_EQ(MSPTI_ERROR_INNER, task->StartTask());
+    EXPECT_FALSE(task->CanFlush());
+
+    EXPECT_EQ(MSPTI_SUCCESS, task->StopTask());
+    EXPECT_FALSE(task->CanFlush());
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
+
+// Test Drain() is a no-op when the channel has no reader yet
+TEST_F(DevProfTaskUtest, DrainShouldReturnSuccessWhenReaderNotExist)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskDefault> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    EXPECT_EQ(MSPTI_SUCCESS, task->Drain());
+}
+
+// Test Drain() propagates the failure of the reader drain
+TEST_F(DevProfTaskUtest, DrainShouldReturnInnerErrorWhenDrainReaderFail)
+{
+    GlobalMockObject::verify();
+    std::shared_ptr<Mspti::Ascend::DevProfTaskDefault> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0);
+    ASSERT_NE(task, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::DrainReader).stubs().will(returnValue(MSPTI_ERROR_INNER));
+    EXPECT_EQ(MSPTI_ERROR_INNER, task->Drain());
+    GlobalMockObject::verify();
+}
 }  // namespace

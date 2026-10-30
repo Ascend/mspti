@@ -146,17 +146,18 @@ TEST_F(ChannelReaderUtest, ExecuteShouldProcessStarsSocLogChannelData)
     reader.UnInit();
 }
 
-// Test Execute() function with invalid channel ID
-TEST_F(ChannelReaderUtest, ExecuteShouldBreakWhenChannelIdIsInvalid)
+// Test Init() fails fast for invalid channel ID instead of stalling later;
+// Execute() without a successful Init is a no-op.
+TEST_F(ChannelReaderUtest, InitShouldReturnErrorWhenChannelIdIsInvalid)
 {
     constexpr unsigned int maxChannelId = 160;
     uint32_t deviceId = 0;
     AI_DRV_CHANNEL channelId = static_cast<AI_DRV_CHANNEL>(maxChannelId);
     Mspti::Ascend::Channel::ChannelReader reader(deviceId, channelId);
 
-    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_ERROR_INNER, reader.Init());
     EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
-    reader.UnInit();
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
 }
 
 // Test FlushDrvBuff() function
@@ -302,5 +303,292 @@ TEST_F(ChannelReaderUtest, MultipleReadersExecuteShouldWorkIndependently)
 
     EXPECT_EQ(MSPTI_SUCCESS, reader1.UnInit());
     EXPECT_EQ(MSPTI_SUCCESS, reader2.UnInit());
+}
+
+// Test Execute() without Init(): read loop is skipped, returns immediately
+TEST_F(ChannelReaderUtest, ExecuteShouldReturnQuicklyWhenNotInited)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_TS_FW);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
+}
+
+// Test UnInit() is idempotent: second call joins nothing and does not crash
+TEST_F(ChannelReaderUtest, DoubleUnInitShouldBeSafe)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_TS_FW);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// Test destructor joins the consumer thread even if UnInit was never called
+TEST_F(ChannelReaderUtest, DestructorShouldJoinConsumeThreadWithoutUnInit)
+{
+    auto reader = std::make_unique<Mspti::Ascend::Channel::ChannelReader>(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader->Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader->Execute());
+    // intentionally skip UnInit: destructor must drain and join, no std::terminate
+    reader.reset();
+}
+
+// Test full-buffer handoff to the consumer thread with mocked driver data.
+// The mock returns exactly one full buffer then 0, so Execute hands off once
+// and UnInit drains the consumer queue; asserts the async path end to end.
+TEST_F(ChannelReaderUtest, ExecuteShouldHandOffFullBufferToConsumerThread)
+{
+    constexpr int fullBufferSize = 2 * 1024 * 1024;
+    MOCKER_CPP(&ProfChannelRead).stubs().will(returnValue(fullBufferSize)).then(returnValue(0));
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+    GlobalMockObject::verify();
+}
+
+// Test that handoff is rejected once the consumer thread has stopped: data must
+// stay in the reader buffer so the final drain can process it synchronously.
+TEST_F(ChannelReaderUtest, HandoffShouldBeRejectedAfterConsumerStopped)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+
+    reader.buffer_.assign(512, 'y');
+    reader.curPos_ = 512;
+
+    EXPECT_FALSE(reader.TryHandoffBufferedData(256));
+    EXPECT_EQ(512u, reader.curPos_);
+    EXPECT_EQ(std::string(512, 'y'), reader.buffer_.substr(0, 512));
+    EXPECT_EQ(0u, reader.consumerQueue_->size());
+}
+
+// Test that the consume queue capacity is a fixed entry count and does not depend on
+// the buffer size.
+TEST_F(ChannelReaderUtest, QueueCapacityShouldBeFixed)
+{
+    constexpr size_t expectedCapacity = 128;
+    constexpr uint32_t bufferSize = 2 * 1024 * 1024;
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG, bufferSize);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(expectedCapacity, reader.consumeQueueCapacity_);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+
+    constexpr uint32_t hugeBufferSize = 64 * 1024 * 1024;
+    Mspti::Ascend::Channel::ChannelReader hugeReader(0, PROF_CHANNEL_STARS_SOC_LOG, hugeBufferSize);
+    EXPECT_EQ(MSPTI_SUCCESS, hugeReader.Init());
+    EXPECT_EQ(expectedCapacity, hugeReader.consumeQueueCapacity_);
+    EXPECT_EQ(MSPTI_SUCCESS, hugeReader.UnInit());
+}
+
+// Test the handoff queue preserves FIFO order (consumer parses in read order).
+TEST_F(ChannelReaderUtest, HandoffQueuePreservesFifoOrder)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // stop consumer thread for race-free driving
+
+    for (char tag : {'a', 'b', 'c'})
+    {
+        Mspti::Ascend::Channel::ChannelReader::BufferData chunk;
+        chunk.data.assign(4, tag);
+        chunk.validSize = 4;
+        EXPECT_TRUE(reader.consumerQueue_->TryPush(std::move(chunk)));
+    }
+    for (char tag : {'a', 'b', 'c'})
+    {
+        Mspti::Ascend::Channel::ChannelReader::BufferData out;
+        EXPECT_TRUE(reader.consumerQueue_->TryPop(out));
+        EXPECT_EQ(4u, out.validSize);
+        EXPECT_EQ(std::string(4, tag), out.data);
+    }
+}
+
+// Test DrainToConsumer() flushes residual bytes that are below the batch threshold:
+// the residual must be handed off to the consumer thread and fully consumed before return.
+TEST_F(ChannelReaderUtest, DrainToConsumerShouldFlushResidualBelowThreshold)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+
+    // stage one complete struct (far below the 1.6MB handoff threshold) in the reader buffer
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    reader.buffer_.assign(structSize, '\0');
+    reader.curPos_ = structSize;
+
+    // drain must hand the residual off and wait until the consumer finished parsing it
+    EXPECT_EQ(MSPTI_SUCCESS, reader.DrainToConsumer());
+    EXPECT_EQ(0u, reader.curPos_);
+    EXPECT_EQ(0, reader.pendingConsumeCount_.load());
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// Test DrainToConsumer() is a no-op when the reader was never inited (no consumer queue)
+TEST_F(ChannelReaderUtest, DrainToConsumerShouldReturnWhenNotInited)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_TS_FW);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.DrainToConsumer());
+}
+
+// Test DrainToConsumer() returns immediately for discard channels (no consumer queue)
+TEST_F(ChannelReaderUtest, DrainToConsumerShouldReturnForDiscardChannel)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_AICPU);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.DrainToConsumer());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// Test the handoff rejects an invalid chunk size without touching the buffered bytes
+TEST_F(ChannelReaderUtest, HandoffShouldRejectInvalidConsumedSize)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+
+    reader.buffer_.assign(64, '\0');
+    reader.curPos_ = 64;
+
+    // nothing to hand off, and more than was read: both must be refused as-is
+    EXPECT_FALSE(reader.TryHandoffBufferedData(0));
+    EXPECT_FALSE(reader.TryHandoffBufferedData(65));
+    EXPECT_EQ(64u, reader.curPos_);
+    EXPECT_EQ(std::string(64, '\0'), reader.buffer_);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// Test a successful handoff keeps the reader buffer writable: the string size must be
+// restored to bufferSize_, otherwise the next ProfChannelRead writes past size() and the
+// residual accounting operates on a truncated buffer.
+TEST_F(ChannelReaderUtest, SuccessfulHandoffShouldRestoreBufferSize)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+
+    const size_t bufferSize = static_cast<size_t>(reader.bufferSize_);
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    constexpr size_t tailSize = 5;
+    const size_t consumedSize = 4 * structSize;
+    reader.buffer_.assign(consumedSize + tailSize, '\0');
+    reader.curPos_ = consumedSize + tailSize;
+
+    EXPECT_TRUE(reader.TryHandoffBufferedData(consumedSize));
+    // only the unaligned tail stays pending, and the buffer is fully sized again
+    EXPECT_EQ(tailSize, reader.curPos_);
+    EXPECT_EQ(bufferSize, reader.buffer_.size());
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// Test backpressure: a full consume queue makes the handoff fail without losing a byte,
+// rolls the pending count back and counts the rejection, so the next scheduling tick
+// retries with the whole buffer intact.
+TEST_F(ChannelReaderUtest, FullQueueShouldKeepBufferForRetry)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    // stop the consumer thread first so nothing drains the queue behind our back
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+    reader.consumerRunning_.store(true);
+
+    Mspti::Ascend::Channel::ChannelReader::BufferData chunk;
+    chunk.data.assign(64, '\0');
+    chunk.validSize = 64;
+    size_t pushed = 0;
+    while (reader.consumerQueue_->TryPush(chunk))
+    {
+        ++pushed;
+    }
+    ASSERT_EQ(reader.consumeQueueCapacity_, pushed);
+
+    reader.buffer_.assign(1024, '\0');
+    reader.curPos_ = 1024;
+
+    EXPECT_FALSE(reader.TryHandoffBufferedData(256));
+    EXPECT_EQ(1024u, reader.curPos_);
+    EXPECT_EQ(1024u, reader.buffer_.size());
+    EXPECT_EQ(0, reader.pendingConsumeCount_.load());
+    EXPECT_EQ(1u, reader.queueFullCount_.load());
+
+    // neutralise the pre-stopped reader so the destructor does not parse the filler
+    reader.consumerRunning_.store(false);
+    reader.curPos_ = 0;
+    Mspti::Ascend::Channel::ChannelReader::BufferData drop;
+    while (reader.consumerQueue_->TryPop(drop))
+    {
+    }
+}
+
+// Test the shutdown drain after the consumer thread is gone: complete structs are parsed
+// synchronously and an unaligned tail is dropped, so UnInit never discards the whole batch.
+TEST_F(ChannelReaderUtest, DrainBufferedDataShouldParseSynchronouslyAfterConsumerStopped)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // consumer thread is stopped from here on
+
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    constexpr size_t tailSize = 3;
+    reader.buffer_.assign(2 * structSize + tailSize, '\0');
+    reader.curPos_ = 2 * structSize + tailSize;
+
+    reader.DrainBufferedDataToConsumer();
+    EXPECT_EQ(0u, reader.curPos_);
+}
+
+// Test StopConsumerThread drains whatever is still queued after the join, so no chunk is
+// left unparsed when the queue is destroyed.
+TEST_F(ChannelReaderUtest, StopConsumerThreadShouldDrainQueueResidue)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    Mspti::Ascend::Channel::ChannelReader::BufferData chunk;
+    chunk.data.assign(structSize, '\0');
+    chunk.validSize = structSize;
+    ASSERT_TRUE(reader.consumerQueue_->TryPush(chunk));
+    reader.pendingConsumeCount_.store(1);
+
+    reader.StopConsumerThread();
+    EXPECT_EQ(0u, reader.consumerQueue_->size());
+    EXPECT_EQ(0, reader.pendingConsumeCount_.load());
+}
+
+// Test AICPU data is read and dropped: the discard channel never accumulates bytes
+TEST_F(ChannelReaderUtest, ExecuteShouldDiscardAicpuData)
+{
+    constexpr int dataSize = 1024;
+    MOCKER_CPP(&ProfChannelRead).stubs().will(returnValue(dataSize)).then(returnValue(0));
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_AICPU);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
+    EXPECT_EQ(0u, reader.curPos_);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+    GlobalMockObject::verify();
+}
+
+// Test SOC_LOG reads below the handoff threshold stay buffered for the next tick,
+// so a slow trickle of records is not handed off one chunk at a time.
+TEST_F(ChannelReaderUtest, ExecuteShouldKeepDataBelowHandoffThreshold)
+{
+    constexpr int dataSize = 1024;
+    MOCKER_CPP(&ProfChannelRead).stubs().will(returnValue(dataSize)).then(returnValue(0));
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Execute());
+    EXPECT_EQ(static_cast<size_t>(dataSize), reader.curPos_);
+    EXPECT_LT(reader.curPos_, reader.handoffThreshold_);
+    EXPECT_EQ(0u, reader.consumerQueue_->size());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // UnInit drains the residual
+    GlobalMockObject::verify();
 }
 }  // namespace

@@ -162,6 +162,18 @@ msptiResult DevProfTask::Flush()
     return ret;
 }
 
+msptiResult DevProfTask::Drain(bool wait)
+{
+    // 排空不依赖 flush 能力：reader 不存在时 ChannelPool::DrainReader 直接返回 SUCCESS
+    auto ret = Ascend::Channel::ChannelPoolManager::GetInstance()->DrainReader(deviceId_, channelId_, wait);
+    if (ret != MSPTI_SUCCESS)
+    {
+        MSPTI_LOGE("DrainReader failed while drain residual data from device: %u, channel id: %u.", deviceId_,
+                   channelId_);
+    }
+    return ret;
+}
+
 // DevProfTaskTsFw的引用计数，保证在第一次使能时，Start Device任务
 // 最后一次反使能时，Stop Device任务
 std::map<uint32_t, uint32_t> DevProfTaskTsFw::ref_cnts_;
@@ -195,7 +207,28 @@ msptiResult DevProfTaskTsFw::StartTask()
             return MSPTI_SUCCESS;
         }
         static const uint32_t SAMPLE_PERIOD = 20;
-        Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->AddReader(deviceId_, channelId_);
+        auto addReaderRet = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->AddReader(deviceId_, channelId_);
+        if (addReaderRet != MSPTI_SUCCESS)
+        {
+            MSPTI_LOGE("Failed to add reader for device: %u, channel id: %u, ret: %d.", deviceId_, channelId_,
+                       static_cast<int32_t>(addReaderRet));
+            std::lock_guard<std::mutex> lk(cnt_mtx_);
+            auto iter = ref_cnts_.find(deviceId_);
+            if (iter != ref_cnts_.end())
+            {
+                if (iter->second > 1)
+                {
+                    --iter->second;
+                }
+                else
+                {
+                    // 回滚到“从未使能”状态：留下计数 0 会让配对的 StopTask 把 --iter->second
+                    // 下溢成 UINT32_MAX，该 device 之后再也无法使能采集
+                    (void)ref_cnts_.erase(iter);
+                }
+            }
+            return addReaderRet;
+        }
         TsTsFwProfileConfigT configP;
         if (memset_s(&configP, sizeof(configP), 0, sizeof(configP)) != EOK)
         {
@@ -299,7 +332,28 @@ msptiResult DevProfTaskStars::StartTask()
         {
             return MSPTI_SUCCESS;
         }
-        Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->AddReader(deviceId_, channelId_);
+        auto addReaderRet = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->AddReader(deviceId_, channelId_);
+        if (addReaderRet != MSPTI_SUCCESS)
+        {
+            MSPTI_LOGE("Failed to add reader for device: %u, channel id: %u, ret: %d.", deviceId_, channelId_,
+                       static_cast<int32_t>(addReaderRet));
+            std::lock_guard<std::mutex> lk(cnt_mtx_);
+            auto iter = ref_cnts_.find(deviceId_);
+            if (iter != ref_cnts_.end())
+            {
+                if (iter->second > 1)
+                {
+                    --iter->second;
+                }
+                else
+                {
+                    // 回滚到“从未使能”状态：留下计数 0 会让配对的 StopTask 把 --iter->second
+                    // 下溢成 UINT32_MAX，该 device 之后再也无法使能采集
+                    (void)ref_cnts_.erase(iter);
+                }
+            }
+            return addReaderRet;
+        }
         StarsSocLogConfigT configP;
         if (memset_s(&configP, sizeof(StarsSocLogConfigT), 0, sizeof(StarsSocLogConfigT)) != EOK)
         {

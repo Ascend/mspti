@@ -13,31 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_CONVERT_SOCLOG_CONVERT_H
 #define MSPTI_CONVERT_SOCLOG_CONVERT_H
 
-#include <cstdlib>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <vector>
-#include "csrc/activity/ascend/entity/soclog.h"
-#include "csrc/activity/ascend/channel/basic_convert.h"
 
-namespace Mspti {
-namespace Convert {
-class SocLogConvert : public BasicConvert<SocLogConvert, HalLogData> {
-public:
+#include "csrc/activity/ascend/channel/basic_convert.h"
+#include "csrc/activity/ascend/entity/soclog.h"
+
+namespace Mspti
+{
+namespace Convert
+{
+class SocLogConvert : public BasicConvert<SocLogConvert, HalLogData>
+{
+   public:
     static SocLogConvert& GetInstance();
     ~SocLogConvert() = default;
-    size_t GetStructSize(uint32_t deviceId, Common::PlatformType chipType) const;
-    TransFunc GetTransFunc(uint32_t deviceId, Common::PlatformType chipType) const;
+    size_t GetStructSize(Common::PlatformType chipType) const;
+    TransFunc GetTransFunc(Common::PlatformType chipType) const;
 
-private:
+   private:
     SocLogConvert() = default;
 };
-}
-}
+}  // namespace Convert
+}  // namespace Mspti
 
-#endif // MSPTI_CONVERT_SOCLOG_CONVERT_H
+#endif  // MSPTI_CONVERT_SOCLOG_CONVERT_H

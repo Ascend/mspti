@@ -162,4 +162,44 @@ TEST_F(ChannelPoolUtest, FlushDrvBuffWillReturnSuccWhenFlushDrvBuffReturnSucc)
     EXPECT_EQ(MSPTI_SUCCESS, pool->FlushDrvBuff(0, PROF_CHANNEL_TS_FW));
 }
 
+// Test AddReader propagates a reader init failure instead of registering a reader that
+// was never initialised, which would stall the channel silently.
+TEST_F(ChannelPoolUtest, AddReaderWillReturnErrorWhenReaderInitFail)
+{
+    std::shared_ptr<Mspti::Ascend::Channel::ChannelPool> pool;
+    Mspti::Common::MsptiMakeSharedPtr(pool, 1);
+    ASSERT_NE(pool, nullptr);
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelReader::Init).stubs().will(returnValue(MSPTI_ERROR_INNER));
+
+    EXPECT_EQ(MSPTI_ERROR_INNER, pool->AddReader(0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
+    EXPECT_EQ(0, pool->readers_map_.size());
+    GlobalMockObject::verify();
+}
+
+// Test DrainReader is a no-op for a channel that never got a reader
+TEST_F(ChannelPoolUtest, DrainReaderWillReturnSuccWhenReaderNotExist)
+{
+    std::shared_ptr<Mspti::Ascend::Channel::ChannelPool> pool;
+    Mspti::Common::MsptiMakeSharedPtr(pool, 1);
+    ASSERT_NE(pool, nullptr);
+
+    EXPECT_EQ(MSPTI_SUCCESS, pool->DrainReader(0, PROF_CHANNEL_TS_FW));
+}
+
+// Test DrainReader forwards to the reader of that channel and propagates its result
+TEST_F(ChannelPoolUtest, DrainReaderWillForwardResultOfReader)
+{
+    std::shared_ptr<Mspti::Ascend::Channel::ChannelPool> pool;
+    Mspti::Common::MsptiMakeSharedPtr(pool, 1);
+    ASSERT_NE(pool, nullptr);
+    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
+
+    EXPECT_EQ(MSPTI_SUCCESS, pool->DrainReader(0, PROF_CHANNEL_TS_FW));
+
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelReader::DrainToConsumer).stubs().will(returnValue(MSPTI_ERROR_INNER));
+    EXPECT_EQ(MSPTI_ERROR_INNER, pool->DrainReader(0, PROF_CHANNEL_TS_FW));
+    GlobalMockObject::verify();
+}
+
 }  // namespace

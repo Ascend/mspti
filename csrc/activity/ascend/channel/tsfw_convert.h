@@ -13,31 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_CONVERT_TSFW_CONVERT_H
 #define MSPTI_CONVERT_TSFW_CONVERT_H
 
-#include <cstdlib>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <vector>
-#include "csrc/activity/ascend/channel/channel_data.h"
-#include "csrc/activity/ascend/channel/basic_convert.h"
 
-namespace Mspti {
-namespace Convert {
-class TsfwConvert : public BasicConvert<TsfwConvert, StepTraceBasic> {
-public:
+#include "csrc/activity/ascend/channel/basic_convert.h"
+#include "csrc/activity/ascend/channel/channel_data.h"
+
+namespace Mspti
+{
+namespace Convert
+{
+class TsfwConvert : public BasicConvert<TsfwConvert, StepTraceBasic>
+{
+   public:
     static TsfwConvert& GetInstance();
     ~TsfwConvert() = default;
-    size_t GetStructSize(uint32_t deviceId, Common::PlatformType chipType) const;
-    TransFunc GetTransFunc(uint32_t deviceId, Common::PlatformType chipType) const;
+    size_t GetStructSize(Common::PlatformType chipType) const;
+    TransFunc GetTransFunc(Common::PlatformType chipType) const;
 
-private:
+   private:
     TsfwConvert() = default;
 };
-}
-}
+}  // namespace Convert
+}  // namespace Mspti
 
-#endif // MSPTI_CONVERT_TSFW_CONVERT_H
+#endif  // MSPTI_CONVERT_TSFW_CONVERT_H

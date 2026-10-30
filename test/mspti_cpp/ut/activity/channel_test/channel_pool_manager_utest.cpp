@@ -162,4 +162,29 @@ TEST_F(ChannelPoolManagerUtest, FlushDrvBuffWillReturnSuccWhenChannelPoolFlushSu
     ret = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->FlushDrvBuff(0, PROF_CHANNEL_TS_FW);
     EXPECT_EQ(MSPTI_SUCCESS, ret);
 }
+
+// Test DrainReader is a no-op before the channel pool exists
+TEST_F(ChannelPoolManagerUtest, DrainReaderWillReturnSuccWhenChannelPoolNotCreated)
+{
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+
+    msptiResult ret = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->DrainReader(0, PROF_CHANNEL_TS_FW);
+    EXPECT_EQ(MSPTI_SUCCESS, ret);
+}
+
+// Test DrainReader forwards to the channel pool once it is created
+TEST_F(ChannelPoolManagerUtest, DrainReaderWillForwardToChannelPool)
+{
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+
+    uint32_t devNum = 1;
+    MOCKER_CPP(&DrvGetDevNum).stubs().with(outBoundP(&devNum)).will(returnValue(DRV_ERROR_NONE));
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPool::DrainReader).stubs().will(returnValue(MSPTI_SUCCESS));
+
+    msptiResult ret = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+    ASSERT_EQ(MSPTI_SUCCESS, ret);
+
+    ret = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->DrainReader(0, PROF_CHANNEL_TS_FW);
+    EXPECT_EQ(MSPTI_SUCCESS, ret);
+}
 }  // namespace

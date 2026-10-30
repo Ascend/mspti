@@ -187,4 +187,58 @@ TEST_F(DevTaskManager, StartShouldPairWithStopForAllSiblingTasksEvenWhenDrvStart
 
     Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
 }
+
+TEST_F(DevTaskManager, DrainDevProfDataShouldRetErrorWhenDeviceOffline)
+{
+    GlobalMockObject::verify();
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::CheckDeviceOnline).stubs().will(returnValue(false));
+    auto instance = Mspti::Ascend::DevTaskManager::GetInstance();
+
+    EXPECT_EQ(MSPTI_ERROR_INNER, instance->DrainDevProfData(0, MSPTI_ACTIVITY_KIND_KERNEL));
+}
+
+TEST_F(DevTaskManager, DrainDevProfDataShouldReturnSuccWhenDeviceHasNoTask)
+{
+    GlobalMockObject::verify();
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::CheckDeviceOnline).stubs().will(returnValue(true));
+    auto instance = Mspti::Ascend::DevTaskManager::GetInstance();
+    constexpr uint32_t kDevWithoutTask = 7;
+
+    EXPECT_EQ(MSPTI_SUCCESS, instance->DrainDevProfData(kDevWithoutTask, MSPTI_ACTIVITY_KIND_KERNEL));
+}
+
+// Test DrainDevProfData walks every prof task of the device: success when all drains
+// succeed, and an error as soon as one of them fails.
+TEST_F(DevTaskManager, DrainDevProfDataShouldDrainAllTasksOfDevice)
+{
+    GlobalMockObject::verify();
+    MOCKER_CPP(&Mspti::Ascend::DevTaskManager::CheckDeviceOnline).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Common::ContextManager::GetChipType)
+        .stubs()
+        .will(returnValue(Mspti::Common::PlatformType::CHIP_910B));
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::GetAllChannels).stubs().will(returnValue(MSPTI_SUCCESS));
+    MOCKER_CPP(&Mspti::Ascend::Channel::ChannelPoolManager::CheckChannelValid).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Inject::profSetProfCommand).stubs().will(returnValue(static_cast<int32_t>(MSPTI_SUCCESS)));
+    MOCKER_CPP(&ProfDrvStart).stubs().will(returnValue(-1));
+
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init();
+    auto instance = Mspti::Ascend::DevTaskManager::GetInstance();
+    constexpr uint32_t kDev = 8;
+    Mspti::Ascend::DevTaskManager::ActivitySwitchType kinds;
+    for (auto& kindSwitch : kinds)
+    {
+        kindSwitch.store(false);
+    }
+    kinds[MSPTI_ACTIVITY_KIND_COMMUNICATION] = true;  // COMMUNICATION → TsFw + Stars on 910B
+
+    EXPECT_EQ(MSPTI_SUCCESS, instance->StartDevProfTask(kDev, kinds));
+    EXPECT_EQ(MSPTI_SUCCESS, instance->DrainDevProfData(kDev, MSPTI_ACTIVITY_KIND_COMMUNICATION));
+
+    // one failing task is enough to fail the whole drain
+    MOCKER_CPP(&Mspti::Ascend::DevProfTask::Drain).stubs().will(returnValue(MSPTI_ERROR_INNER));
+    EXPECT_EQ(MSPTI_ERROR_INNER, instance->DrainDevProfData(kDev, MSPTI_ACTIVITY_KIND_COMMUNICATION));
+
+    EXPECT_EQ(MSPTI_SUCCESS, instance->StopDevProfTask(kDev, kinds));
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+}
 }  // namespace
