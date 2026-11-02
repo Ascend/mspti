@@ -6,5 +6,7 @@ Requested memory type. msptiActivityMemoryKind is an enumeration class invoked b
 typedef enum {
     MSPTI_ACTIVITY_MEMORY_UNKNOWN = 0, // Reserved for internal use. Undefined.
     MSPTI_ACTIVITY_MEMORY_DEVICE = 1, // Device memory.
+    MSPTI_ACTIVITY_MEMORY_HOST = 2, // Host memory.
+    MSPTI_ACTIVITY_MEMORY_MANAGED = 3 // Unified managed memory (automatically migrated by the system).
 } msptiActivityMemoryKind;
 ```

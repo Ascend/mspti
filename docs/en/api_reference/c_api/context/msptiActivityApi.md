@@ -1,6 +1,6 @@
 # msptiActivityApi<a name="ZH-CN_TOPIC_0000002045864213"></a>
 
-msptiActivityApi is the structure corresponding to the Activity Record type MSPTI\_ACTIVITY\_KIND\_API (msptiActivityKind.md). The definition is as follows:
+msptiActivityApi is the structure corresponding to the Activity Record type MSPTI\_ACTIVITY\_KIND\_API [msptiActivityKind](msptiActivityKind.md). The definition is as follows:
 
 ```cpp
 typedef struct PACKED_ALIGNMENT {

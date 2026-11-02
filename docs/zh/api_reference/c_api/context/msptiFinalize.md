@@ -53,7 +53,6 @@
 > 本接口本身不处理 Activity 缓冲区，需由调用方预先处理。<br>
 > 在 MSPTI_API_ENTER 回调点调用时，当前API仍会执行完毕，但其配对的 EXIT 回调将被丢弃。<br>
 
-
 > [!WARNING]
 >
 > 严禁在 msPTI 的缓冲区回调函数（`msptiBuffersCallbackRequestFunc` 或 `msptiBuffersCallbackCompleteFunc`）中调用任何 msPTI 接口（包括本接口，以及 `msptiSubscribe`、`msptiUnsubscribe`、`msptiActivityEnable`、`msptiActivityDisable`、`msptiActivityRegisterCallbacks`、`msptiActivityFlushAll`等接口）。原因：卸载过程持有锁并停止工作线程，若在处理缓冲区的线程上再次调用任何 msPTI 接口（仅 `msptiActivityGetNextRecord` 除外），易导致死锁或进程异常。

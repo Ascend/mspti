@@ -45,7 +45,7 @@ msPTI 主要提供以下能力：
 
 ## 📦 安装指南
 
-介绍工具的环境依赖与安装方法法，支持在线安装、离线安装、源码编译三种方式，请参见 《[msPTI 工具安装指南](./docs/zh/install_guide/mspti_install_guide.md)》。
+介绍工具的环境依赖与安装方法，支持在线安装、离线安装、源码编译三种方式，请参见 《[msPTI 工具安装指南](./docs/zh/install_guide/mspti_install_guide.md)》。
 
 ## 📘 使用指南
 

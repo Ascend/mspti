@@ -43,12 +43,12 @@ CC BY-SA 4.0的完整协议内容您可以访问如下网址获取：<https://cr
         <td></td>
     </tr>
 </table>
-# 1.特性概述
+# 1. 特性概述
 
 msPTI工具（MindStudio Profiling Tools Interface）是MindStudio针对Ascend设备提出的一套Profiling API，用户可以通过msPTI构建针对NPU应用程序的工具，用于分析应用程序的性能。
 msPTI为通用场景接口，使用msPTI API开发的Profiling分析工具可以在各种框架的推理训练场景生效。
 
-## 1.1范围
+## 1.1 范围
 
 msPTI主要包括以下功能：
 
@@ -64,7 +64,7 @@ msPTI主要包括以下功能：
 
 - **Python Monitor封装**：提供KernelMonitor、HcclMonitor、CommunicationMonitor、MstxMonitor等高层Python接口，快速接入Python训练/推理场景。
 
-## 1.2特性需求列表
+## 1.2 特性需求列表
 
 表1：特性需求列表
 
@@ -137,9 +137,9 @@ msPTI主要包括以下功能：
     </tr>
 </table>
 
-# 2.需求场景分析
+# 2. 需求场景分析
 
-## 2.1特性需求来源与价值概述
+## 2.1 特性需求来源与价值概述
 
 随着昇腾NPU在AI训练和推理场景中的广泛应用，开发者需要深入了解NPU应用的性能特征，定位性能瓶颈。msPTI作为MindStudio提供的Profiling API集合，填补了昇腾生态中缺少统一、开放的Profiling接口的空白，使开发者能够：
 
@@ -148,7 +148,7 @@ msPTI主要包括以下功能：
 3. **低开销采集**：异步缓冲区机制确保对业务代码的性能影响最小化。
 4. **多语言支持**：同时提供C/Python两套接口，满足不同层级开发者的需求。
 
-## 2.2特性场景分析
+## 2.2 特性场景分析
 
 ### 场景一：训练性能调优
 
@@ -177,9 +177,9 @@ msPTI主要包括以下功能：
 
 **使用方式**：使用MstxMonitor + torch_npu.npu.mstx（Python），或Callback API + mstxMarkA（C/C++）。
 
-## 2.3特性影响分析
+## 2.3 特性影响分析
 
-### 2.3.1硬件限制
+### 2.3.1 硬件限制
 
 <!-- npu="950" id1 -->
 - Ascend 950PR&950DT系列产品：支持
@@ -200,7 +200,7 @@ msPTI主要包括以下功能：
 - Atlas训练系列产品：不支持
 <!-- end id6 -->
 
-### 2.3.2技术限制
+### 2.3.2 技术限制
 
 | 限制项 | 说明 |
 | --- | --- |
@@ -211,15 +211,15 @@ msPTI主要包括以下功能：
 | Python版本 | 推荐3.10+ |
 | 工具互斥 | msPTI不可与其他性能数据采集工具同时使用 |
 
-### 2.3.3性能影响
+### 2.3.3 性能影响
 
 - Activity API开启Kind数据采集后，采集逻辑在每个Activity发生时进行纳秒级的时间戳记录和缓冲区写入，对业务代码的性能影响在5%以内。
 - Callback API在每次API调用时触发函数回调，影响程度取决于回调函数的复杂度。
 - Python Monitor的回调涉及C扩展到Python层的类型转换，建议在回调中仅做轻量操作。
 
-# 3.特性/功能实现原理
+# 3. 特性/功能实现原理
 
-## 3.1目标
+## 3.1 目标
 
 msPTI的目标是提供一套统一、高效、易用的Profiling API，使开发者能够：
 
@@ -228,9 +228,9 @@ msPTI的目标是提供一套统一、高效、易用的Profiling API，使开�
 3. **异步低开销**：通过Activity Buffer异步机制，将采集开销控制在纳秒级。
 4. **多语言覆盖**：同时提供C API和Python API，满足系统层和应用层的不同需求。
 
-## 3.2总体方案
+## 3.2 总体方案
 
-### 架构分层
+### 3.2.1 架构分层
 
 msPTI整体架构分为以下三层：
 
@@ -253,7 +253,7 @@ msPTI整体架构分为以下三层：
 └────────────────────────────────────────────────────────┘
 ```
 
-### 核心模块说明
+### 3.2.2 核心模块说明
 
 | 模块 | 路径 | 职责 |
 | --- | --- | --- |
@@ -264,7 +264,7 @@ msPTI整体架构分为以下三层：
 | **Python扩展绑定** | `mspti/csrc/` | 将C API封装为Python可调用的扩展模块，处理类型转换和错误码映射。 |
 | **Python Monitor** | `mspti/monitor/` | KernelMonitor、HcclMonitor、MstxMonitor、CommunicationMonitor等高层封装。 |
 
-### 数据流
+### 3.2.3 数据流
 
 ```text
 用户业务代码
@@ -296,7 +296,7 @@ msPTI整体架构分为以下三层：
 
 # 4. Activity API 详细设计
 
-## 4.1设计思路
+## 4.1 设计思路
 
 Activity API是msPTI的核心数据采集接口。整体设计围绕以下原则展开：
 
@@ -305,7 +305,7 @@ Activity API是msPTI的核心数据采集接口。整体设计围绕以下原则
 3. **轻量插桩**：通过`LD_PRELOAD`机制在CANN Runtime关键路径上进行插桩，采集时间戳和元数据。
 4. **用户控制**：缓冲区由用户分配和管理，msPTI仅负责填充数据，用户可控制内存使用量。
 
-### 核心工作机制
+### 4.1.1 核心工作机制
 
 ```text
 ┌──────────┐   RequestFunc    ┌──────────────┐
@@ -322,7 +322,7 @@ Activity API是msPTI的核心数据采集接口。整体设计围绕以下原则
 4. 用户在`CompleteFunc`中通过`msptiActivityGetNextRecord`遍历解析记录。
 5. 用户消费完毕后，可通过`RequestFunc`将空缓冲区归还msPTI复用。
 
-### Enable/Disable机制
+### 4.1.2 Enable/Disable机制
 
 所有Activity Kind默认关闭。`msptiActivityEnable`/`msptiActivityDisable`通过设置内部标志位控制采集开关。开启后，msPTI在CANN Runtime的对应路径上注册插桩点，开始采集。
 
@@ -333,7 +333,7 @@ msptiActivityEnable(KIND_KERNEL)
   → 后续每次Kernel执行时记录 msptiActivityKernel
 ```
 
-## 4.2约束条件
+## 4.2 约束条件
 
 | 约束项 | 说明 |
 | --- | --- |
@@ -342,7 +342,7 @@ msptiActivityEnable(KIND_KERNEL)
 | 线程安全 | msPTI内部保证线程安全的缓冲区写入，用户需自行保证回调的线程安全 |
 | 工具互斥 | msPTI不可与其他性能采集工具同时使用 |
 
-## 4.3详细实现
+## 4.3 详细实现
 
 ### 4.3.1 Activity Buffer生命周期
 
@@ -512,7 +512,7 @@ Get TIMESTAMP_CALLBACK
 - **原子存储**：时间戳回调经`ContextManager`以`std::atomic`存储，Get并发读取安全（见4.3.5节）。
 - **时序约束**：`MSPTI_ACTIVITY_ATTR_CHANNEL_BUFFER_SIZE`仅对设置之后创建的Channel Buffer生效，已创建的Channel不受影响，建议在启用Activity采集或创建Channel之前完成设置。
 
-## 4.4子系统间接口
+## 4.4 子系统间接口
 
 ### 4.4.1 Activity API 函数接口
 
@@ -598,7 +598,7 @@ Get TIMESTAMP_CALLBACK
 | `MSPTI_CB_DOMAIN_RUNTIME` | 1 | Runtime API回调域，覆盖设备管理、流管理、Kernel Launch、内存操作等 |
 | `MSPTI_CB_DOMAIN_HCCL` | 2 | HCCL通信回调域，覆盖AllReduce、Broadcast、AllGather等通信操作 |
 
-## 4.5子系统详细设计
+## 4.5 子系统详细设计
 
 ### 4.5.1 C/C++核心层
 
@@ -665,9 +665,9 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 - **Callback + MSTX**：在Callback中调用`mstxMarkA`打点，同时开启Activity API采集MARKER和KERNEL数据。
 - **域控制**：通过`msptiActivityEnableMarkerDomain`/`msptiActivityDisableMarkerDomain`控制MSTX域的采集开关。
 
-## 4.6DFX属性设计
+## 4.6 DFX属性设计
 
-### 4.6.1性能设计
+### 4.6.1 性能设计
 
 | 操作 | 性能特征 | 优化措施 |
 | --- | --- | --- |
@@ -680,7 +680,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 
 **实测结论**：在典型训练场景下，开启KERNEL + API两个Kind时，对训练吞吐的影响在3%~5%以内。
 
-### 4.6.2升级与扩容设计
+### 4.6.2 升级与扩容设计
 
 **版本升级**：
 
@@ -695,7 +695,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 - Activity Buffer按进程管理，不涉及跨进程数据共享。
 - Python Monitor通过`torchrun`启动的多进程各自创建独立的Monitor实例。
 
-### 4.6.3异常处理设计
+### 4.6.3 异常处理设计
 
 | 异常场景 | 处理方式 | 用户提示 |
 | --- | --- | --- |
@@ -709,7 +709,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 | 无效参数 | 返回`MSPTI_ERROR_INVALID_PARAMETER` | 打印参数错误详情 |
 | 内存分配失败 | 回调中返回NULL，msPTI丢弃记录 | 建议增大缓冲区或减少并发 |
 
-### 4.6.4资源管理相关设计
+### 4.6.4 资源管理相关设计
 
 **内存管理**：
 
@@ -729,7 +729,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 - Python Monitor的`stop()`内部自动调用Flush。
 - 缓冲区内存由用户在CompleteFunc中释放或复用。
 
-### 4.6.5小型化设计
+### 4.6.5 小型化设计
 
 **版本裁剪**：
 
@@ -827,7 +827,7 @@ msPTI与MSTX（MindStudio Tools Extension）的集成体现在：
 - Buffer指针、Domain枚举、Callback ID等参数在校验不通过时返回`MSPTI_ERROR_INVALID_PARAMETER`。
 - Marker域名称为字符串输入，在校验时检查是否为NULL。
 
-## 4.7系统外部接口
+## 4.7 系统外部接口
 
 ### 4.7.1 C API依赖
 
@@ -863,7 +863,7 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 python your_script.py
 ```
 
-# 5.数据结构设计
+# 5. 数据结构设计
 
 ## 5.1 Activity Record 结构体
 
@@ -1097,7 +1097,7 @@ typedef union {
 
 ## 5.3 枚举定义汇总
 
-### msptiResult（错误码）
+### 5.3.1 msptiResult（错误码）
 
 | 枚举值 | 数值 | 说明 |
 | --- | --- | --- |
@@ -1113,21 +1113,21 @@ typedef union {
 | `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` | 9 | 参数缓冲区大小不足（如设置/获取Activity属性时 valueSize 小于属性所需大小） |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 |
 
-### Callback ID
+### 5.3.2 Callback ID
 
 **Runtime Domain Callback ID**：定义在`msptiCallbackIdRuntime`枚举中，值范围1~36，涵盖设备管理（1~3）、上下文管理（4~6）、流管理（7~9）、Kernel启动（10~14）、内存管理（15~21）、数据拷贝（22~26）、内存设置（27~28）等。
 
 **HCCL Domain Callback ID**：定义在`msptiCallbackIdHccl`枚举中，值范围1~13，涵盖AllReduce（1）、Broadcast（2）、AllGather（3）、ReduceScatter（4）、Reduce（5）、AllToAll（6~7）、Barrier（8）、Scatter（9）、Send/Recv（10~12）等。
 
-### Activity Flag
+### 5.3.3 Activity Flag
 
 Marker标记的6种标志位，使用位域组合。前3个为纯Host标记，后3个为含Device的标记。
 
-### Communication Data Type
+### 5.3.4 Communication Data Type
 
 支持17种通信数据类型，覆盖INT8/16/32/64/128、UINT8/16/32/64、FP16/32/64、BFP16、HIF8、FP8E4M3/FP8E5M2/FP8E8M0等。
 
-### msptiActivityAttribute（Activity属性）
+### 5.3.5 msptiActivityAttribute（Activity属性）
 
 用于标识Activity采集过程中的可配置属性，作为`msptiActivitySetAttribute`/`msptiActivityGetAttribute`的参数使用。
 

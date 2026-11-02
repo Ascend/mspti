@@ -35,7 +35,6 @@ The Callback API and Activity API can be enabled at the same time without confli
 | Complete C interface reference | [C API Reference](../api_reference/c_api/README.md) | All functions and data structures of the Activity API and Callback API |
 | Complete Python interface reference | [Python API Reference](../api_reference/python_api/README.md) | All interfaces of `KernelMonitor`/`HcclMonitor`/`MstxMonitor`/`CommunicationMonitor` |
 | Sample list and descriptions | [msPTI Sample Guide](../user_guide/samples_guide.md) | 9 hands-on samples covering all interface types |
-| Development and build | [msPTI Development Guide](../development_guide/development_guide.md) | Source code compilation, secondary development, testing, and submission |
 | Best practices and typical cases | [msPTI Best Practices](../best_practices/basic_cases.md) | Interface selection, buffer management, and anti-pattern avoidance |
 
 ## 3. Common Conventions
@@ -67,10 +66,13 @@ All msPTI functions return an `msptiResult` enumeration value:
 | MSPTI_ERROR_DEVICE_OFFLINE | 4 | Device offline | Device-side information cannot be obtained |
 | MSPTI_ERROR_QUEUE_EMPTY | 5 | Queue is empty | External Correlation ID matching fails |
 | MSPTI_ERROR_WITHOUT_LD_PRELOAD | 6 | LD_PRELOAD not set | `libmspti.so` is not preloaded |
+| MSPTI_ERROR_NOT_INITIALIZED | 7 | Not initialized | A related interface is called when msPTI is not initialized |
+| MSPTI_ERROR_INVALID_KIND | 8 | Invalid Kind | The Activity Kind is invalid |
+| MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT | 9 | Insufficient parameter buffer size | The buffer size specified by `valueSize` is smaller than the size required by the attribute (for example, `msptiActivitySetAttribute`/`msptiActivityGetAttribute`) |
 | MSPTI_ERROR_INNER | 999 | Internal error | MSPTI initialization fails or an internal exception occurs |
 
 > [!NOTE]
-> 
+>
 > For detailed error handling, see the "Returns" section in each API reference document.
 
 ### 3.3 Constraints and Limitations

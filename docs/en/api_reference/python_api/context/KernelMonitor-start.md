@@ -8,14 +8,24 @@
 
 <a name="zh-cn_topic_0000002143882701_table38301303189"></a>
 
-| Product Type                                   | Supported|
-| ------------------------------------------- | :------: |
-| Ascend 950 products                 |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training products                         |    ×     |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ## Function Usage <a name="section463019538153"></a>
 
@@ -40,7 +50,7 @@ def start(self, cb: Callable[[KernelData], None]) -> MsptiResult:
 </thead>
 <tbody><tr id="row10379818172019"><td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p10791153923311"><a name="p10791153923311"></a><a name="p10791153923311"></a>cb: Callable</p>
 </td>
-<td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.2 "><p id="p187904392335"><a name="p187904392335"></a><a name="p187904392335"></a>Input </p>.
+<td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.2 "><p id="p187904392335"><a name="p187904392335"></a><a name="p187904392335"></a>Input </p>
 </td>
 <td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p1871112011815"><a name="p1871112011815"></a><a name="p1871112011815"></a> is used to transfer the collected kernel data. Call the <a href="KernelData.md">KernelData</a> structure.</p>
 </td>

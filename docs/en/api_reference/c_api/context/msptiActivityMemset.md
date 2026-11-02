@@ -15,3 +15,12 @@ typedef struct PACKED_ALIGNMENT {
     uint8_t isAsync; // Whether the memory is set using asynchronous memory APIs.
 } msptiActivityMemset;
 ```
+
+Currently, only some CANN Runtime memory setting APIs can be collected. The list is as follows:
+
+| API | Description |
+| --- | --- |
+| `aclrtMemset` | Synchronous memory setting |
+| `aclrtMemsetAsync` | Asynchronous memory setting |
+| `aclrtMemsetD32` | Memory setting with a 32-bit integer |
+| `aclrtMemsetD32Async` | Asynchronous memory setting with a 32-bit integer |

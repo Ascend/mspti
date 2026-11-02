@@ -31,7 +31,7 @@
 
 为特定domain的订阅者开启或关闭所有回调。
 
-当这个CallbackId所在位置触发时，msPTI会主动调用msptiSubscribe接口注册的回调函数。
+当这个回调ID所在位置触发时，msPTI会主动调用msptiSubscribe接口注册的回调函数。
 
 ## 函数原型<a name="section1121883194711"></a>
 

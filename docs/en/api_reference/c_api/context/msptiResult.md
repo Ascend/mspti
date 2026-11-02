@@ -11,12 +11,10 @@ typedef enum {
     MSPTI_ERROR_DEVICE_OFFLINE = 4, // The information on the device side cannot be obtained
     MSPTI_ERROR_QUEUE_EMPTY = 5,    // Returned when External Correlation ID matching fails, indicating that msPTI fails to be executed
     MSPTI_ERROR_WITHOUT_LD_PRELOAD = 6,    // Returned when libmspti.so is not set in the LD_PRELOAD environment variable, indicating that msPTI fails to be executed
-    MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED = 10, // Returned when a PM Sampling session already exists on the device, indicating that msPTI fails to be executed
-    MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED = 11, // Returned when the PM Sampling session does not exist or is not enabled, indicating that msPTI fails to be executed
-    MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC = 12, // Returned when a metric ID is invalid, duplicated, or unavailable on the device, indicating that msPTI fails to be executed
-    MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW = 13, // Returned when the counter data image has insufficient capacity, indicating that msPTI fails to be executed
-    MSPTI_ERROR_INVALID_OPERATION = 14, // Returned when the operation is not allowed in the current state, indicating that msPTI fails to be executed
-    MSPTI_ERROR_INNER = 999, // msPTI fails to be executed when msPTI cannot be initialized
+    MSPTI_ERROR_NOT_INITIALIZED = 7,    // Returned when msPTI is not initialized, indicating that msPTI fails to be executed
+    MSPTI_ERROR_INVALID_KIND = 8,    // Returned when the activity kind is invalid, indicating that msPTI fails to be executed
+    MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT = 9,    // Returned when the parameter buffer size is insufficient, indicating that msPTI fails to be executed
+    MSPTI_ERROR_INNER = 999,    // Returned when an internal error occurs in msPTI, indicating that msPTI fails to be executed
     MSPTI_ERROR_FORCE_INT = 0x7fffffff
 } msptiResult;
 ```

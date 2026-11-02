@@ -8,14 +8,24 @@
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
-| Product Type                                   | Supported|
-| ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training products                         |    ×     |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ## Description <a name="section20806203412478"></a>
 
@@ -32,7 +42,6 @@ msptiResult msptiSubscribe(msptiSubscriberHandle *subscriber, msptiCallbackFunc 
 **Table 1** Parameter Description
 
 <a name="table827101275518"></a>
-
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a> Parameter Name</p>
 </th>
 <th class="cellrowborder" valign="top" width="13.661366136613662%" id="mcps1.2.4.1.2"><p id="p10230141454318"><a name="p10230141454318"></a><a name="p10230141454318"></a> Input/Output</p>
@@ -45,7 +54,7 @@ msptiResult msptiSubscribe(msptiSubscriberHandle *subscriber, msptiCallbackFunc 
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p9342183212166"><a name="p9342183212166"></a><a name="p9342183212166"></a>Input </p>
 </td>
-Handle address of the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a> subscriber.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p131994242276"><a name="p131994242276"></a><a name="p131994242276"></a>Handle address of the subscriber.</p>
 </td>
 </tr>
 <tr id="row1940614612417"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p3406206194111"><a name="p3406206194111"></a><a name="p3406206194111"></a>callback</p>
@@ -59,7 +68,7 @@ Handle address of the <td class="cellrowborder" valign="top" width="57.685768576
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1347173215168"><a name="p1347173215168"></a><a name="p1347173215168"></a> Input </p>
 </td>
-User-defined data address of the <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p186110911418"><a name="p186110911418"></a><a name="p186110911418"></a> subscriber. The subscriber data is transferred to the callback function through this parameter.</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p186110911418"><a name="p186110911418"></a><a name="p186110911418"></a>User-defined data address of the subscriber. The subscriber data is transferred to the callback function through this parameter.</p>
 </td>
 </tr>
 </tbody>

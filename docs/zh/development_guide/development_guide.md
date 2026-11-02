@@ -134,7 +134,7 @@ cd mspti
 若新增接口或增强接口能力，建议同步补充样例，并更新：
 
 - `samples/README.md`
-- `docs/zh/README.md`
+- `docs/user_guide/samples_guide.md`
 
 ### 2.6 常见开发场景
 
@@ -276,6 +276,7 @@ source ${install_path}/set_env.sh
 cd ${install_path}/tools/mspti/samples/callback_domain
 bash sample_run.sh
 ```
+
 ${install_path}请替换为CANN实际安装路径，如 /usr/local/Ascend/cann
 
 如开发的是 Python Monitor，建议额外验证：

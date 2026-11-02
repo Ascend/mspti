@@ -8,14 +8,24 @@
 
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
-| Product Type                                   | Supported|
-| ------------------------------------------- | :------: |
-| Ascend 950 products                  |    √     |
-| Atlas A3 training products/Atlas A3 inference products|    √     |
-| Atlas A2 training products/Atlas A2 inference products|    √     |
-| Atlas 200I/500 A2 inference products                 |    √     |
-| Atlas inference products                         |    ×     |
-| Atlas training products                         |    ×     |
+<!-- npu="950" id1 -->
+- Atlas 950PR and 950DT products: supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- Atlas A3 products: supported
+<!-- end id2 -->
+<!-- npu="910b" id3 -->
+- Atlas A2 products: supported
+<!-- end id3 -->
+<!-- npu="310b" id4 -->
+- Atlas 200I/500 A2 inference products: supported
+<!-- end id4 -->
+<!-- npu="310p" id5 -->
+- Atlas inference products: not supported
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- Atlas training products: not supported
+<!-- end id6 -->
 
 ## Description <a name="section20806203412478"></a>
 
@@ -42,7 +52,7 @@ msptiResult msptiActivityFlushPeriod(uint32_t time)
 </thead>
 <tbody><tr id="row1131131265511"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p7669321185110"><a name="p7669321185110"></a><a name="p7669321185110"></a>time</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p18311931172217"><a name="p18311931172217"></a><a name="p18311931172217"></a>Input </p>.
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p18311931172217"><a name="p18311931172217"></a><a name="p18311931172217"></a>Input </p>
 </td>
 <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p988142010473"><a name="p988142010473"></a><a name="p988142010473"></a> Indicates the execution period of checking full buffers, in milliseconds. If the parameter is set to 0, the function of periodically checking the full buffer is disabled.</p>
 <p id="p712111021"><a name="p712111021"></a><a name="p712111021"></a> You are advised not to set the interval to a small value to prevent frequent checks.</p>
