@@ -76,4 +76,4 @@ msptiResult msptiActivityGetNextRecord(uint8_t *buffer, size_t validBufferSizeBy
 
 ## Returns<a name="section16621124213476"></a>
 
-`MSPTI_SUCCESS` indicates that the operation is successful. `MSPTI_ERROR_MAX_LIMIT_REACHED` is returned when there is no more record data in the activity buffer, indicating that the data in the activity buffer has been completely obtained. `MSPTI_ERROR_INVALID_PARAMETER` is returned when the activity buffer is empty, indicating that the operation fails.
+`MSPTI_SUCCESS` indicates that the operation is successful. `MSPTI_ERROR_MAX_LIMIT_REACHED` is returned when there is no more record data in the activity buffer, indicating that the data in the activity buffer has been completely obtained. `MSPTI_ERROR_INVALID_PARAMETER` is returned when the activity buffer is empty, indicating that the operation fails. If the activity kind in the record is invalid, `MSPTI_ERROR_INVALID_KIND` is returned, indicating failure.

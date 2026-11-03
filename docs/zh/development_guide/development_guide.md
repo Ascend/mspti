@@ -134,7 +134,7 @@ cd mspti
 若新增接口或增强接口能力，建议同步补充样例，并更新：
 
 - `samples/README.md`
-- `docs/zh/README.md`
+- `docs/zh/user_guide/samples_guide.md`
 
 ### 2.6 常见开发场景
 

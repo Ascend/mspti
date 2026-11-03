@@ -134,7 +134,7 @@ The `samples` directory demonstrates typical interface usage. The current sample
 If you add new interfaces or enhance existing interface capabilities, you are advised to add corresponding samples and update the following files:
 
 - `samples/README.md`
-- `docs/en/README.md`
+- `docs/en/user_guide/samples_guide.md`
 
 ### 2.6 Common Development Scenarios
 

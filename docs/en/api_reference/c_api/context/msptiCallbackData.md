@@ -1,6 +1,6 @@
 # msptiCallbackData<a name="ZH-CN_TOPIC_0000002014599005"></a>
 
-msptiCallbackData is the structure corresponding to the **cbdata** of msptiCallbackFunc, which is used to specify the data to be transferred to the callback function.
+msptiCallbackData is the structure corresponding to the **cbdata** of [msptiCallbackFunc](msptiCallbackFunc.md), which is used to specify the data to be transferred to the callback function.
 
 The definition is as follows:
 

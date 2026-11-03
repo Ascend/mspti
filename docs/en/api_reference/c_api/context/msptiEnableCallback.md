@@ -85,4 +85,4 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 
 ## Returns<a name="section16621124213476"></a>
 
-`MSPTI_SUCCESS` is returned if the operation is successful. `MSPTI_ERROR_INVALID_PARAMETER` is returned if the user, domain, or `cbid` is invalid, indicating that the operation fails.
+`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber`, domain, or `cbid` is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.

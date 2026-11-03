@@ -145,7 +145,7 @@ bash scripts/execute_test_case.sh
 
 4. **创建Pull Request**
 
-   在GitCode上创建Pull Request，并填写：
+   在Gitcode上创建Pull Request，并填写：
 
    1. 清晰的标题
 
