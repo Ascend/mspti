@@ -12,6 +12,7 @@ add_executable(pm_sampling_utest
     pm_sampling_parser_utest.cpp
     pm_sampling_decoder_utest.cpp
     pm_sampling_image_api_utest.cpp
+    pm_sampling_exception_injection.cpp
     pm_sampling_metric_table_utest.cpp
     pm_sampling_dcmi_utest.cpp
     ${TOP_DIR}/csrc/common/context_manager.cpp
@@ -26,3 +27,10 @@ add_executable(pm_sampling_utest
 )
 
 run_test(pm_sampling_utest)
+
+# Link-time wrappers keep compiler-generated unwind information intact on ARM64.
+# These symbols are Decoder::GetSize and Decoder::CheckPlan under the Linux C++ ABI.
+target_link_options(pm_sampling_utest PRIVATE
+    "-Wl,--wrap=_ZN5Mspti10PmSampling17PmSamplingDecoder7GetSizeEjjmRm"
+    "-Wl,--wrap=_ZN5Mspti10PmSampling17PmSamplingDecoder9CheckPlanEPKhmRKSt6vectorIjSaIjEEjm"
+)

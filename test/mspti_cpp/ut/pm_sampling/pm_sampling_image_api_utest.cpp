@@ -17,13 +17,13 @@
  */
 
 #include <array>
-#include <new>
 
 #include "csrc/common/context_manager.h"
 #include "csrc/pm_sampling/pm_sampling_decoder.h"
 #include "csrc/pm_sampling/pm_sampling_manager.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
+#include "pm_sampling_exception_injection.h"
 
 using namespace Mspti::PmSampling;
 namespace
@@ -386,23 +386,52 @@ TEST_F(PmSamplingImageApiUtest, InvalidQueueIndexesAndTimestampsLeaveOutputsUnch
     EXPECT_EQ(object.QueueCount(), 1U);
 }
 
-msptiResult FailSizeWithAllocationException(uint32_t, uint32_t, uint64_t, size_t &) { throw std::bad_alloc(); }
-
 TEST_F(PmSamplingImageApiUtest, AllocationExceptionDoesNotEscapeResultApiOrConsumeQueue)
 {
     object.queue_ = {Sample(10)};
     object.overflowed_ = true;
     const auto before = image;
     size = 97;
-    MOCKER(PmSamplingDecoder::GetSize).stubs().will(invoke(FailSizeWithAllocationException));
-    EXPECT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_ERROR_INNER);
-    EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_INNER);
+    {
+        Mspti::PmSampling::Test::ScopedAllocationFailure failure(Mspti::PmSampling::Test::FailurePoint::GetSize);
+        EXPECT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_ERROR_INNER);
+        EXPECT_EQ(failure.Hits(), 1U);
+    }
+    EXPECT_EQ(size, 97U);
+    EXPECT_EQ(object.QueueCount(), 1U);
+    EXPECT_TRUE(object.overflowed_);
+    EXPECT_EQ(image, before);
+    {
+        // DecodeData validates the image plan through GetSize before consuming samples.
+        Mspti::PmSampling::Test::ScopedAllocationFailure failure(Mspti::PmSampling::Test::FailurePoint::GetSize);
+        EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_INNER);
+        EXPECT_EQ(failure.Hits(), 1U);
+    }
     EXPECT_EQ(size, 97U);
     EXPECT_EQ(object.QueueCount(), 1U);
     EXPECT_TRUE(object.overflowed_);
     EXPECT_FALSE(overflow);
     EXPECT_EQ(reason, MSPTI_PM_SAMPLING_DECODE_STOP_REASON_OTHER);
     EXPECT_EQ(image, before);
+    {
+        // CheckPlan is called by the API before any destructive queue consumption.
+        Mspti::PmSampling::Test::ScopedAllocationFailure failure(Mspti::PmSampling::Test::FailurePoint::CheckPlan);
+        EXPECT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_ERROR_INNER);
+        EXPECT_EQ(failure.Hits(), 1U);
+    }
+    EXPECT_EQ(size, 97U);
+    EXPECT_EQ(object.QueueCount(), 1U);
+    EXPECT_TRUE(object.overflowed_);
+    EXPECT_FALSE(overflow);
+    EXPECT_EQ(reason, MSPTI_PM_SAMPLING_DECODE_STOP_REASON_OTHER);
+    EXPECT_EQ(image, before);
+
+    // Leaving all injection scopes restores real calls, including after an exception.
+    ASSERT_EQ(msptiPmSamplingGetCounterDataSize(&sizeParams), MSPTI_SUCCESS);
+    EXPECT_EQ(size, image.size());
+    ASSERT_EQ(msptiPmSamplingDecodeData(&decode), MSPTI_SUCCESS);
+    EXPECT_EQ(object.QueueCount(), 0U);
+    EXPECT_TRUE(overflow);
 }
 
 }  // namespace
