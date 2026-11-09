@@ -134,7 +134,7 @@ You can uninstall the tool by performing the following steps:
 
 An upgrade is performed by uninstalling first and then installing. If you run the installation command directly, the tool automatically uninstalls the old version and guides you through the overlay installation.
 
-You can run the `pip show mspti` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, pay attention to the version compatibility. For details, see the [Release Notes](https://atomgit.com/Ascend/release-management/blob/master/MindStudio/26.2.0/release_notes.md).
+You can run the `pip show mspti` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, pay attention to the version compatibility. For details, see the [Release Notes](https://atomgit.com/Ascend/release-management/blob/master/MindStudio/26.2.0/release_notes_en.md).
 
 ## 6. Appendixes
 
