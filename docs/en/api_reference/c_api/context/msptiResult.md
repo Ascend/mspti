@@ -10,7 +10,7 @@ typedef enum {
     MSPTI_ERROR_MAX_LIMIT_REACHED = 3, // msPTI fails to be executed when the activity buffer does not have more record data
     MSPTI_ERROR_DEVICE_OFFLINE = 4, // The information on the device side cannot be obtained
     MSPTI_ERROR_QUEUE_EMPTY = 5,    // Returned when External Correlation ID matching fails, indicating that msPTI fails to be executed
-    MSPTI_ERROR_WITHOUT_LD_PRELOAD = 6,    // Returned when libmspti.so is not set in the LD_PRELOAD environment variable, indicating that msPTI fails to be executed
+    MSPTI_ERROR_WITHOUT_LD_PRELOAD = 6,    // Returned when libmspti.so is not set in the LD_PRELOAD environment variable or the libmspti.so file pointed to by LD_PRELOAD does not exist, indicating that msPTI fails to be executed
     MSPTI_ERROR_NOT_INITIALIZED = 7,    // Returned when msPTI is not initialized, indicating that msPTI fails to be executed
     MSPTI_ERROR_INVALID_KIND = 8,    // Returned when the activity kind is invalid, indicating that msPTI fails to be executed
     MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT = 9,    // Returned when the parameter buffer size is insufficient, indicating that msPTI fails to be executed

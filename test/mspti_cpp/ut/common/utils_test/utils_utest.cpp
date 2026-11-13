@@ -19,6 +19,7 @@
 #include <sys/syscall.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <fstream>
 #include <map>
 #include <unordered_map>
@@ -27,6 +28,7 @@
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/utils.h"
 #include "gtest/gtest.h"
+#include "ld_preload_test_helper.h"
 #include "mockcpp/mockcpp.hpp"
 #include "securec.h"
 
@@ -413,5 +415,95 @@ TEST_F(UtilsUtest, EraseIfShouldHandleEmptyContainerAndFullMatch)
     std::unordered_map<int, int> noneMatch{{1, 1}, {2, 2}};
     Mspti::Common::EraseIf(noneMatch, [](const auto& kv) { return false; });
     EXPECT_EQ(2U, noneMatch.size());
+}
+
+namespace
+{
+class ScopedLdPreload
+{
+   public:
+    explicit ScopedLdPreload(const std::string& value) : oldValue_(Mspti::Common::Utils::GetEnv("LD_PRELOAD"))
+    {
+        setenv("LD_PRELOAD", value.c_str(), 1);
+    }
+    ~ScopedLdPreload()
+    {
+        if (oldValue_.empty())
+        {
+            unsetenv("LD_PRELOAD");
+        }
+        else
+        {
+            setenv("LD_PRELOAD", oldValue_.c_str(), 1);
+        }
+    }
+
+   private:
+    std::string oldValue_;
+};
+}  // namespace
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldMatchExistingLibrary)
+{
+    ScopedLdPreload ld(MsptiTest::GetLdPreloadLibPath());
+    EXPECT_TRUE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+}
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldReturnFalseWhenMatchedFileNotExist)
+{
+    ScopedLdPreload ld("/tmp/mspti_ut_not_exist/libmspti.so");
+    EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+}
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldIgnoreLibraryNameWithPrefixOrSuffix)
+{
+    ScopedLdPreload ld("/tmp/not_libmspti.so");
+    EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+
+    setenv("LD_PRELOAD", "/tmp/libmspti.so.bak", 1);
+    EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+
+    setenv("LD_PRELOAD", "/tmp/libmspti.so.1", 1);
+    EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+}
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldMatchExistingBareLibraryName)
+{
+    const std::string libName = "libmspti.so";
+    ASSERT_FALSE(MsptiTest::GetLdPreloadLibDir().empty());
+    // Run inside the helper's temporary directory so that the bare library name is
+    // resolved there instead of the real test working directory.
+    MsptiTest::ScopedWorkingDirectory cwd(MsptiTest::GetLdPreloadLibDir());
+    ASSERT_TRUE(cwd.IsValid());
+
+    ScopedLdPreload ld(libName);
+    EXPECT_TRUE(Mspti::Common::Utils::IsLdPreloaded(libName));
+}
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldMatchAnyExistingEntryInList)
+{
+    const std::string libPath = MsptiTest::GetLdPreloadLibPath();
+    ScopedLdPreload ld("/tmp/not_libmspti.so:" + libPath);
+    EXPECT_TRUE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+
+    setenv("LD_PRELOAD", ("/tmp/not_libmspti.so " + libPath).c_str(), 1);
+    EXPECT_TRUE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+
+    setenv("LD_PRELOAD", ("/tmp/not_libmspti.so\t" + libPath).c_str(), 1);
+    EXPECT_TRUE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+}
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldSkipMatchedEntryWhenFileNotExist)
+{
+    const std::string missingPath = "/tmp/mspti_ut_not_exist/libmspti.so";
+    ScopedLdPreload ld(missingPath + " " + MsptiTest::GetLdPreloadLibPath());
+    EXPECT_TRUE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+}
+
+TEST_F(UtilsUtest, IsLdPreloadedShouldReturnFalseWhenLibraryNotPresentOrNameEmpty)
+{
+    ScopedLdPreload ld("/usr/lib/libother.so");
+    EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
+    EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded(""));
 }
 }  // namespace

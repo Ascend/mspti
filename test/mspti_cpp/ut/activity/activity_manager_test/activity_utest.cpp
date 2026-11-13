@@ -29,6 +29,7 @@
 #include "csrc/common/runtime_utils.h"
 #include "csrc/common/utils.h"
 #include "gtest/gtest.h"
+#include "ld_preload_test_helper.h"
 #include "mockcpp/mockcpp.hpp"
 #include "mspti.h"
 #include "securec.h"
@@ -1138,7 +1139,7 @@ TEST_F(ActivityUtest, CallbackManagerInitUnInitDrivesActivityThreadLifecycle)
     EXPECT_FALSE(am->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER));
 
     msptiSubscriberHandle sub = nullptr;
-    setenv("LD_PRELOAD", "libmspti.so", 1);
+    setenv("LD_PRELOAD", MsptiTest::GetLdPreloadLibPath().c_str(), 1);
     auto cb = [](void *, msptiCallbackDomain, msptiCallbackId, const msptiCallbackData *) {};
     EXPECT_EQ(MSPTI_SUCCESS, msptiSubscribe(&sub, cb, nullptr));
     // Init 已 Start 线程：此时 Register 回调应走幂等分支

@@ -65,7 +65,7 @@ All msPTI functions return an `msptiResult` enumeration value:
 | MSPTI_ERROR_MAX_LIMIT_REACHED | 3 | Maximum limit reached | The Activity Buffer has no more space for Records |
 | MSPTI_ERROR_DEVICE_OFFLINE | 4 | Device offline | Device-side information cannot be obtained |
 | MSPTI_ERROR_QUEUE_EMPTY | 5 | Queue is empty | External Correlation ID matching fails |
-| MSPTI_ERROR_WITHOUT_LD_PRELOAD | 6 | LD_PRELOAD not set | `libmspti.so` is not preloaded |
+| MSPTI_ERROR_WITHOUT_LD_PRELOAD | 6 | LD_PRELOAD not set or the file does not exist | `libmspti.so` is not preloaded, or the `libmspti.so` file pointed to by `LD_PRELOAD` does not exist |
 | MSPTI_ERROR_NOT_INITIALIZED | 7 | Not initialized | A related interface is called when msPTI is not initialized |
 | MSPTI_ERROR_INVALID_KIND | 8 | Invalid Kind | The Activity Kind is invalid |
 | MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT | 9 | Insufficient parameter buffer size | The buffer size specified by `valueSize` is smaller than the size required by the attribute (for example, `msptiActivitySetAttribute`/`msptiActivityGetAttribute`) |

@@ -41,11 +41,7 @@ inline bool IsValidCBId(msptiCallbackId cbid) { return cbid < sizeof(CallbackMan
 
 inline bool HasLdPreload()
 {
-    static auto hasLdPreload = []() -> bool
-    {
-        const std::string ld = Common::Utils::GetEnv("LD_PRELOAD");
-        return ld.find("libmspti.so") != std::string::npos;
-    }();
+    static auto hasLdPreload = []() -> bool { return Common::Utils::IsLdPreloaded("libmspti.so"); }();
     return hasLdPreload;
 }
 
@@ -260,7 +256,7 @@ msptiResult CallbackManager::PreCheck(msptiSubscriberHandle subscriber)
 {
     if (!HasLdPreload())
     {
-        MSPTI_LOGE("Enable callbackDomain requires libmspti.so in LD_PRELOAD.");
+        MSPTI_LOGE("Enable callbackDomain requires an existing libmspti.so in LD_PRELOAD.");
         return MSPTI_ERROR_WITHOUT_LD_PRELOAD;
     }
     if (!init_.load())

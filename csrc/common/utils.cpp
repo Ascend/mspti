@@ -167,6 +167,36 @@ std::string Utils::GetEnv(const std::string& name)
     return value ? std::string(value) : std::string();
 }
 
+bool Utils::IsLdPreloaded(const std::string& libName)
+{
+    if (libName.empty())
+    {
+        return false;
+    }
+    // LD_PRELOAD accepts a list of libraries separated by spaces, tabs or colons.
+    const std::string ldPreload = GetEnv("LD_PRELOAD");
+    size_t begin = 0;
+    while (begin < ldPreload.size())
+    {
+        size_t end = ldPreload.find_first_of(" \t:", begin);
+        if (end == std::string::npos)
+        {
+            end = ldPreload.size();
+        }
+        const std::string entry = ldPreload.substr(begin, end - begin);
+        const size_t slash = entry.find_last_of('/');
+        const std::string baseName = (slash == std::string::npos) ? entry : entry.substr(slash + 1);
+        // Match the whole file name to avoid treating e.g. "not_libmspti.so" as a hit.
+        // The matched file must also exist, otherwise the library is not really preloaded.
+        if (baseName == libName && FileExist(entry))
+        {
+            return true;
+        }
+        begin = end + 1;
+    }
+    return false;
+}
+
 bool Utils::StartsWith(const std::string& str, const std::string& prefix)
 {
     if (prefix.size() > str.size())

@@ -78,4 +78,4 @@ msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber,
 
 ## Returns<a name="section16621124213476"></a>
 
-`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber` or domain is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.
+`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, or the `libmspti.so` file pointed to by `LD_PRELOAD` does not exist, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber` or domain is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.

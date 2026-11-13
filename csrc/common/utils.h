@@ -173,6 +173,7 @@ class Utils
     static bool FileReadable(const std::string& path);
     static bool CheckCharValid(const std::string& str);
     static std::string GetEnv(const std::string& name);
+    static bool IsLdPreloaded(const std::string& libName);
     static bool StartsWith(const std::string& str, const std::string& prefix);
     static bool StrToI32(int32_t& dest, const std::string& numStr);
     static bool StrToU32(uint32_t& dest, const std::string& numStr);

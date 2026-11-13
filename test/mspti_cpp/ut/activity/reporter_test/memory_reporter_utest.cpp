@@ -21,6 +21,7 @@
 #include "csrc/activity/ascend/reporter/memory_reporter.h"
 #include "csrc/common/runtime_utils.h"
 #include "gtest/gtest.h"
+#include "ld_preload_test_helper.h"
 #include "mockcpp/mockcpp.hpp"
 
 std::atomic_uint32_t g_memoryRecord{0};
@@ -82,7 +83,7 @@ class MemoryReporterUtest : public testing::Test
     {
         Mspti::Activity::ActivityManager::GetInstance()->RegisterCallbacks(UserBufferRequest, UserBufferComplete);
         GlobalMockObject::verify();
-        setenv("LD_PRELOAD", "libmspti.so", 1);
+        setenv("LD_PRELOAD", MsptiTest::GetLdPreloadLibPath().c_str(), 1);
         MOCKER_CPP(&Mspti::Common::GetCANNModuleVersion).stubs().will(returnValue(std::string("9.0.0")));
     }
     virtual void TearDown() {}

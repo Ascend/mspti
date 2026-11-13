@@ -223,7 +223,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_NOT_INITIALIZED if MSPTI is not initialized
-     * @return MSPTI_ERROR_WITHOUT_LD_PRELOAD if libmspti.so is not set in LD_PRELOAD environment variable
+     * @return MSPTI_ERROR_WITHOUT_LD_PRELOAD if libmspti.so is not set in LD_PRELOAD environment
+     * variable or the file does not exist
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p subscriber, @p domain or @p cbid is invalid.
      */
     msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain,
@@ -244,7 +245,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_NOT_INITIALIZED if MSPTI is not initialized
-     * @return MSPTI_ERROR_WITHOUT_LD_PRELOAD if libmspti.so is not set in LD_PRELOAD environment variable
+     * @return MSPTI_ERROR_WITHOUT_LD_PRELOAD if libmspti.so is not set in LD_PRELOAD environment
+     * variable or the file does not exist
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p subscriber, @p domain is invalid.
      */
     msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber, msptiCallbackDomain domain);
@@ -264,7 +266,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_NOT_INITIALIZED if MSPTI is not initialized
-     * @return MSPTI_ERROR_WITHOUT_LD_PRELOAD if libmspti.so is not set in LD_PRELOAD environment variable
+     * @return MSPTI_ERROR_WITHOUT_LD_PRELOAD if libmspti.so is not set in LD_PRELOAD environment
+     * variable or the file does not exist
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p subscriber is invalid.
      */
     msptiResult msptiEnableAllDomains(uint32_t enable, msptiSubscriberHandle subscriber);

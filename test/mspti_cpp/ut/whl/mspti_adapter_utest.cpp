@@ -21,6 +21,7 @@
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/common/inject/mstx_inject.h"
 #include "gtest/gtest.h"
+#include "ld_preload_test_helper.h"
 #include "mockcpp/mockcpp.hpp"
 #include "mspti/csrc/mspti_adapter.h"
 
@@ -54,7 +55,7 @@ class MsptiAdapterUtest : public testing::Test
     virtual void SetUp()
     {
         GlobalMockObject::verify();
-        setenv("LD_PRELOAD", "libmspti.so", 1);
+        setenv("LD_PRELOAD", MsptiTest::GetLdPreloadLibPath().c_str(), 1);
     }
     virtual void TearDown() {}
 };

@@ -19,6 +19,7 @@
 
 #include "csrc/callback/callback_manager.h"
 #include "gtest/gtest.h"
+#include "ld_preload_test_helper.h"
 #include "mockcpp/mockcpp.hpp"
 #include "mspti.h"
 
@@ -31,7 +32,7 @@ class CallbackUtest : public testing::Test
     static void SetUpTestCase()
     {
         GlobalMockObject::verify();
-        setenv("LD_PRELOAD", "libmspti.so", 1);
+        setenv("LD_PRELOAD", MsptiTest::GetLdPreloadLibPath().c_str(), 1);
     }
     virtual void SetUp()
     {

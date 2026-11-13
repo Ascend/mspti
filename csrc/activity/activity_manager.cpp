@@ -54,8 +54,8 @@ inline bool IsValidActivityKind(msptiActivityKind kind)
 msptiResult IsNeedLdPreload(msptiActivityKind kind)
 {
     // Some activity kinds depend on LD_PRELOAD hooking (libmspti.so). If those
-    // kinds are enabled but LD_PRELOAD does not contain libmspti.so, return
-    // MSPTI_ERROR_WITHOUT_LD_PRELOAD to notify the caller.
+    // kinds are enabled but LD_PRELOAD does not contain an existing libmspti.so,
+    // return MSPTI_ERROR_WITHOUT_LD_PRELOAD to notify the caller.
     static const std::unordered_set<msptiActivityKind> needLdPreloadKinds = []()
     {
         std::unordered_set<msptiActivityKind> kinds = {MSPTI_ACTIVITY_KIND_HCCL};
@@ -70,10 +70,11 @@ msptiResult IsNeedLdPreload(msptiActivityKind kind)
 
     if (needLdPreloadKinds.find(kind) != needLdPreloadKinds.end())
     {
-        static const std::string ld = Mspti::Common::Utils::GetEnv("LD_PRELOAD");
-        if (ld.find("libmspti.so") == std::string::npos)
+        static const bool isLdPreloaded = Common::Utils::IsLdPreloaded("libmspti.so");
+        if (!isLdPreloaded)
         {
-            MSPTI_LOGE("Enable activity kind %d requires libmspti.so in LD_PRELOAD.", static_cast<int>(kind));
+            MSPTI_LOGE("Enable activity kind %d requires an existing libmspti.so in LD_PRELOAD.",
+                       static_cast<int>(kind));
             return MSPTI_ERROR_WITHOUT_LD_PRELOAD;
         }
     }

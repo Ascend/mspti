@@ -20,12 +20,13 @@
 #include "csrc/activity/activity_manager.h"
 #include "csrc/callback/callback_manager.h"
 #include "gtest/gtest.h"
+#include "ld_preload_test_helper.h"
 #include "mspti.h"
 
 class CallbackRuntimeLaunchUtest : public testing::Test
 {
    protected:
-    virtual void SetUp() { setenv("LD_PRELOAD", "libmspti.so", 1); }
+    virtual void SetUp() { setenv("LD_PRELOAD", MsptiTest::GetLdPreloadLibPath().c_str(), 1); }
     virtual void TearDown() {}
 };
 

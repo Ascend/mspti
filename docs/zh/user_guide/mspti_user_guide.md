@@ -65,14 +65,14 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 | `MSPTI_ERROR_MAX_LIMIT_REACHED` | 3 | 已达到最大限制 | Activity Buffer 无更多 Record 空间 |
 | `MSPTI_ERROR_DEVICE_OFFLINE` | 4 | 设备离线 | 无法获取 Device 侧信息 |
 | `MSPTI_ERROR_QUEUE_EMPTY` | 5 | 队列为空 | External Correlation ID 匹配失败 |
-| `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置 LD_PRELOAD | `libmspti.so` 未预加载 |
+| `MSPTI_ERROR_WITHOUT_LD_PRELOAD` | 6 | 未设置 LD_PRELOAD 或文件不存在 | `libmspti.so` 未预加载，或 `LD_PRELOAD` 指向的 `libmspti.so` 文件不存在 |
 | `MSPTI_ERROR_NOT_INITIALIZED` | 7 | 未初始化 | msPTI 未初始化时调用相关接口 |
 | `MSPTI_ERROR_INVALID_KIND` | 8 | 无效 Kind | Activity Kind 无效 |
 | `MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT` | 9 | 参数缓冲区大小不足 | valueSize 指定的缓冲区大小小于属性所需大小（如 `msptiActivitySetAttribute`/`msptiActivityGetAttribute`） |
 | `MSPTI_ERROR_INNER` | 999 | 内部错误 | msPTI 初始化失败或内部异常 |
 
 > [!NOTE]
-> 
+>
 > 详细错误处理请参见各 API 参考文档中的"返回值说明"章节。
 
 ### 3.3 约束与限制

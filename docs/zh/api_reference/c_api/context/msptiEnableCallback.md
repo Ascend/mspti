@@ -85,4 +85,4 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；msPTI未初始化时返回MSPTI\_ERROR\_NOT\_INITIALIZED，表示失败；libmspti.so未设置到LD\_PRELOAD环境变量时返回MSPTI\_ERROR\_WITHOUT\_LD\_PRELOAD，表示失败；subscriber、domain或cbid无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。
+返回MSPTI\_SUCCESS表示成功；msPTI未初始化时返回MSPTI\_ERROR\_NOT\_INITIALIZED，表示失败；libmspti.so未设置到LD\_PRELOAD环境变量或LD\_PRELOAD指向的libmspti.so文件不存在时返回MSPTI\_ERROR\_WITHOUT\_LD\_PRELOAD，表示失败；subscriber、domain或cbid无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER，表示失败。
