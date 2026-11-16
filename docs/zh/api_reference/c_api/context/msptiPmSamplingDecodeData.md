@@ -29,9 +29,11 @@
 
 将内部样本队列中的样本解码写入counter data image。
 
-可在Running或Stopped状态下调用。解码采用消费式语义：每次调用将内部样本队列中尚未解码的样本取出并写入镜像（镜像从第一个样本槽位起重写），写入后样本从队列中移除，因此增量调用不会重复解码同一批样本。镜像写满时解码停止，pDecodeStopReason为MSPTI_PM_SAMPLING_DECODE_STOP_REASON_COUNTER_DATA_FULL；队列中全部样本解码完毕时，pDecodeStopReason为MSPTI_PM_SAMPLING_DECODE_STOP_REASON_END_OF_RECORDS。
+可在Running或Stopped状态下调用。解码采用消费式语义：每次调用先取出并移除内部样本队列中尚未解码的样本，再写入镜像（镜像从第一个样本槽位起重写），因此增量调用不会重复解码同一批样本。镜像写满时解码停止，pDecodeStopReason为MSPTI_PM_SAMPLING_DECODE_STOP_REASON_COUNTER_DATA_FULL；队列中全部样本解码完毕时，pDecodeStopReason为MSPTI_PM_SAMPLING_DECODE_STOP_REASON_END_OF_RECORDS。
 
-pOverflow输出参数反馈自上次调用以来内部样本队列是否因溢出丢弃过样本（读取后自动清除）；镜像容量不足返回MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW时，队列中的样本不丢失，调整镜像容量后重新解码即可。
+pOverflow输出参数反馈自上次调用以来内部样本队列是否因溢出丢弃过样本（读取后自动清除）。
+
+解码采用先校验后写入：队列消费前发现的问题（参数非法、镜像大小或镜像头不一致、会话状态不满足等）不会消费样本，队列不变；批次一旦消费，后续校验失败即丢弃该批次且不回滚，镜像不写入本批次结果，pOverflow与pDecodeStopReason不更新，重试无法恢复该批次。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -56,4 +58,11 @@ msptiResult msptiPmSamplingDecodeData(msptiPmSamplingDecodeDataParams *params)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空或字段非法时返回MSPTI_ERROR_INVALID_PARAMETER、pPmSamplingObject非法时返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED或镜像没有空闲槽位容纳新样本时返回MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空、字段非法或已消费批次包含非法样本数据（如开始时间戳晚于结束时间戳）时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- pPmSamplingObject非法时，返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED。
+- 会话不处于Running或Stopped状态时，返回MSPTI_ERROR_INVALID_OPERATION。
+- 已消费批次包含未配置的指标ID时，返回MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC。
+- 已消费批次超出镜像可容纳的单样本条目容量时，返回MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

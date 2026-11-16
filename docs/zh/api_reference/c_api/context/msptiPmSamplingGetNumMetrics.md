@@ -44,9 +44,12 @@ msptiResult msptiPmSamplingGetNumMetrics(msptiPmSamplingGetNumMetricsParams *par
 |params|输入|msptiPmSamplingGetNumMetricsParams类型的指针。|
 |params.structSize|输入|结构体大小，配置为sizeof(msptiPmSamplingGetNumMetricsParams)。|
 |params.pPriv|输入|私有指针，msPTI原样透传，配置为NULL。|
-|params.deviceId|输入|目标设备ID。|
+|params.deviceId|输入|目标设备ID。当前未使用，可配置指标总数与设备无关。|
 |params.pNumMetrics|输出|可配置的指标总数。|
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空或字段非法时返回MSPTI_ERROR_INVALID_PARAMETER，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空或字段非法时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

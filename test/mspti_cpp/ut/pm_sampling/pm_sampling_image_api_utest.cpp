@@ -28,6 +28,8 @@
 using namespace Mspti::PmSampling;
 namespace
 {
+constexpr uint64_t kValidIntervalNs = 100000000ULL;  // 100ms
+
 class PmSamplingImageApiUtest : public testing::Test
 {
    protected:
@@ -225,11 +227,56 @@ TEST_F(PmSamplingImageApiUtest, UnregisteredHandleAndNullParamsAreRejected)
     disable.structSize = sizeof(disable);
     config.pPmSamplingObject = startParams.pPmSamplingObject = stop.pPmSamplingObject = disable.pPmSamplingObject =
         reinterpret_cast<msptiPmSamplingObjectPtr>(0x8);
-    EXPECT_EQ(msptiPmSamplingEnable(nullptr), MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT);
+    EXPECT_EQ(msptiPmSamplingEnable(nullptr), MSPTI_ERROR_INVALID_PARAMETER);
     EXPECT_EQ(msptiPmSamplingSetConfig(&config), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
     EXPECT_EQ(msptiPmSamplingStart(&startParams), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
     EXPECT_EQ(msptiPmSamplingStop(&stop), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
     EXPECT_EQ(msptiPmSamplingDisable(&disable), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    // NULL 句柄：公开入口与 manager 层墓碑语义一致，统一 11
+    config.pPmSamplingObject = startParams.pPmSamplingObject = stop.pPmSamplingObject = disable.pPmSamplingObject =
+        nullptr;
+    EXPECT_EQ(msptiPmSamplingSetConfig(&config), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    EXPECT_EQ(msptiPmSamplingStart(&startParams), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    EXPECT_EQ(msptiPmSamplingStop(&stop), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+    EXPECT_EQ(msptiPmSamplingDisable(&disable), MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED);
+}
+
+/*
+ * 测试目的：公开入口 msptiPmSamplingSetConfig 的指标校验——重复 id 返回
+ * INVALID_METRIC、numMetrics 超上界返回 INVALID_PARAMETER，与 manager/object
+ * 层断言共同固化对外契约
+ */
+TEST_F(PmSamplingImageApiUtest, SetConfigEntryRejectsDuplicateAndOverboundMetrics)
+{
+    PmSamplingObject fresh{0};
+    PmSamplingManager::GetInstance()->objects_[1] = {&fresh, [](PmSamplingObject *) {}};
+    PmSamplingManager::GetInstance()->ptrIndex_[&fresh] = {1, true};
+    fresh.state_ = PmSamplingObject::State::Created;
+    const auto freshHandle = reinterpret_cast<msptiPmSamplingObjectPtr>(&fresh);
+
+    const uint32_t dupIds[2] = {MSPTI_PM_SAMPLING_METRIC_ID_POWER, MSPTI_PM_SAMPLING_METRIC_ID_POWER};
+    msptiPmSamplingSetConfigParams dupParams{sizeof(dupParams),
+                                             nullptr,
+                                             freshHandle,
+                                             2,
+                                             dupIds,
+                                             kValidIntervalNs,
+                                             MSPTI_PM_SAMPLING_TRIGGER_MODE_TIME_INTERVAL,
+                                             0,
+                                             MSPTI_PM_SAMPLING_HW_BUFFER_APPEND_MODE_KEEP_OLDEST};
+    EXPECT_EQ(msptiPmSamplingSetConfig(&dupParams), MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC);
+
+    const uint32_t overIds[MSPTI_PM_SAMPLING_METRIC_ID_COUNT + 1] = {MSPTI_PM_SAMPLING_METRIC_ID_POWER};
+    msptiPmSamplingSetConfigParams overParams{sizeof(overParams),
+                                              nullptr,
+                                              freshHandle,
+                                              MSPTI_PM_SAMPLING_METRIC_ID_COUNT + 1,
+                                              overIds,
+                                              kValidIntervalNs,
+                                              MSPTI_PM_SAMPLING_TRIGGER_MODE_TIME_INTERVAL,
+                                              0,
+                                              MSPTI_PM_SAMPLING_HW_BUFFER_APPEND_MODE_KEEP_OLDEST};
+    EXPECT_EQ(msptiPmSamplingSetConfig(&overParams), MSPTI_ERROR_INVALID_PARAMETER);
 }
 
 TEST_F(PmSamplingImageApiUtest, ResultApisRejectInvalidParameterSizeAndHandleWithoutSideEffects)
@@ -241,7 +288,7 @@ TEST_F(PmSamplingImageApiUtest, ResultApisRejectInvalidParameterSizeAndHandleWit
     count = 73;
     auto check = [](auto api, auto params)
     {
-        EXPECT_EQ(api(nullptr), MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT);
+        EXPECT_EQ(api(nullptr), MSPTI_ERROR_INVALID_PARAMETER);
         --params.structSize;
         EXPECT_EQ(api(&params), MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT);
         ++params.structSize;

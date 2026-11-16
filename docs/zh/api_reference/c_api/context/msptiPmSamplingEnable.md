@@ -51,4 +51,9 @@ msptiResult msptiPmSamplingEnable(msptiPmSamplingEnableParams *params)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空或字段非法时返回MSPTI_ERROR_INVALID_PARAMETER、目标设备离线时返回MSPTI_ERROR_DEVICE_OFFLINE或该设备已存在PM Sampling会话时返回MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空或字段非法时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- 目标设备离线时，返回MSPTI_ERROR_DEVICE_OFFLINE。
+- 该设备已存在PM Sampling会话时，返回MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

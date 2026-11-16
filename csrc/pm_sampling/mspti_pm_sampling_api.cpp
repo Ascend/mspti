@@ -43,21 +43,20 @@ using Mspti::PmSampling::PmSamplingObject;
 namespace
 {
 
-// params 前向兼容：structSize 必须覆盖编译期已知字段
-template <typename T>
-bool CheckParams(const T *params)
-{
-    return params != nullptr && params->structSize >= sizeof(T);
-}
-
 using namespace Mspti::PmSampling;
 using ImageInfo = PmSamplingObject::ImageInfo;
 
 // All public PM Sampling C entry points share the same exception boundary.
+// params 校验：NULL 与字段非法返回 INVALID_PARAMETER；structSize 未覆盖编译期已知字段
+// 返回 PARAMETER_SIZE_NOT_SUFFICIENT（前向兼容：提示调用方升级头文件）
 template <typename Params, typename Operation>
 msptiResult WithApi(Params *params, Operation operation)
 {
-    if (!CheckParams(params))
+    if (params == nullptr)
+    {
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    if (params->structSize < sizeof(Params))
     {
         return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT;
     }

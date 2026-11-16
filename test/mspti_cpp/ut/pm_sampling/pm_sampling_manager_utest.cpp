@@ -118,7 +118,7 @@ TEST_F(PmSamplingManagerUtest, StartCollectorsShouldRollbackWhenDcmiStartFails)
  */
 TEST_F(PmSamplingManagerUtest, DisableAndLiveQueryShouldFollowTombstoneSemanticsWhenHandleInvalid)
 {
-    EXPECT_EQ(MSPTI_ERROR_INVALID_PARAMETER, PmSamplingManager::GetInstance()->Disable(nullptr));
+    EXPECT_EQ(MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED, PmSamplingManager::GetInstance()->Disable(nullptr));
     auto wild = reinterpret_cast<msptiPmSamplingObjectPtr>(0xdeadbeefULL);
     EXPECT_EQ(MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED, PmSamplingManager::GetInstance()->Disable(wild));
     EXPECT_EQ(nullptr, Live(nullptr));

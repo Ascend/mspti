@@ -17,6 +17,7 @@
 
 #include "csrc/pm_sampling/pm_sampling_object.h"
 
+#include <array>
 #include <iterator>
 
 #include "csrc/common/context_manager.h"
@@ -74,8 +75,10 @@ msptiResult PmSamplingObject::SetConfig(uint32_t numMetrics, const uint32_t *pMe
         MSPTI_LOGE("SetConfig is not allowed in state %d, device %u", static_cast<int>(state_), deviceId_);
         return MSPTI_ERROR_INVALID_OPERATION;
     }
-    if (numMetrics == 0 || pMetricIds == nullptr)
+    if (numMetrics == 0 || numMetrics > MSPTI_PM_SAMPLING_METRIC_ID_COUNT || pMetricIds == nullptr)
     {
+        // numMetrics 上界与 GetCounterDataSize 对齐（返回 INVALID_PARAMETER）；上界必须在
+        // SampleBytesOf 之前生效，否则后续按 numMetrics 越界读调用方数组
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
     if (samplingInterval < kMinIntervalNs || samplingInterval > kMaxIntervalNs)
@@ -105,7 +108,9 @@ msptiResult PmSamplingObject::SetConfig(uint32_t numMetrics, const uint32_t *pMe
                    deviceId_);
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
-    // 指标合法性校验：越界拒绝；芯片不可采的指标拒绝
+    // 指标合法性校验：越界拒绝；芯片不可采的指标拒绝；重复指标拒绝（重复会让镜像
+    // 布局歧义，约定返回 INVALID_METRIC，避免问题延迟到 GetCounterDataSize 才暴露）
+    std::array<bool, MSPTI_PM_SAMPLING_METRIC_ID_COUNT> seen{};
     for (uint32_t i = 0; i < numMetrics; ++i)
     {
         uint32_t id = pMetricIds[i];
@@ -114,6 +119,12 @@ msptiResult PmSamplingObject::SetConfig(uint32_t numMetrics, const uint32_t *pMe
             MSPTI_LOGE("Invalid metric id %u, device %u", id, deviceId_);
             return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC;
         }
+        if (seen[id])
+        {
+            MSPTI_LOGE("Duplicated metric id %u at index %u, device %u", id, i, deviceId_);
+            return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC;
+        }
+        seen[id] = true;
         if (!PmSamplingMetricTable::IsAvailable(id, Common::ContextManager::GetInstance()->GetChipType(deviceId_)))
         {
             MSPTI_LOGE("Metric %u is unavailable on this chip, device %u", id, deviceId_);

@@ -326,7 +326,7 @@ extern "C"
     {
         size_t structSize;     /* [in] Size of this struct */
         void *pPriv;           /* [in] Private pointer, passed through as is */
-        uint32_t deviceId;     /* [in] Target device ID */
+        uint32_t deviceId;     /* [in] Target device ID; currently unused, the count is chip-independent */
         uint32_t *pNumMetrics; /* [out] Total number of configurable metrics */
     } msptiPmSamplingGetNumMetricsParams;
 
@@ -462,6 +462,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_DEVICE_OFFLINE if the target device is offline
      * @return MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED if a session already exists on the device
      * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
@@ -481,12 +483,15 @@ extern "C"
      * @param params [in] Pointer to @ref msptiPmSamplingSetConfigParams
      *
      * @return MSPTI_SUCCESS on success
-     * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL, fields are invalid
+     *         (@p numMetrics exceeds MSPTI_PM_SAMPLING_METRIC_ID_COUNT, @p samplingInterval
+     *         is outside [1ms, 1s], trigger mode or append mode is invalid, etc.)
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      * @return MSPTI_ERROR_INVALID_OPERATION if the session is Running
-     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range, duplicated, or unavailable on this
-     * chip
-     * @return MSPTI_ERROR_INVALID_PARAMETER if the interval is out of [1ms, 1s]
+     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range, duplicated, or
+     *         unavailable on this chip
      * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingSetConfig(msptiPmSamplingSetConfigParams *params);
@@ -501,6 +506,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      * @return MSPTI_ERROR_INVALID_OPERATION if the session is Running, Created, or has no valid configuration
      * @return MSPTI_ERROR_DEVICE_OFFLINE if the DCMI data source is unavailable on this platform
@@ -519,6 +526,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      * @return MSPTI_ERROR_INVALID_OPERATION if the session is not Running
      * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
@@ -532,6 +541,9 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
+     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
     msptiResult msptiPmSamplingGetNumMetrics(msptiPmSamplingGetNumMetricsParams *params);
 
@@ -545,8 +557,10 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if the metric ID is out of range
-     * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
+     * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingGetMetricProperties(msptiPmSamplingGetMetricPropertiesParams *params);
 
@@ -566,9 +580,17 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL, fields are
-     *         invalid, or the image derived from @p numMetrics/@p maxSamples
-     *         would exceed the per-image budget
+     *         invalid, the number of metric IDs does not match the session's
+     *         configured count, or the image derived from @p numMetrics/@p
+     *         maxSamples would exceed the per-image budget
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INVALID_OPERATION if no metric set has been configured
+     *         via SetConfig on this session
+     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range,
+     *         duplicated, or does not match the members of the session's configured
+     *         metric set
      * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingGetCounterDataSize(msptiPmSamplingGetCounterDataSizeParams *params);
@@ -582,9 +604,12 @@ extern "C"
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL, fields are
      *         invalid, or counterDataImageSize does not match the
      *         GetCounterDataSize output
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range or duplicated
-     * @return MSPTI_ERROR_INNER if an internal memory operation fails
+     * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if the image's metric set does
+     *         not match the metric set currently configured via SetConfig
+     * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingCounterDataImageInitialize(msptiPmSamplingCounterDataImageInitializeParams *params);
 
@@ -598,8 +623,10 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_INNER if an internal memory operation fails
+     * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingGetCounterDataInfo(msptiPmSamplingGetCounterDataInfoParams *params);
 
@@ -620,9 +647,12 @@ extern "C"
      * @param params [in] Pointer to @ref msptiPmSamplingDecodeDataParams
      *
      * @return MSPTI_SUCCESS on success
-     * @return MSPTI_ERROR_INVALID_PARAMETER if fields or sample data are invalid;
-     *         invalid sample data discovered after consumption discards the batch
+     * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL, fields or sample data
+     *         are invalid; invalid sample data discovered after consumption discards the batch
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
+     * @return MSPTI_ERROR_INVALID_OPERATION if the session is neither Running nor Stopped
      * @return MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW if a consumed batch exceeds
      *         the image capacity; the consumed batch is discarded
      * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a consumed sample contains
@@ -642,8 +672,10 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_INNER if an internal memory operation fails
+     * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingGetSampleInfo(msptiPmSamplingGetSampleInfoParams *params);
 
@@ -654,6 +686,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC if a metric ID is out of range
      * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
@@ -671,6 +705,8 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
      * @return MSPTI_ERROR_INNER if an internal operation throws a C++ exception
      */
@@ -696,8 +732,10 @@ extern "C"
      *
      * @return MSPTI_SUCCESS on success
      * @return MSPTI_ERROR_INVALID_PARAMETER if @p params is NULL or fields are invalid
+     * @return MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT if @p params->structSize does not
+     *         cover all fields of the current struct definition
      * @return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED if @p pPmSamplingObject is invalid
-     * @return MSPTI_ERROR_INNER if an internal memory operation fails
+     * @return MSPTI_ERROR_INNER if an internal operation fails
      */
     msptiResult msptiPmSamplingGetSampleEntries(msptiPmSamplingGetSampleEntriesParams *params);
 

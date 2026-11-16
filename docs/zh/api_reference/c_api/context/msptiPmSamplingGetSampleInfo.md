@@ -54,4 +54,8 @@ msptiResult msptiPmSamplingGetSampleInfo(msptiPmSamplingGetSampleInfoParams *par
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空或字段非法时返回MSPTI_ERROR_INVALID_PARAMETER或pPmSamplingObject非法时返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空或字段非法时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- pPmSamplingObject非法时，返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

@@ -29,7 +29,7 @@
 
 配置PM Sampling会话的指标集、采样周期与内部样本队列容量。
 
-可在Created、Configured或Stopped状态下调用；Running状态下调用返回MSPTI_ERROR_PM_SAMPLING_INVALID_STATE。对Stopped会话重新配置会清空其未取走的样本队列（指标集可能变化，旧样本与新条目布局不匹配）。
+可在Created、Configured或Stopped状态下调用；Running状态下调用返回MSPTI_ERROR_INVALID_OPERATION。对Stopped会话重新配置会清空其未取走的样本队列（指标集可能变化，旧样本与新条目布局不匹配）。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -56,4 +56,10 @@ msptiResult msptiPmSamplingSetConfig(msptiPmSamplingSetConfigParams *params)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空或字段非法时返回MSPTI_ERROR_INVALID_PARAMETER、pPmSamplingObject非法时返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED、会话处于Running状态时返回MSPTI_ERROR_PM_SAMPLING_INVALID_STATE、指标ID超出范围时返回MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC、指标在当前芯片型号不可采集时返回MSPTI_ERROR_PM_SAMPLING_UNSUPPORTED_METRIC或采样周期超出[1ms, 1s]时返回MSPTI_ERROR_PM_SAMPLING_SAMPLING_INTERVAL_INVALID，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空或字段非法（包括指标数量超过上限MSPTI_PM_SAMPLING_METRIC_ID_COUNT、采样周期超出[1ms, 1s]范围、触发模式或队列满追加模式非法）时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- pPmSamplingObject非法时，返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED。
+- 会话处于Running状态时，返回MSPTI_ERROR_INVALID_OPERATION。
+- 指标ID超出范围、重复或在当前芯片型号不可采集时，返回MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

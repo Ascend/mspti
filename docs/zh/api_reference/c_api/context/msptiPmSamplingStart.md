@@ -50,4 +50,10 @@ msptiResult msptiPmSamplingStart(msptiPmSamplingStartParams *params)
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空或字段非法时返回MSPTI_ERROR_INVALID_PARAMETER、pPmSamplingObject非法时返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED或会话尚无有效配置时返回MSPTI_ERROR_PM_SAMPLING_OBJECT_NOT_CONFIGURED，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空或字段非法时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- pPmSamplingObject非法时，返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED。
+- 会话处于Running、Created状态或尚无有效配置时，返回MSPTI_ERROR_INVALID_OPERATION。
+- DCMI数据源不可用时，返回MSPTI_ERROR_DEVICE_OFFLINE。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

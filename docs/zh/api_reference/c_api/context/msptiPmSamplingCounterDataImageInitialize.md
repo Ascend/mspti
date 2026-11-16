@@ -50,4 +50,9 @@ msptiResult msptiPmSamplingCounterDataImageInitialize(msptiPmSamplingCounterData
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI_SUCCESS表示成功；params为空、字段非法或镜像大小与GetCounterDataSize输出不一致时返回MSPTI_ERROR_INVALID_PARAMETER或pPmSamplingObject非法时返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED，表示失败。
+- 返回MSPTI_SUCCESS表示成功。
+- params为空、字段非法或镜像大小与GetCounterDataSize输出不一致时，返回MSPTI_ERROR_INVALID_PARAMETER。
+- params.structSize未覆盖当前版本全部字段时，返回MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT。
+- pPmSamplingObject非法时，返回MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED。
+- 镜像的指标集与会话当前通过SetConfig配置的指标集不一致时，返回MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC。
+- 发生内部错误时，返回MSPTI_ERROR_INNER。

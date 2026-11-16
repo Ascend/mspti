@@ -72,18 +72,20 @@ msptiResult PmSamplingManager::Disable(msptiPmSamplingObjectPtr pObject)
 {
     if (pObject == nullptr)
     {
-        return MSPTI_ERROR_INVALID_PARAMETER;
+        MSPTI_LOGE("PmSampling Disable failed: null handle.");
+        return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED;
     }
     std::shared_ptr<PmSamplingObject> obj;
     uint32_t deviceId = 0;
     auto *objKey = Mspti::Common::ReinterpretConvert<PmSamplingObject *>(pObject);
     {
         std::lock_guard<std::mutex> lk(mtx_);
-        // 只按指针值查索引，不解引用句柄：并发 Disable / 过期句柄均安全
+        // 只按指针值查索引，不解引用句柄：野指针/过期句柄统一走查表拒绝，
+        // 与空句柄特判（上方）同返回码 PM_SAMPLING_NOT_ENABLED
         auto iter = ptrIndex_.find(objKey);
         if (iter == ptrIndex_.end() || !iter->second.alive)
         {
-            MSPTI_LOGE("PmSampling session not found for device of handle %p.", static_cast<void *>(pObject));
+            MSPTI_LOGE("PmSampling Disable failed: session not found.");
             return MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED;
         }
         deviceId = iter->second.deviceId;
@@ -115,6 +117,7 @@ std::shared_ptr<PmSamplingObject> PmSamplingManager::GetLiveObject(msptiPmSampli
 {
     if (pObject == nullptr)
     {
+        MSPTI_LOGE("PmSampling API called with null handle.");
         return nullptr;
     }
     std::lock_guard<std::mutex> lk(mtx_);
@@ -123,11 +126,13 @@ std::shared_ptr<PmSamplingObject> PmSamplingManager::GetLiveObject(msptiPmSampli
     auto iter = ptrIndex_.find(objKey);
     if (iter == ptrIndex_.end() || !iter->second.alive)
     {
+        MSPTI_LOGE("PmSampling handle is unknown or already disabled.");
         return nullptr;
     }
     auto objIter = objects_.find(iter->second.deviceId);
     if (objIter == objects_.end() || objIter->second.get() != objKey)
     {
+        MSPTI_LOGE("PmSampling registry inconsistent.");
         return nullptr;
     }
     return objIter->second;

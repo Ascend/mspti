@@ -72,7 +72,7 @@ TEST_F(PmSamplingObjectUtest, SetConfigShouldStoreConfigWhenInputValid)
 
 /*
  * 测试目的：校验 SetConfig 各维度非法入参的拒绝：numMetrics/空指针/间隔越界/模式非法/
- *           bufferSize 越界/metricId 越界（专用错误码）
+ *           bufferSize 越界/metricId 越界与重复（专用错误码）
  */
 TEST_F(PmSamplingObjectUtest, SetConfigShouldRejectWhenParamsInvalid)
 {
@@ -100,6 +100,12 @@ TEST_F(PmSamplingObjectUtest, SetConfigShouldRejectWhenParamsInvalid)
     // 越界 metricId 返回专用错误码
     const std::vector<uint32_t> badIds = {MSPTI_PM_SAMPLING_METRIC_ID_COUNT};
     ASSERT_EQ(MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC, Config(obj, badIds, kValidIntervalNs));
+    // 重复 metricId 返回专用错误码（在 SetConfig 处即拒绝，而非延迟到 GetCounterDataSize）
+    const std::vector<uint32_t> dupIds = {MSPTI_PM_SAMPLING_METRIC_ID_POWER, MSPTI_PM_SAMPLING_METRIC_ID_POWER};
+    ASSERT_EQ(MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC, Config(obj, dupIds, kValidIntervalNs));
+    // numMetrics 超上界与 GetCounterDataSize 一致返回 INVALID_PARAMETER（在越界读之前拒绝）
+    const std::vector<uint32_t> tooManyIds(MSPTI_PM_SAMPLING_METRIC_ID_COUNT + 1, MSPTI_PM_SAMPLING_METRIC_ID_POWER);
+    ASSERT_EQ(MSPTI_ERROR_INVALID_PARAMETER, Config(obj, tooManyIds, kValidIntervalNs));
 }
 
 /*
