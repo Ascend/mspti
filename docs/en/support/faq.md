@@ -16,7 +16,7 @@ msPTI provides the following core capabilities:
 ### Q3: Which Product Models Does msPTI Support?
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -52,7 +52,7 @@ msPTI is integrated into CANN. If CANN is installed and you do not need to upgra
 | Offline installation | An environment without external network access, such as an enterprise intranet |
 | Source installation | You need to use the latest development code |
 
-For detailed installation steps, see the [msPTI Tool Installation Guide](../install_guide/mspti_install_guide.md).
+For detailed installation steps, see the [msPTI Installation Guide](../install_guide/mspti_install_guide.md).
 
 ### Q6: How Do I Verify That the Installation Is Successful?
 
@@ -77,7 +77,7 @@ You can query the value of `{tools_name}` by running the `python ms_install.py h
 
 ### Q8: How Do I Upgrade msPTI?
 
-Upgrading means uninstalling the old version first and then installing the new one. Run the installation command of the new version directly. The tool automatically uninstalls the old version and guides you through the overwrite installation. Before upgrading, check the current version by running `pip show mspti` and pay attention to version compatibility. See [Release Notes](https://atomgit.com/Ascend/mspti/releases).
+Upgrading means uninstalling the old version first and then installing the new one. Run the installation command of the new version directly. The tool automatically uninstalls the old version and guides you through the overwrite installation. Before upgrading, check the current version by running `pip show mspti` and pay attention to version compatibility. See [Release Notes](https://gitcode.com/Ascend/mspti/releases).
 
 ### Q9: What Parameters Are Supported When Installing the Run Package?
 
@@ -90,7 +90,7 @@ Upgrading means uninstalling the old version first and then installing the new o
 
 ### Q10: What If the MD5 Checksum Does Not Match?
 
-If the output of `md5sum -c -` shows `FAILED`, do not continue the installation. Delete the current file, download it again, and run the MD5 checksum again. If it still fails, check that the file name and version match those on the releases page, and report the issue through [Issues](https://atomgit.com/Ascend/mspti/issues).
+If the output of `md5sum -c -` shows `FAILED`, do not continue the installation. Delete the current file, download it again, and run the MD5 checksum again. If it still fails, check that the file name and version match those on the releases page, and report the issue through [Issues](https://gitcode.com/Ascend/mspti/issues).
 
 ---
 
@@ -148,7 +148,7 @@ For detailed interface definitions, see [C API Reference](../api_reference/c_api
 
 ### Q16: What Additional Installation Do the Python Samples Require?
 
-The Python samples (`python_monitor` and `python_mstx_monitor`) additionally depend on the PyTorch framework and the TorchNPU plugin. See [TorchNPU Software Installation](https://atomgit.com/Ascend/pytorch/blob/master/docs/en/installation_guide/building_from_source.md).
+The Python samples (`python_monitor` and `python_mstx_monitor`) additionally depend on the PyTorch framework and the TorchNPU plugin. See [TorchNPU Software Installation](https://gitcode.com/Ascend/pytorch/blob/master/docs/en/installation_guide/building_from_source.md).
 
 ### Q17: What Is the Activity Buffer and How Do I Manage It?
 

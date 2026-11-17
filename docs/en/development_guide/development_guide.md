@@ -49,7 +49,7 @@ msPTI includes a built-in [devcontainer](https://containers.dev/) development en
 
 ### 1.2 Method 2: Manual Environment Configuration
 
-Follow the [msPTI Tool Installation Guide — Compilation Environment Preparation](../install_guide/mspti_install_guide.md#231-environment-preparation) section to set up the build and test environment.
+Follow [msPTI Installation Guide — Compilation Environment Preparation](../install_guide/mspti_install_guide.md#231-environment-preparation) to set up the build and test environment.
 
 > **Note:** The environment image build method and the supporting software versions are maintained by the MindStudio Unified Build Image Creation Guide and are not redefined in this repository.
 
@@ -60,7 +60,7 @@ Follow the [msPTI Tool Installation Guide — Compilation Environment Preparatio
 In the compilation container environment, run the following command to download the code:
 
 ```bash
-git clone https://atomgit.com/Ascend/mspti.git
+git clone https://gitcode.com/Ascend/mspti.git
 cd mspti
 ```
 
@@ -134,7 +134,7 @@ The `samples` directory demonstrates typical interface usage. The current sample
 If you add new interfaces or enhance existing interface capabilities, you are advised to add corresponding samples and update the following files:
 
 - `samples/README.md`
-- `docs/user_guide/samples_guide.md`
+- `docs/en/user_guide/samples_guide.md`
 
 ### 2.6 Common Development Scenarios
 
@@ -290,12 +290,12 @@ After completing feature development, if the changes affect interfaces, samples,
 
 | Change Type | Documentation to Update |
 | --- | --- |
-| Installation, packaging, and uninstallation | [msPTI Tool Installation Guide](../install_guide/mspti_install_guide.md) |
+| Installation, packaging, and uninstallation | [msPTI Installation Guide](../install_guide/mspti_install_guide.md) |
 | Tool introduction | [msPTI Tool Sample Guide](../user_guide/samples_guide.md) |
 | C API changes | [C API Overview](../api_reference/c_api/README.md) and its sub-documents |
 | Python API changes | [Python API Overview](../api_reference/python_api/README.md) and its sub-documents |
 | Sample updates | [msPTI Sample Description](../../../samples/README.md) |
-| Version release information | [Release Notes](https://atomgit.com/Ascend/mspti/releases) |
+| Version release information | [Release Notes](https://gitcode.com/Ascend/mspti/releases) |
 
 ## 6. Suggested Commit Process
 

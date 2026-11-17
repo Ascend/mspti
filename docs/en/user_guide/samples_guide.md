@@ -11,7 +11,7 @@ This document provides msPTI sample sets to help you understand and use the msPT
 > For details about Ascend product models, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -36,7 +36,7 @@ This document provides msPTI sample sets to help you understand and use the msPT
 - For hardware environment requirements, see [Ascend Product Models](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 
 - For details about the software environment, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download) to install the CANN Toolkit and ops operator package of the corresponding version and configure the CANN environment variables.
-- The msPTI Python API samples depend on the PyTorch framework and TorchNPU plugin. Ensure that they are installed. For details, see [TorchNPU Software Installation](https://atomgit.com/Ascend/pytorch/blob/master/docs/en/installation_guide/building_from_source.md).
+- The msPTI Python API samples depend on the PyTorch framework and TorchNPU plugin. Ensure that they are installed. For details, see [TorchNPU Software Installation](https://gitcode.com/Ascend/pytorch/blob/master/docs/en/installation_guide/building_from_source.md).
 
 **Constraints**
 

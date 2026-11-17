@@ -10,10 +10,15 @@ typedef enum {
     MSPTI_ERROR_MAX_LIMIT_REACHED = 3, // msPTI fails to be executed when the activity buffer does not have more record data
     MSPTI_ERROR_DEVICE_OFFLINE = 4, // The information on the device side cannot be obtained
     MSPTI_ERROR_QUEUE_EMPTY = 5,    // Returned when External Correlation ID matching fails, indicating that msPTI fails to be executed
-    MSPTI_ERROR_WITHOUT_LD_PRELOAD = 6,    // Returned when libmspti.so is not set in the LD_PRELOAD environment variable or the libmspti.so file pointed to by LD_PRELOAD does not exist, indicating that msPTI fails to be executed
+    MSPTI_ERROR_WITHOUT_LD_PRELOAD = 6,    // Returned when libmspti.so is not set in the LD_PRELOAD environment variable, indicating that msPTI fails to be executed
     MSPTI_ERROR_NOT_INITIALIZED = 7,    // Returned when msPTI is not initialized, indicating that msPTI fails to be executed
     MSPTI_ERROR_INVALID_KIND = 8,    // Returned when the activity kind is invalid, indicating that msPTI fails to be executed
     MSPTI_ERROR_PARAMETER_SIZE_NOT_SUFFICIENT = 9,    // Returned when the parameter buffer size is insufficient, indicating that msPTI fails to be executed
+    MSPTI_ERROR_PM_SAMPLING_ALREADY_ENABLED = 10,    // Returned when a PM sampling session already exists on the device, indicating that msPTI fails to be executed
+    MSPTI_ERROR_PM_SAMPLING_NOT_ENABLED = 11,    // Returned when the PM sampling session does not exist or is not enabled, indicating that msPTI fails to be executed
+    MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC = 12,    // Returned when the metric ID is invalid or duplicate, or the metric cannot be sampled on the current device, indicating that msPTI fails to be executed
+    MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW = 13,    // Returned when the counter data image capacity is insufficient, indicating that msPTI fails to be executed
+    MSPTI_ERROR_INVALID_OPERATION = 14,    // Returned when the operation is not allowed in the current state, indicating that msPTI fails to be executed
     MSPTI_ERROR_INNER = 999,    // Returned when an internal error occurs in msPTI, indicating that msPTI fails to be executed
     MSPTI_ERROR_FORCE_INT = 0x7fffffff
 } msptiResult;

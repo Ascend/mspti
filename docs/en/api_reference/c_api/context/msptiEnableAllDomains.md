@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -48,4 +48,4 @@ msptiResult msptiEnableAllDomains(uint32_t enable, msptiSubscriberHandle subscri
 
 ## Returns<a name="section16621124213476"></a>
 
-`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, or the `libmspti.so` file pointed to by `LD_PRELOAD` does not exist, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber` is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.
+`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber` is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.

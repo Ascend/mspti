@@ -104,7 +104,41 @@ Activity buffer: Buffers activity record data and transfers one or more activity
 |**Data Structure Type**|**Data Structure Description**|
 |[msptiCallbackData](./context/msptiCallbackData.md)|Data to be passed to the callback function.|
 
-**Table 3** Result codes
+**Table 3** PM Sampling API
+
+|API|Description|
+|--|--|
+|**Function Type**|**Function Description**|
+|[msptiPmSamplingEnable](./context/msptiPmSamplingEnable.md)|Creates a PM Sampling session on the specified device and enables PM sampling.|
+|[msptiPmSamplingSetConfig](./context/msptiPmSamplingSetConfig.md)|Configures the metric set, sampling period, and hardware buffer of the session.|
+|[msptiPmSamplingStart](./context/msptiPmSamplingStart.md)|Starts a PM sampling window.|
+|[msptiPmSamplingStop](./context/msptiPmSamplingStop.md)|Stops the PM sampling window.|
+|[msptiPmSamplingGetNumMetrics](./context/msptiPmSamplingGetNumMetrics.md)|Obtains the total number of configurable PM sampling metrics.|
+|[msptiPmSamplingGetMetricProperties](./context/msptiPmSamplingGetMetricProperties.md)|Obtains the static properties of the specified PM sampling metric.|
+|[msptiPmSamplingGetCounterDataSize](./context/msptiPmSamplingGetCounterDataSize.md)|Obtains the number of bytes required for the counter data image.|
+|[msptiPmSamplingCounterDataImageInitialize](./context/msptiPmSamplingCounterDataImageInitialize.md)|Initializes the counter data image allocated by the user.|
+|[msptiPmSamplingGetCounterDataInfo](./context/msptiPmSamplingGetCounterDataInfo.md)|Obtains the sample statistics of the counter data image or the internal sample queue.|
+|[msptiPmSamplingDecodeData](./context/msptiPmSamplingDecodeData.md)|Decodes the samples in the internal sample queue and writes them to the counter data image.|
+|[msptiPmSamplingGetSampleInfo](./context/msptiPmSamplingGetSampleInfo.md)|Obtains the time window of a sample by index.|
+|[msptiPmSamplingGetCounterAvailability](./context/msptiPmSamplingGetCounterAvailability.md)|Queries the availability of a metric on the target device.|
+|[msptiPmSamplingDisable](./context/msptiPmSamplingDisable.md)|Destroys the session and disables PM sampling.|
+|[msptiPmSamplingGetSampleEntries](./context/msptiPmSamplingGetSampleEntries.md)|Obtains the self-describing value entry list of a sample by index.|
+|**Typedef Type**|**Typedef Description**|
+|[msptiPmSamplingObjectPtr](./context/msptiPmSamplingObjectPtr.md)|PM sampling session object handle.|
+|**Enumeration Type**|**Enumeration Description**|
+|[msptiPmSamplingMetricId](./context/msptiPmSamplingMetricId.md)|Metric ID in the static PM sampling metric table.|
+|[msptiPmSamplingBufferAppendMode](./context/msptiPmSamplingBufferAppendMode.md)|Append mode when the hardware buffer is full.|
+|[msptiPmSamplingTriggerMode](./context/msptiPmSamplingTriggerMode.md)|PM sampling trigger mode.|
+|[msptiPmSamplingDecodeStopReason](./context/msptiPmSamplingDecodeStopReason.md)|Decoding stop reason.|
+|[msptiPmSamplingMetricDataType](./context/msptiPmSamplingMetricDataType.md)|Data type of the PM sampling metric value.|
+|[msptiPmSamplingMetricGroup](./context/msptiPmSamplingMetricGroup.md)|Group to which a PM sampling metric belongs.|
+|**Data Structure Type**|**Data Structure Description**|
+|[msptiPmSamplingMetricProperties](./context/msptiPmSamplingMetricProperties.md)|Static property structure of a PM sampling metric.|
+|[msptiPmSamplingSampleEntry](./context/msptiPmSamplingSampleEntry.md)|Self-describing value entry of a PM sampling sample.|
+
+PM sampling: periodic device-level performance sampling that collects metrics such as HBM/HCCS/PCIe/RoCE bandwidth, power, temperature, utilization, and frequency at a fixed interval; a sample consists of self-describing value entries.
+
+**Table 4** Result codes
 
 |API|Description|
 |--|--|

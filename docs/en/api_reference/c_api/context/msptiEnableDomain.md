@@ -9,7 +9,7 @@
 <a name="zh-cn_topic_0000002014413733_table38301303189"></a>
 
 <!-- npu="950" id1 -->
-- Atlas 950PR and 950DT products: supported
+- Ascend 950PR and 950DT products: supported
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
 - Atlas A3 products: supported
@@ -29,9 +29,9 @@
 
 ## Description <a name="section20806203412478"></a>
 
-Enables or disables all callbacks for subscribers of specific **domain**.
+Enables or disables all callbacks for subscribers of specific `domain`.
 
-When the position of the callback ID is triggered, msPTI automatically calls the callback function registered by the msptiSubscribe API.
+When the position of the callback ID is triggered, msPTI automatically calls the callback function registered by the `msptiSubscribe` API.
 
 ## Function Prototype<a name="section1121883194711"></a>
 
@@ -41,7 +41,7 @@ msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber,
 
 ## Parameter Description<a name="section11506138144714"></a>
 
-**Table 1** Parameter Description
+**Table 1** Parameter description
 
 <a name="table827101275518"></a>
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a> Parameter Name</p>
@@ -78,4 +78,4 @@ msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber,
 
 ## Returns<a name="section16621124213476"></a>
 
-`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, or the `libmspti.so` file pointed to by `LD_PRELOAD` does not exist, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber` or domain is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.
+`MSPTI_SUCCESS` indicates success. If msPTI is not initialized, `MSPTI_ERROR_NOT_INITIALIZED` is returned, indicating failure. If `libmspti.so` is not set in the `LD_PRELOAD` environment variable, `MSPTI_ERROR_WITHOUT_LD_PRELOAD` is returned, indicating failure. If `subscriber` or `domain` is invalid, `MSPTI_ERROR_INVALID_PARAMETER` is returned, indicating failure.

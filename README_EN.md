@@ -8,7 +8,7 @@
  [![AI Q&A ZRead](https://badgen.net/badge/AI%20Q%26A/ZRead/blue)](https://zread.ai/mindstudio-docs/master)
  [![Exact Search](https://badgen.net/badge/Exact%20Search/ReadTheDocs/blue)](https://mindstudio-docs-master.readthedocs.io)
  [![Ascend Community](https://badgen.net/badge/Ascend%20Community/Community/blue)](https://www.hiascend.com/en/developer/software/mindstudio)
- [![Report an Issue](https://badgen.net/badge/Report%20an%20Issue/Issues/blue)](https://atomgit.com/Ascend/mspti/issues)
+ [![Report an Issue](https://badgen.net/badge/Report%20an%20Issue/Issues/blue)](https://gitcode.com/Ascend/mspti/issues)
 
 </div>
 
@@ -16,11 +16,13 @@ English | [简体中文](./README.md)
 
 ## ✨ What's New
 
-🔹 [Feb 6, 2026]: Added the `26.0.0-alpha.1` release record to the Release Notes, compatible with CANN 8.5.0 or later. For details, see [Release Notes](https://atomgit.com/Ascend/mspti/releases).
+🔹 [Oct 22, 2026]: Added PM Sampling, which continuously collects system-level metrics, including power, temperature, frequency, NPU/Aicore/Aivector/Aicube utilization, on-chip memory bandwidth utilization and memory utilization, and HCCS/PCIe bandwidths, at a minimum sampling interval of 1 ms. For details, see the [PM Sampling User Guide](./docs/en/user_guide/pm_sampling_api.md).
+
+🔹 [Feb 6, 2026]: Added the 26.0.0-alpha.1 release record to the Release Notes, compatible with CANN 8.5.0 or later. For details, see [Release Notes](https://gitcode.com/Ascend/mspti/releases).
 
 ## ℹ️ Introduction
 
-msPTI (MindStudio Profiler Tools Interface) is a collection of profiling APIs for Ascend devices, helping developers build performance profiling and analysis tools for NPU applications, suitable for both inference and training.
+MindStudio Profiler Tools Interface (msPTI) is a collection of profiling APIs for Ascend devices, helping developers build performance profiling and analysis tools for NPU applications, suitable for both inference and training.
 
 msPTI provides the following capabilities:
 
@@ -33,6 +35,7 @@ msPTI provides the following capabilities:
 | --- | --- | --- |
 | Activity API | Collects activity data such as API, kernel, memory, HCCL, marker, and external correlation for building tracing and profiling tools. | [C API Reference](./docs/en/api_reference/c_api/README.md) |
 | Callback API | Subscribes to runtime and HCCL callbacks to execute custom logic or correlate profile data before and after API calls. | [C API Reference](./docs/en/api_reference/c_api/README.md) |
+| PM Sampling API | Periodic device-level performance sampling that collects metrics such as on-chip memory/HCCS/PCIe/RoCE bandwidth, power, temperature, utilization, and frequency. | [C API Reference](./docs/en/api_reference/c_api/README.md) |
 | Python API | Provides APIs such as `KernelMonitor`, `HcclMonitor`, `MstxMonitor`, and `CommunicationMonitor` for quick integration into Python analysis. | [Python API Reference](./docs/en/api_reference/python_api/README.md) |
 | Samples | Covers typical scenarios such as callback, activity, correlation, HCCL, and Python monitor for quick onboarding. | [Sample Description](./samples/README.md)/[Sample Guide](./docs/en/user_guide/samples_guide.md) |
 
@@ -42,11 +45,11 @@ For details about how to use msPTI tools, see [msPTI Quick Start](./docs/en/quic
 
 ## 📦 Installation Guide
 
-This document introduces the environment dependencies and installation methods of the tool, including online installation, offline installation, and source code compilation. For details, see [msPTI Tool Installation Guide](./docs/en/install_guide/mspti_install_guide.md).
+This section describes the environment dependencies and installation methods of the tool, including online installation, offline installation, and source code compilation. For details, see the [msPTI Installation Guide](./docs/en/install_guide/mspti_install_guide.md).
 
 ## 📘 User Guide
 
-For detailed instructions on using the tools, see [msPTI User Guide](./docs/en/user_guide/mspti_user_guide.md).
+For detailed instructions on using the tools, see the [msPTI User Guide](./docs/en/user_guide/mspti_user_guide.md).
 
 ## 💡 Typical Use Cases
 
@@ -66,27 +69,25 @@ To improve documentation search efficiency, we provide multiple efficient search
 
 ## 🛠️ Contribution Guide
 
-You are welcome to contribute to the project. See [Contribution Guide](./docs/en/contributing/contributing_guide.md).
+You are welcome to contribute to the project. See the [Contribution Guide](./docs/en/contributing/contributing_guide.md).
 
 ## 📝 Important Notes
 
-🔹 [Release Notes](https://atomgit.com/Ascend/mspti/releases) <br>
+🔹 [Release Notes](https://gitcode.com/Ascend/mspti/releases) <br>
 🔹 [License Notice](docs/en/legal/license_notice.md) <br>
 🔹 [Security Statement](./docs/en/legal/security_statement.md) <br>
 🔹 [Disclaimer](./docs/en/legal/disclaimer.md) <br>
 
 ## 🤝 Suggestions and Communication
 
-You are welcome to contribute to the community. If you have any questions or suggestions, please submit an [Issue](https://atomgit.com/Ascend/mspti/issues), and we will respond as soon as possible. Thank you for your support.
+You are welcome to contribute to the community. If you have any questions or suggestions, please submit an [Issue](https://gitcode.com/Ascend/mspti/issues), and we will respond as soon as possible. Thank you for your support.
 
 | 💬 Instant Interaction (WeChat Group) | 📢 Official Updates (Official Account) | In-Depth Support (Assistant/Forum) |
 | :---: | :---: | :--- |
-| <img src="./docs/en/figures/qr_code_wechat_work.png" width="120"><br><sub>*Scan the QR code to join the technical exchange group directly*</sub> | <img src="./docs/en/figures/qr_code_wechat_official_account.png" width="120"><br><sub>*Scan the QR code for the latest updates*</sub> |Scan the QR code to join the group and follow the official account, the fastest communication channel for MindStudio users and developers:<br> **Quick Q&A:** Discuss technical issues with community members in real time.<br>**Latest Updates:** Get notified of version releases and feature updates as soon as possible.<br> **Experience Sharing:** Exchange best practices and hands-on experience with developers.<br>🛠️ **More Support Channels**: 👉 Ascend Assistant: [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://atomgit.com/Ascend/msit/blob/master/docs/zh/figures/readme/xiaozhushou.png)👉 Ascend Forum: [![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/) |
+| <img src="./docs/en/figures/qr_code_wechat_work.png" width="120"><br><sub>*Scan the QR code to join the technical exchange group directly*</sub> | <img src="./docs/en/figures/qr_code_wechat_official_account.png" width="120"><br><sub>*Scan the QR code for the latest updates*</sub> |Scan the QR code to join the group and follow the official account, the fastest communication channel for MindStudio users and developers:<br> **Quick Q&A:** Discuss technical issues with community members in real time.<br>**Latest Updates:** Get notified of version releases and feature updates as soon as possible.<br> **Experience Sharing:** Exchange best practices and hands-on experience with developers.<br>🛠️ **More Support Channels**: 👉 Ascend Assistant: [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=flat-square&logo=wechat&logoColor=white)](https://gitcode.com/Ascend/msit/blob/master/docs/zh/figures/readme/xiaozhushou.png)👉 Ascend Forum: [![Website](https://img.shields.io/badge/Website-%231e37ff?style=flat-square&logo=RSS&logoColor=white)](https://www.hiascend.com/forum/) |
 
 ## 🙏 Acknowledgments
 
-This tool is contributed by the following departments of Huawei:
-
-🔹 Ascend Computing MindStudio Development Dept.
+This tool is jointly contributed by Huawei Technologies Co., Ltd. and developers.
 
 We appreciate every PR from the community and welcome your contributions.
