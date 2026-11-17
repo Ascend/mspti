@@ -63,6 +63,16 @@ function build_python_whl() {
     cd - > /dev/null
 }
 
+# generate build info into run package
+function generate_build_info() {
+    local temp_dir=${1}
+    python3 ${TOP_DIR}/scripts/generate_build_info.py \
+        --output ${temp_dir}/build_info.json \
+        --package-name ${MSPTI_RUN_NAME} \
+        --package-version $(get_version) \
+        --build-type "${BUILD_TYPE:-Release}"
+}
+
 # create temp dir for product
 function create_temp_dir() {
     local temp_dir=${1}
@@ -167,6 +177,7 @@ function check_file_exist() {
     check_package ${temp_dir}/${UTILS_SCRIPT} ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/${MAIN_SCRIPT} ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/libmspti.so ${PKG_LIMIT_SIZE}
+    check_package ${temp_dir}/build_info.json ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/mspti.h ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/mspti_activity.h ${PKG_LIMIT_SIZE}
     check_package ${temp_dir}/mspti_callback.h ${PKG_LIMIT_SIZE}
@@ -202,6 +213,7 @@ function main() {
     get_version
     build_python_whl
     create_temp_dir ${MSPTI_TEMP_DIR}
+    generate_build_info ${MSPTI_TEMP_DIR}
     check_file_exist ${MSPTI_TEMP_DIR}
     create_run_package ${MSPTI_RUN_NAME} ${MSPTI_TEMP_DIR} ${main_script} ${filer}
     check_package ${OUTPUT_DIR}/$(get_package_name) ${PKG_LIMIT_SIZE}

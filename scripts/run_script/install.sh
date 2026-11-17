@@ -70,6 +70,7 @@ function implement_install() {
     copy_file ${UNINSTALL_SCRIPT} ${install_path}/${UNINSTALL_SCRIPT_DIR}/${UNINSTALL_SCRIPT} ${right}
     copy_file ${UTILS_SCRIPT} ${install_path}/${UNINSTALL_SCRIPT_DIR}/${UTILS_SCRIPT} ${right}
     copy_file ${VERSION_INFO} ${install_path}/${MSPTI_SHARE_INFO}/${VERSION_INFO} ${right}
+    copy_file ${BUILD_INFO} ${install_path}/${MSPTI_PATH}/${BUILD_INFO} ${right}
     # install new whl
     remove ${install_path}/python/site-packages/mspti-*.dist-info
     remove ${install_path}/${MSPTI_PYTHON_PATH}/${MSPTI_WHL}

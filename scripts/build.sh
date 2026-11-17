@@ -19,6 +19,7 @@ set -e
 CUR_DIR=$(dirname $(readlink -f $0))
 TOP_DIR=${CUR_DIR}/..
 BUILD_TYPE="Release"
+export BUILD_TYPE
 VERSION=""
 
 print_help() {

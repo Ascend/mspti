@@ -47,6 +47,7 @@ UNINSTALL_SCRIPT_DIR="${MSPTI_SHARE_INFO}/script"
 CANN_UNINSTALL_SCRIPT="cann_uninstall.sh"
 UTILS_SCRIPT="utils.sh"
 VERSION_INFO="version.info"
+BUILD_INFO="build_info.json"
 
 # log level
 LEVEL_ERROR="ERROR"
