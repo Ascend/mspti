@@ -82,6 +82,10 @@ class CommunicationCalculator
     std::unordered_map<uint64_t, std::unique_ptr<CommunicationOpDesc>> taskId2AdditionInfo_;
 
     std::atomic<int64_t> pendingCommunicationCount_{0};
+
+    // Abnormal-path sampling counters.
+    std::atomic<uint64_t> commOpFailCount_{0};
+    std::atomic<uint64_t> emptyTasksCount_{0};
 };
 }  // namespace Parser
 }  // namespace Mspti

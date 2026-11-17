@@ -78,7 +78,14 @@ msptiResult ChannelPoolManager::Init()
         MSPTI_LOGE("Failed to init ChannelPool.");
         return MSPTI_ERROR_INNER;
     }
-    return drvChannelPoll_->Start();
+    const msptiResult startRet = drvChannelPoll_->Start();
+    if (startRet != MSPTI_SUCCESS)
+    {
+        // Start 失败必须复位，否则下次 Init 会因指针非空误判为已初始化
+        MSPTI_LOGE("Failed to start ChannelPool, ret: %d.", static_cast<int>(startRet));
+        drvChannelPoll_.reset();
+    }
+    return startRet;
 }
 
 void ChannelPoolManager::UnInit()

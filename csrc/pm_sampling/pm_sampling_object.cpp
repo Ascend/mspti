@@ -75,10 +75,14 @@ msptiResult PmSamplingObject::SetConfig(uint32_t numMetrics, const uint32_t *pMe
         MSPTI_LOGE("SetConfig is not allowed in state %d, device %u", static_cast<int>(state_), deviceId_);
         return MSPTI_ERROR_INVALID_OPERATION;
     }
-    if (numMetrics == 0 || numMetrics > MSPTI_PM_SAMPLING_METRIC_ID_COUNT || pMetricIds == nullptr)
+    if (numMetrics == 0 || pMetricIds == nullptr)
     {
-        // numMetrics 上界与 GetCounterDataSize 对齐（返回 INVALID_PARAMETER）；上界必须在
-        // SampleBytesOf 之前生效，否则后续按 numMetrics 越界读调用方数组
+        return MSPTI_ERROR_INVALID_PARAMETER;
+    }
+    // 上界须在 SampleBytesOf 之前生效，否则会按 numMetrics 越界读调用方数组
+    if (numMetrics > MSPTI_PM_SAMPLING_METRIC_ID_COUNT)
+    {
+        MSPTI_LOGE("Too many metrics: %u, max %u, device %u", numMetrics, MSPTI_PM_SAMPLING_METRIC_ID_COUNT, deviceId_);
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
     if (samplingInterval < kMinIntervalNs || samplingInterval > kMaxIntervalNs)

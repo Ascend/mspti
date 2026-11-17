@@ -277,4 +277,75 @@ TEST_F(DeviceTaskCalculatorUtest, FftsEndConvertsSubTaskTimeConsistentlyWithScal
     instance.ReportStarsSocLog(deviceId, socLogEnd);
     EXPECT_TRUE(callbackFired);
 }
+
+// Clear must drop registered tasks so a stale callback cannot match a new session.
+TEST_F(DeviceTaskCalculatorUtest, ClearShouldDropRegisteredTask)
+{
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::IsActivityKindEnable).stubs().will(returnValue(true));
+    constexpr uint32_t deviceId = 1;
+    constexpr uint16_t streamId = 2;
+    constexpr uint32_t taskId = 8200;
+    auto &instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
+    bool callbackFired = false;
+    Mspti::Parser::DeviceTask task(0, 0, streamId, taskId, deviceId);
+    instance.RegisterCallBack(task,
+                              [&](const Mspti::Parser::DeviceTask &)
+                              {
+                                  callbackFired = true;
+                                  return MSPTI_SUCCESS;
+                              });
+    instance.Clear();
+
+    HalLogData socLogStart;
+    (void)memset_s(&socLogStart, sizeof(socLogStart), 0, sizeof(socLogStart));
+    socLogStart.type = ACSQ_LOG;
+    socLogStart.acsq.funcType = STARS_FUNC_TYPE_BEGIN;
+    socLogStart.acsq.streamId = streamId;
+    socLogStart.acsq.taskId = taskId;
+
+    HalLogData socLogEnd;
+    (void)memset_s(&socLogEnd, sizeof(socLogEnd), 0, sizeof(socLogEnd));
+    socLogEnd.type = ACSQ_LOG;
+    socLogEnd.acsq.funcType = STARS_FUNC_TYPE_END;
+    socLogEnd.acsq.streamId = streamId;
+    socLogEnd.acsq.taskId = taskId;
+
+    EXPECT_EQ(instance.ReportStarsSocLog(deviceId, socLogStart), MSPTI_SUCCESS);
+    EXPECT_EQ(instance.ReportStarsSocLog(deviceId, socLogEnd), MSPTI_SUCCESS);
+    EXPECT_FALSE(callbackFired);
+}
+
+// Unknown ffts funcType must be dropped before insert to avoid a leaked sub-task entry.
+TEST_F(DeviceTaskCalculatorUtest, UnknownFftsFuncTypeShouldNotLeakSubTaskEntry)
+{
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::IsActivityKindEnable).stubs().will(returnValue(true));
+    constexpr uint32_t deviceId = 1;
+    constexpr uint16_t streamId = 3;
+    constexpr uint32_t taskId = 8300;
+    constexpr uint16_t subTaskId = 1;
+    auto &instance = Mspti::Parser::DeviceTaskCalculator::GetInstance();
+    instance.Clear();
+    bool callbackFired = false;
+    Mspti::Parser::DeviceTask task(0, 0, streamId, taskId, deviceId);
+    instance.RegisterCallBack(task,
+                              [&](const Mspti::Parser::DeviceTask &)
+                              {
+                                  callbackFired = true;
+                                  return MSPTI_SUCCESS;
+                              });
+
+    HalLogData fftsLog;
+    (void)memset_s(&fftsLog, sizeof(fftsLog), 0, sizeof(fftsLog));
+    fftsLog.type = FFTS_LOG;
+    fftsLog.ffts.funcType = 99;
+    fftsLog.ffts.streamId = streamId;
+    fftsLog.ffts.taskId = taskId;
+    fftsLog.ffts.subTaskId = subTaskId;
+
+    EXPECT_EQ(instance.ReportStarsSocLog(deviceId, fftsLog), MSPTI_SUCCESS);
+    EXPECT_TRUE(instance.assembleSubTasks_.empty());
+    EXPECT_EQ(1U, instance.assembleTasks_.size());
+    EXPECT_FALSE(callbackFired);
+    instance.Clear();
+}
 }  // namespace

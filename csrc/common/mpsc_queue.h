@@ -13,28 +13,33 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PROJECT_MPSC_QUEUE_H
 #define MSPTI_PROJECT_MPSC_QUEUE_H
 
-#include <cstdint>
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <new>
+
 #include "csrc/common/plog_manager.h"
 
-namespace Mspti {
-namespace Common {
+namespace Mspti
+{
+namespace Common
+{
 constexpr size_t DEFAULT_CAPACITY = 2048;
 
-template<typename T>
-class MPSCQueue {
-public:
+template <typename T>
+class MPSCQueue
+{
+   public:
     MPSCQueue() : head_(new(std::nothrow) NodeT), tail_(head_.load(std::memory_order_relaxed))
     {
         NodeT *front = head_.load(std::memory_order_relaxed);
-        if (front == nullptr) {
+        if (front == nullptr)
+        {
             MSPTI_LOGE("MPSC head_ new buffer failed.");
             return;
         }
@@ -44,24 +49,28 @@ public:
     ~MPSCQueue()
     {
         T output;
-        while (this->Pop(output)) {}
+        while (this->Pop(output))
+        {
+        }
         NodeT *front = head_.load(std::memory_order_relaxed);
         delete front;
     }
 
     void CheckOverflow()
     {
-        if (count_.load(std::memory_order_relaxed) > DEFAULT_CAPACITY && !isOverFlow_.load(std::memory_order_relaxed)) {
-            isOverFlow_.store(true);
-            MSPTI_LOGW("MPSC queue length exceeded the maximum threshold! current length: %u", count_.load());
+        const auto cur = count_.load(std::memory_order_relaxed);
+        if (cur > DEFAULT_CAPACITY)
+        {
+            MSPTI_LOGW_ONCE("MPSC queue length exceeded the maximum threshold! current length: %zu", cur);
         }
     }
 
     void Push(const T &input)
     {
-        NodeT *node = new(std::nothrow) NodeT;
-        if (node == nullptr) {
-            MSPTI_LOGE("MPSC queue new buffer failed.");
+        NodeT *node = new (std::nothrow) NodeT;
+        if (node == nullptr)
+        {
+            MSPTI_LOGE_EVERY_N(LOG_EVERY_N_HOT_PATH, "MPSC queue new buffer failed.");
             return;
         }
         node->data = input;
@@ -75,9 +84,10 @@ public:
 
     void Push(T &&input)
     {
-        NodeT *node = new(std::nothrow) NodeT;
-        if (node == nullptr) {
-            MSPTI_LOGE("MPSC queue new buffer failed.");
+        NodeT *node = new (std::nothrow) NodeT;
+        if (node == nullptr)
+        {
+            MSPTI_LOGE_EVERY_N(LOG_EVERY_N_HOT_PATH, "MPSC queue new buffer failed.");
             return;
         }
         node->data = std::move(input);
@@ -92,13 +102,15 @@ public:
     bool Pop(T &output)
     {
         NodeT *tail = tail_.load(std::memory_order_relaxed);
-        if (tail == nullptr) {
-            MSPTI_LOGE("MPSC queue tail is nullptr.");
+        if (tail == nullptr)
+        {
+            MSPTI_LOGE_ONCE("MPSC queue tail is nullptr.");
             return false;
         }
         NodeT *next = tail->next.load(std::memory_order_acquire);
 
-        if (next == nullptr) {
+        if (next == nullptr)
+        {
             return false;
         }
 
@@ -112,13 +124,15 @@ public:
     bool Peek(T &output) const
     {
         NodeT *tail = tail_.load(std::memory_order_acquire);
-        if (tail == nullptr) {
-            MSPTI_LOGE("MPSC queue tail is nullptr.");
+        if (tail == nullptr)
+        {
+            MSPTI_LOGE_ONCE("MPSC queue tail is nullptr.");
             return false;
         }
         NodeT *next = tail->next.load(std::memory_order_acquire);
 
-        if (next == nullptr) {
+        if (next == nullptr)
+        {
             return false;
         }
 
@@ -129,25 +143,26 @@ public:
     bool IsEmpty() const
     {
         NodeT *tail = tail_.load(std::memory_order_acquire);
-        if (tail == nullptr) {
-            MSPTI_LOGE("MPSC queue tail is nullptr.");
+        if (tail == nullptr)
+        {
+            MSPTI_LOGE_ONCE("MPSC queue tail is nullptr.");
             return true;
         }
         NodeT *next = tail->next.load(std::memory_order_acquire);
         return (next == nullptr);
     }
 
-private:
-    struct NodeT {
+   private:
+    struct NodeT
+    {
         T data;
         std::atomic<NodeT *> next;
     };
-    alignas(64) std::atomic<bool> isOverFlow_{false};
     alignas(64) std::atomic<size_t> count_{0};  // count不能实时反应链表实际长度，不要用count判断IsEmpty
     alignas(64) std::atomic<NodeT *> head_;
     alignas(64) std::atomic<NodeT *> tail_;
 };
-}
-}
+}  // namespace Common
+}  // namespace Mspti
 
-#endif // MSPTI_PROJECT_MPSC_QUEUE_H
+#endif  // MSPTI_PROJECT_MPSC_QUEUE_H

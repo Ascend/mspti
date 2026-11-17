@@ -17,6 +17,8 @@
  */
 #include "csrc/activity/ascend/reporter/memory_reporter.h"
 
+#include <cinttypes>
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
@@ -132,7 +134,9 @@ msptiResult MemoryReporter::ReportMemoryActivity(const MemoryRecord& record)
         {
             if (record.opType == MSPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE)
             {
-                MSPTI_LOGW("Address %llu release, but not have allocation record.", address);
+                MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, releaseWithoutAllocCount_,
+                                         "Address %" PRIuPTR " release without allocation record, total: %" PRIu64,
+                                         address);
             }
             else
             {
@@ -148,7 +152,9 @@ msptiResult MemoryReporter::ReportMemoryActivity(const MemoryRecord& record)
             }
             else
             {
-                MSPTI_LOGW("Address %llu more than one allocation record.", address);
+                MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, duplicateAllocCount_,
+                                         "Address %" PRIuPTR " has duplicate allocation record, total: %" PRIu64,
+                                         address);
                 iter->second = size;
             }
         }

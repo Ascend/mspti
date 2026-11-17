@@ -18,6 +18,8 @@
 
 #include "csrc/activity/ascend/parser/parser_manager.h"
 
+#include <cinttypes>
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/parser/cann_hash_cache.h"
 #include "csrc/activity/ascend/parser/mstx_parser.h"
@@ -45,7 +47,8 @@ msptiResult ParserManager::ReportApi(const MsprofApi* const data)
     const auto& name = CannHashCache::GetHashInfo(data->itemId);
     if (name.empty())
     {
-        MSPTI_LOGW("Get HashInfo failed. HashId: %lu", data->itemId);
+        MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, hashMissCount_,
+                                 "Get HashInfo failed, HashId: %" PRIu64 ", dropped total: %" PRIu64, data->itemId);
         return MSPTI_SUCCESS;
     }
 

@@ -17,6 +17,8 @@
  */
 #include "csrc/activity/ascend/parser/hccl_calculator.h"
 
+#include <atomic>
+#include <cinttypes>
 #include <cstring>
 #include <functional>
 #include <unordered_map>
@@ -45,13 +47,23 @@ const static std::unordered_map<HcclDataType, uint8_t> dataType2Size{{HCCL_DATA_
                                                                      {HCCL_DATA_TYPE_BFP16, 2},
                                                                      {HCCL_DATA_TYPE_INT128, 16}};
 
+namespace
+{
+void LogBandwidthFailure(const char* reason)
+{
+    static std::atomic<uint64_t> bandwidthFailureCount{0};
+    MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, bandwidthFailureCount,
+                             "%s, cannot calculate bandwidth, failed total: %" PRIu64, reason);
+}
+}  // namespace
+
 msptiResult CalculateP2pBandWidth(HcclOpDesc* hcclOpDesc)
 {
     auto p2pOpDesc = static_cast<P2pOpDesc*>(hcclOpDesc);
     const auto& dataType = dataType2Size.find(p2pOpDesc->dataType);
     if (dataType == dataType2Size.end())
     {
-        MSPTI_LOGW("unknown p2p op type, cannot calculate bandwidth");
+        LogBandwidthFailure("unknown p2p op type");
         return MSPTI_ERROR_INNER;
     }
     uint64_t dataSize = dataType->second * p2pOpDesc->count;
@@ -65,19 +77,19 @@ msptiResult CalculateAll2AllVBandWidth(HcclOpDesc* hcclOpDesc)
     auto all2AllVOpDesc = static_cast<All2AllVOpDesc*>(hcclOpDesc);
     if (all2AllVOpDesc->sendCounts == nullptr || all2AllVOpDesc->recvCounts == nullptr)
     {
-        MSPTI_LOGW("sendCounts or recvCounts in op is nullptr, cannot calculate bandwidth");
+        LogBandwidthFailure("sendCounts or recvCounts in op is nullptr");
         return MSPTI_ERROR_INNER;
     }
     const auto& sendType = dataType2Size.find(all2AllVOpDesc->sendType);
     if (sendType == dataType2Size.end())
     {
-        MSPTI_LOGW("unknow all2Allv op sendType, cannot calculate bandwidth");
+        LogBandwidthFailure("unknow all2Allv op sendType");
         return MSPTI_ERROR_INNER;
     }
     const auto& recvType = dataType2Size.find(all2AllVOpDesc->recvType);
     if (recvType == dataType2Size.end())
     {
-        MSPTI_LOGW("unknow all2Allv op recvType, cannot calculate bandwidth");
+        LogBandwidthFailure("unknow all2Allv op recvType");
         return MSPTI_ERROR_INNER;
     }
     uint64_t sendDataSize = 0;
@@ -100,7 +112,7 @@ msptiResult CalculateCollectiveBandWidth(HcclOpDesc* hcclOpDesc)
     const auto& it = dataType2Size.find(collectiveOp->dataType);
     if (it == dataType2Size.end())
     {
-        MSPTI_LOGW("unknow collective op type, cannot calculate bandwidth");
+        LogBandwidthFailure("unknow collective op type");
         return MSPTI_ERROR_INNER;
     }
     uint64_t dataSize = it->second * collectiveOp->count * collectiveOp->rankSize;
@@ -118,7 +130,7 @@ msptiResult CalculateBatchSendRecvBandWidth(HcclOpDesc* hcclOpDesc)
         const auto& it = dataType2Size.find(sendOp.dataType);
         if (it == dataType2Size.end())
         {
-            MSPTI_LOGW("unknow batchSendRecv op type, cannot calculate bandwidth");
+            LogBandwidthFailure("unknow batchSendRecv op type");
             return MSPTI_ERROR_INNER;
         }
         dataSize += sendOp.count * it->second;
@@ -145,18 +157,18 @@ msptiResult HcclCalculator::CalculateBandWidth(HcclOpDesc* hcclOpDesc)
 {
     if (hcclOpDesc == nullptr)
     {
-        MSPTI_LOGW("hcclOpDesc is nullptr, cannot calculate bandwidth");
+        LogBandwidthFailure("hcclOpDesc is nullptr");
         return MSPTI_ERROR_INNER;
     }
     const auto& it = calculateFunc.find(hcclOpDesc->opName);
     if (it == calculateFunc.end())
     {
-        MSPTI_LOGW("bandwidth calculation formula without corresponding operator");
+        LogBandwidthFailure("bandwidth calculation formula without corresponding operator");
         return MSPTI_ERROR_INNER;
     }
     if (hcclOpDesc->end <= hcclOpDesc->start)
     {
-        MSPTI_LOGW("duration time is zero or start time is later than end time, can not calculate bandwidth");
+        LogBandwidthFailure("duration time is zero or start time is later than end time");
         return MSPTI_ERROR_INNER;
     }
     return it->second(hcclOpDesc);

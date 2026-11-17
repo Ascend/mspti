@@ -17,6 +17,8 @@
  */
 #include "csrc/activity/ascend/channel/channel_pool.h"
 
+#include <exception>
+
 #include "csrc/common/config.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/plog_manager.h"
@@ -57,7 +59,7 @@ msptiResult ChannelPool::AddReader(uint32_t devId, AI_DRV_CHANNEL channelId, uin
     MSPTI_LOGI("Create channel reader, devId: %u, channelId: %d, bufferSize: %u", devId, channelId, bufferSize);
     if (!reader)
     {
-        MSPTI_LOGE("Create channel reader failed.");
+        MSPTI_LOGE("Create channel reader failed, devId: %u, channelId: %d", devId, channelId);
         return MSPTI_ERROR_INNER;
     }
     msptiResult initRet = reader->Init();
@@ -131,11 +133,28 @@ msptiResult ChannelPool::Start()
         return MSPTI_ERROR_INNER;
     }
     threadPool_->SetThreadPoolQueueSize(CHANNELPOLL_THREAD_QUEUE_SIZE);
-    threadPool_->Start();
-    if (!thread_.joinable())
+    try
     {
-        isStarted_ = true;
-        thread_ = std::thread(std::bind(&ChannelPool::Run, this));
+        if (threadPool_->Start() != 0)
+        {
+            // Start returns -1 on failure; check it to avoid a silent stall.
+            MSPTI_LOGE("Failed to start ChannelPool ThreadPool, poolSize: %u.", pool_size_);
+            threadPool_->Stop();
+            return MSPTI_ERROR_INNER;
+        }
+        if (!thread_.joinable())
+        {
+            isStarted_ = true;
+            thread_ = std::thread(std::bind(&ChannelPool::Run, this));
+        }
+    }
+    catch (const std::exception &e)
+    {
+        // 线程创建失败必须回滚，避免 isStarted_ 为 true 却没有轮询线程
+        isStarted_ = false;
+        MSPTI_LOGE("Failed to start ChannelPool: %s", e.what());
+        threadPool_->Stop();
+        return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
 }
@@ -219,7 +238,13 @@ void ChannelPool::DispatchChannel(uint32_t devId, AI_DRV_CHANNEL channelId)
         if (!isScheduling)
         {
             channel_iter->second->SetSchedulingStatus(true);
-            (void)threadPool_->Dispatch(channel_iter->second);
+            if (threadPool_->Dispatch(channel_iter->second) != 0)
+            {
+                // Execute() never runs on failed dispatch, clear the flag.
+                channel_iter->second->SetSchedulingStatus(false);
+                MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_HOT_PATH,
+                                   "Failed to dispatch channel reader, devId: %u, channelId: %d", devId, channelId);
+            }
         }
     }
 }

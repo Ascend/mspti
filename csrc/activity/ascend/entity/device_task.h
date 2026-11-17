@@ -13,15 +13,16 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #ifndef MSPTI_PROJECT_DEVICE_TASK_H
 #define MSPTI_PROJECT_DEVICE_TASK_H
 
 #include <cstdint>
-#include <vector>
 #include <memory>
+#include <vector>
 
-struct SubTask {
+struct SubTask
+{
     uint64_t start;
     uint64_t end;
     uint32_t streamId;
@@ -29,7 +30,8 @@ struct SubTask {
     uint32_t subTaskId;
 };
 
-struct HostTask {
+struct HostTask
+{
     uint32_t threadId;
     uint16_t deviceId;
     uint16_t streamId;
@@ -48,10 +50,13 @@ struct HostTask {
           kernelHash(hash),
           corrleationId(corrleationId),
           taskInfo(taskInfo),
-          agingFlag(agingFlag) {}
+          agingFlag(agingFlag)
+    {
+    }
 };
 
-struct DeviceTask {
+struct DeviceKernelTask
+{
     uint64_t start;
     uint64_t end;
     uint32_t streamId;
@@ -60,20 +65,13 @@ struct DeviceTask {
     bool isFfts;
     bool agingFlag;
     std::vector<SubTask> subTasks;
-    DeviceTask()
-        : start(0),
-          end(0),
-          streamId(0),
-          taskId(0),
-          deviceId(0),
-          isFfts(false),
-          agingFlag(true),
-          subTasks(0)
+    DeviceKernelTask()
+        : start(0), end(0), streamId(0), taskId(0), deviceId(0), isFfts(false), agingFlag(true), subTasks(0)
     {
         subTasks.reserve(10);
     };
-    DeviceTask(uint64_t start, uint64_t end, uint32_t streamId, uint32_t taskId, uint32_t deviceId, bool isFfts = false,
-               bool agingFlag = true)
+    DeviceKernelTask(uint64_t start, uint64_t end, uint32_t streamId, uint32_t taskId, uint32_t deviceId,
+                     bool isFfts = false, bool agingFlag = true)
         : start(start),
           end(end),
           streamId(streamId),
@@ -81,9 +79,10 @@ struct DeviceTask {
           deviceId(deviceId),
           isFfts(isFfts),
           agingFlag(agingFlag),
-          subTasks(0) {
+          subTasks(0)
+    {
         subTasks.reserve(10);
     }
 };
 
-#endif // MSPTI_PROJECT_DEVICE_TASK_H
+#endif  // MSPTI_PROJECT_DEVICE_TASK_H

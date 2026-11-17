@@ -53,12 +53,12 @@ inline const char* GetValidKernelTypeName(uint32_t taskType)
 class KernelParser::KernelParserImpl
 {
     using msptiActivityKernelPtr = Common::SimpleObjectPool<msptiActivityKernel>::Ptr;
-    using DeviceTaskPtr = Common::SimpleObjectPool<DeviceTask>::Ptr;
+    using DeviceKernelTaskPtr = Common::SimpleObjectPool<DeviceKernelTask>::Ptr;
 
    public:
     KernelParserImpl()
         : activityPool(DEFAULT_POOL_SIZE),
-          deviceTaskPool(DEFAULT_POOL_SIZE),
+          deviceKernelTaskPool(DEFAULT_POOL_SIZE),
           kernel_map_(DEFAULT_POOL_SIZE),
           unaging_kernel_map_(DEFAULT_POOL_SIZE),
           device_kernel_map_(DEFAULT_POOL_SIZE)
@@ -87,9 +87,9 @@ class KernelParser::KernelParserImpl
     void Clear();
 
    private:
-    msptiResult DealUnAgingRtTaskTrack(const DeviceTask& task);
-    msptiResult DealAgingRtTaskTrack(const DeviceTask& task);
-    bool ParseDeviceTask(uint32_t deviceId, const SocLog& socLog, DeviceTaskPtr& task);
+    msptiResult DealUnAgingRtTaskTrack(const DeviceKernelTask& task);
+    msptiResult DealAgingRtTaskTrack(const DeviceKernelTask& task);
+    bool ParseDeviceTask(uint32_t deviceId, const SocLog& socLog, DeviceKernelTaskPtr& task);
     bool IsGraphTask(uint64_t dstKey);
     msptiResult DealCacheHostTask();
 
@@ -102,11 +102,11 @@ class KernelParser::KernelParserImpl
     std::vector<HostTask> dealHostTasks_{};
 
     Common::SimpleObjectPool<msptiActivityKernel> activityPool;
-    Common::SimpleObjectPool<DeviceTask> deviceTaskPool;
+    Common::SimpleObjectPool<DeviceKernelTask> deviceKernelTaskPool;
 
     std::unordered_map<uint64_t, std::queue<msptiActivityKernelPtr>> kernel_map_{};
     std::unordered_map<uint64_t, msptiActivityKernelPtr> unaging_kernel_map_{};
-    std::unordered_map<uint64_t, DeviceTaskPtr> device_kernel_map_{};
+    std::unordered_map<uint64_t, DeviceKernelTaskPtr> device_kernel_map_{};
 
     std::atomic<int64_t> pendingKernelCount_{0};
 
@@ -153,7 +153,7 @@ msptiResult KernelParser::KernelParserImpl::ReportSocLog(uint32_t deviceId, cons
     DealCacheHostTask();
     if (originData.type == ACSQ_LOG)
     {
-        DeviceTaskPtr task;
+        DeviceKernelTaskPtr task;
         if (!ParseDeviceTask(deviceId, originData.acsq, task))
         {
             return MSPTI_SUCCESS;
@@ -213,7 +213,7 @@ msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
     return MSPTI_SUCCESS;
 }
 
-msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTask& task)
+msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceKernelTask& task)
 {
     auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task.deviceId),
                                                        static_cast<uint16_t>(task.streamId), task.taskId);
@@ -225,8 +225,11 @@ msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTas
     auto& kernelList = it->second;
     if (kernelList.empty())
     {
-        MSPTI_LOGE("The cache kernel list data is empty.");
+        MSPTI_LOGE("The cache kernel list data is empty, drop pending task, deviceId=%u, streamId=%u, taskId=%u",
+                   task.deviceId, task.streamId, task.taskId);
         kernel_map_.erase(it);
+        // Only aging tasks reach here; release the pending count.
+        pendingKernelCount_.fetch_sub(1, std::memory_order_relaxed);
         return MSPTI_ERROR_INNER;
     }
     auto& kernel = kernelList.front();
@@ -243,7 +246,7 @@ msptiResult KernelParser::KernelParserImpl::DealAgingRtTaskTrack(const DeviceTas
     return result;
 }
 
-msptiResult KernelParser::KernelParserImpl::DealUnAgingRtTaskTrack(const DeviceTask& task)
+msptiResult KernelParser::KernelParserImpl::DealUnAgingRtTaskTrack(const DeviceKernelTask& task)
 {
     auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task.deviceId),
                                                        static_cast<uint16_t>(task.streamId), task.taskId);
@@ -261,7 +264,7 @@ msptiResult KernelParser::KernelParserImpl::DealUnAgingRtTaskTrack(const DeviceT
                                                             sizeof(msptiActivityKernel));
 }
 
-bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const SocLog& socLog, DeviceTaskPtr& task)
+bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const SocLog& socLog, DeviceKernelTaskPtr& task)
 {
     uint16_t streamId = socLog.streamId;
     uint32_t taskId = socLog.taskId;
@@ -274,7 +277,7 @@ bool KernelParser::KernelParserImpl::ParseDeviceTask(uint32_t deviceId, const So
 
     if (socLog.funcType == STARS_FUNC_TYPE_BEGIN)
     {
-        DeviceTaskPtr temp = deviceTaskPool.acquire();
+        DeviceKernelTaskPtr temp = deviceKernelTaskPool.acquire();
         temp->start = socLog.timestamp;
         temp->streamId = streamId;
         temp->taskId = taskId;
@@ -326,10 +329,17 @@ void KernelParser::KernelParserImpl::Clear()
     // Unified locking makes this a barrier: in-flight ReportSocLog either finishes
     // first or blocks until done, so no map is touched concurrently.
     std::lock_guard<std::mutex> lk(hostTaskMutex_);
+    const auto agingCount = kernel_map_.size();
+    const auto deviceCount = device_kernel_map_.size();
     hostTasks_.clear();
+    dealHostTasks_.clear();
     kernel_map_.clear();
     device_kernel_map_.clear();
     pendingKernelCount_.store(0, std::memory_order_relaxed);
+    if (agingCount > 0 || deviceCount > 0)
+    {
+        MSPTI_LOGI("KernelParser cleared, aging=%zu, deviceTask=%zu", agingCount, deviceCount);
+    }
 }
 
 // KernelParser

@@ -398,14 +398,16 @@ msptiResult ChannelReader::Execute()
         {
             if (currLen < 0)
             {
-                MSPTI_LOGE("Read data from driver failed.");
+                MSPTI_LOGE("Read data from driver failed, ret=%d, deviceId=%u, channelId=%d", currLen, deviceId_,
+                           channelId_);
             }
             break;
         }
         auto uintCurrLen = static_cast<size_t>(currLen);
         if (uintCurrLen > (bufferSize_ - curPos_))
         {
-            MSPTI_LOGE("Read invalid data len [%zu] from driver", uintCurrLen);
+            MSPTI_LOGE("Read invalid data len [%zu] from driver, remain=%zu, deviceId=%u, channelId=%d", uintCurrLen,
+                       bufferSize_ - curPos_, deviceId_, channelId_);
             break;
         }
         curPos_ += uintCurrLen;
@@ -469,13 +471,10 @@ msptiResult ChannelReader::Execute()
                 break;
             }
             auto fullCount = queueFullCount_.load(std::memory_order_relaxed);
-            if (fullCount % 100 == 1)
-            {
-                MSPTI_LOGW(
-                    "Consume queue full, keep %zu bytes in buffer for retry, deviceId=%u, channelId=%d, "
-                    "totalFull=%lu",
-                    curPos_, deviceId_, channelId_, fullCount);
-            }
+            MSPTI_LOGW_EVERY_N(
+                Common::LOG_EVERY_N_BACKPRESSURE,
+                "Consume queue full, keep %zu bytes in buffer for retry, deviceId=%u, channelId=%d, totalFull=%" PRIu64,
+                curPos_, deviceId_, channelId_, fullCount);
             break;  // 背压：残留保留，下次调度重试，绝不丢数
         }
     }
@@ -606,9 +605,22 @@ size_t ChannelReader::TransTsFwData(const char buffer[], size_t valid_size, uint
         switch (tsHead->rptType)
         {
             case RPT_TYPE_STEP_TRACE:
-                Convert::TsfwConvert::GetInstance().TransData(buffer, valid_size, deviceId, pos, stepTrace);
+            {
+                const size_t prevPos = pos;
+                if (!Convert::TsfwConvert::GetInstance().TransData(buffer, valid_size, deviceId, pos, stepTrace))
+                {
+                    if (pos == prevPos)
+                    {
+                        MSPTI_LOGW_EVERY_N(Common::LOG_EVERY_N_HOT_PATH,
+                                           "Parse ts step trace failed, skip one struct, deviceId=%u, pos=%zu",
+                                           deviceId, pos);
+                        pos += logStructSize;
+                    }
+                    break;
+                }
                 Mspti::Parser::ParserManager::GetInstance()->ReportStepTrace(deviceId, &stepTrace);
                 break;
+            }
             default:
                 pos += logStructSize;
                 break;

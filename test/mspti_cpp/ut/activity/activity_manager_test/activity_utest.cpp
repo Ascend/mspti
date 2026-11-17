@@ -67,6 +67,15 @@ void UserLittleBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecor
     *maxNumRecords = 0;
 }
 
+uint8_t g_smallActivityBuffer[64];
+
+void SmallActivityBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecords)
+{
+    *buffer = g_smallActivityBuffer;
+    *size = sizeof(g_smallActivityBuffer);
+    *maxNumRecords = 0;
+}
+
 void UserNullBufferRequest(uint8_t **buffer, size_t *size, size_t *maxNumRecords)
 {
     printf("========== UserBufferRequest ============\n");
@@ -585,6 +594,24 @@ TEST_F(ActivityUtest, RecordWillRepeatInitActivityBufferWhenRequestBufferIsNull)
                                                             sizeof(activity));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
     EXPECT_EQ(1, g_nullBufferRecords);
+}
+
+TEST_F(ActivityUtest, ActivityBufferRecordDistinguishesBufferFullFromOtherFailures)
+{
+    Mspti::Activity::ActivityBuffer buffer;
+    buffer.Init(SmallActivityBufferRequest);
+
+    msptiActivityMarker activity{};
+    activity.kind = MSPTI_ACTIVITY_KIND_MARKER;
+
+    bool bufferFull = false;
+    EXPECT_EQ(MSPTI_ERROR_INNER, buffer.Record(reinterpret_cast<msptiActivity *>(&activity),
+                                               sizeof(g_smallActivityBuffer) + 1, bufferFull));
+    EXPECT_TRUE(bufferFull);
+
+    bufferFull = true;
+    EXPECT_EQ(MSPTI_ERROR_INNER, buffer.Record(nullptr, 1, bufferFull));
+    EXPECT_FALSE(bufferFull);
 }
 
 TEST_F(ActivityUtest, MsptiGetVersionReturnsInvalidParameterWhenVersionNull)

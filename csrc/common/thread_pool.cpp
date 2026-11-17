@@ -26,6 +26,34 @@ namespace Mspti
 namespace Common
 {
 static const uint32_t THREAD_POOL_TASKQUEUE_SIZE = 64;
+
+int Thread::Start()
+{
+    MsptiMakeSharedPtr(queue_, queueSize_);
+    if (!queue_)
+    {
+        MSPTI_LOGE("Failed to create task queue for worker thread.");
+        return -1;
+    }
+
+    // Set before spawning: Run() exits immediately when started_ is false.
+    started_ = true;
+    if (!thread_.joinable())
+    {
+        try
+        {
+            thread_ = std::thread(std::bind(&Thread::Run, this));
+        }
+        catch (...)
+        {
+            started_ = false;
+            MSPTI_LOGE("Failed to create worker thread.");
+            return -1;
+        }
+    }
+    return 0;
+}
+
 ThreadPool::ThreadPool(LOAD_BALANCE_METHOD method, unsigned int threadNum)
     : threadNum_(threadNum),
       currIndex_(0),
@@ -45,6 +73,10 @@ int ThreadPool::Start()
     {
         return -1;
     }
+    if (isStarted_)
+    {
+        return 0;
+    }
 
     for (unsigned int ii = 0; ii < threadNum_; ++ii)
     {
@@ -52,13 +84,21 @@ int ThreadPool::Start()
         Mspti::Common::MsptiMakeSharedPtr(thread, threadPoolQueueSize_);
         if (!thread)
         {
+            // Drop workers from this attempt so a retry starts clean.
+            threads_.clear();
             return -1;
         }
         threads_.push_back(thread);
     }
     for (auto& unstartedThread : threads_)
     {
-        unstartedThread->Start();
+        if (unstartedThread->Start() != 0)
+        {
+            MSPTI_LOGE("Failed to start thread pool worker, thread num: %u.", threadNum_);
+            // Stop started workers; a partial pool would silently drop tasks.
+            Stop();
+            return -1;
+        }
     }
     isStarted_ = true;
     return 0;
@@ -104,7 +144,12 @@ int ThreadPool::Dispatch(const std::shared_ptr<Task>& task)
         MSPTI_LOGE("The task queue is null.");
         return -1;
     }
-    taskQueue->Push(task);
+    // Push drops the task once the queue is quit; return the failure so the caller resets its flag.
+    if (!taskQueue->Push(task))
+    {
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_HOT_PATH, "Push task to worker queue failed, worker index: %u.", threadIndex);
+        return -1;
+    }
 
     return 0;
 }

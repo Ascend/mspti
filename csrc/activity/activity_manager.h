@@ -43,7 +43,7 @@ class ActivityBuffer
     ActivityBuffer() = default;
     void Init(msptiBuffersCallbackRequestFunc func);
     void UnInit(msptiBuffersCallbackCompleteFunc func);
-    msptiResult Record(msptiActivity *activity, size_t size);
+    msptiResult Record(msptiActivity *activity, size_t size, bool &bufferFull);
     bool BufValid();
     size_t BufSize();
     size_t ValidSize();

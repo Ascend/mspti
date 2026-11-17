@@ -18,6 +18,8 @@
 
 #include "csrc/activity/ascend/parser/cann_api_parser.h"
 
+#include <atomic>
+#include <cinttypes>
 #include <mutex>
 #include <vector>
 
@@ -66,7 +68,9 @@ class CannApiParser::CannApiParserImpl
                                : CannHashCache::GetHashInfo(data->itemId);
         if (name.empty())
         {
-            MSPTI_LOGW("Get HashInfo failed. HashId: %lu", data->itemId);
+            static std::atomic<uint64_t> hashMissCount{0};
+            MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, hashMissCount,
+                                     "Get HashInfo failed, HashId: %" PRIu64 ", dropped total: %" PRIu64, data->itemId);
             return MSPTI_SUCCESS;
         }
 

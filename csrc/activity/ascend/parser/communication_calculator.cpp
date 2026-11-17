@@ -19,6 +19,8 @@
 #include "csrc/activity/ascend/parser/communication_calculator.h"
 
 #include <algorithm>
+#include <cinttypes>
+#include <exception>
 #include <unordered_set>
 
 #include "csrc/activity/activity_manager.h"
@@ -98,7 +100,12 @@ std::unique_ptr<CommunicationOpDesc> TransApiEvent2CommOpDesc(const ApiEvent& ap
         Mspti::Common::MsptiMakeUniquePtr(commTask);
         if (UNLIKELY(commTask == nullptr))
         {
-            MSPTI_LOGE("can not TransApiEvent2CommTask, commTask is nullptr!");
+            // Free function: keep a per-site sampler.
+            static std::atomic<uint64_t> commTaskFailCount{0};
+            MSPTI_LOGE_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, commTaskFailCount,
+                                     "Failed to allocate communication task, eventId: %" PRIu64
+                                     ", dropped total: %" PRIu64,
+                                     api2TaskInfo.eventId);
             continue;
         }
         TransApiEvent2CommTask(communicationTask, *commTask);
@@ -122,9 +129,19 @@ msptiResult CommunicationCalculator::AppendApi2TaskInfo(const ApiEvent& api2Task
     }
 
     auto commOp = TransApiEvent2CommOpDesc(api2TaskInfo);
+    if (commOp == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, commOpFailCount_,
+                                 "Create communication op desc failed, eventId: %" PRIu64 ", threadId: %" PRIu32
+                                 ", failed total: %" PRIu64,
+                                 api2TaskInfo.eventId, api2TaskInfo.api.threadId);
+        return MSPTI_ERROR_INNER;
+    }
     if (commOp->tasks.empty())
     {
-        MSPTI_LOGW("commOp has not communication tasks");
+        MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, emptyTasksCount_,
+                                 "commOp has not communication tasks, eventId: %" PRIu64 ", dropped total: %" PRIu64,
+                                 api2TaskInfo.eventId);
         return MSPTI_SUCCESS;
     }
     auto lastHostTask =
@@ -220,8 +237,12 @@ int64_t CommunicationCalculator::GetPendingCommunicationCount()
 
 void CommunicationCalculator::Clear()
 {
+    size_t taskRefCount = 0;
+    size_t eventOpCount = 0;
     {
         std::lock_guard<std::mutex> hcclLk(hcclTaskMutex_);
+        taskRefCount = communicationTask2Op_.size();
+        eventOpCount = eventId2Communication_.size();
         Common::EraseIf(communicationTask2Op_, [](const auto& taskRef) { return taskRef.second.agingFlag; });
         std::unordered_set<uint64_t> liveEvents;
         std::for_each(communicationTask2Op_.begin(), communicationTask2Op_.end(),
@@ -240,6 +261,10 @@ void CommunicationCalculator::Clear()
                       });
     }
     pendingCommunicationCount_.store(0, std::memory_order_relaxed);
+    if (taskRefCount > 0 || eventOpCount > 0)
+    {
+        MSPTI_LOGI("CommunicationCalculator cleared, taskRefs=%zu, eventOps=%zu", taskRefCount, eventOpCount);
+    }
 }
 
 msptiResult CommunicationCalculator::Record(const DeviceTask& taskTime)

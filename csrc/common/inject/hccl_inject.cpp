@@ -85,10 +85,19 @@ HcclResult HcclAllReduce(VOID_PTR sendBuf, VOID_PTR recvBuf, uint64_t count, Hcc
 
     std::shared_ptr<P2pOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = count;
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = count;
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALLREDUCE, __FUNCTION__);
     return func(sendBuf, recvBuf, count, dataType, op, comm, stream);
@@ -109,10 +118,19 @@ HcclResult HcclBroadcast(VOID_PTR buf, uint64_t count, HcclDataType dataType, ui
 
     std::shared_ptr<P2pOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = count;
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = count;
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_BROADCAST, __FUNCTION__);
     return func(buf, count, dataType, root, comm, stream);
@@ -133,11 +151,20 @@ HcclResult HcclAllGather(VOID_PTR sendBuf, VOID_PTR recvBuf, uint64_t sendCount,
 
     std::shared_ptr<CollectiveOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = sendCount;
-    HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = sendCount;
+        HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALLGATHER, __FUNCTION__);
     return func(sendBuf, recvBuf, sendCount, dataType, comm, stream);
@@ -158,11 +185,20 @@ HcclResult HcclReduceScatter(VOID_PTR sendBuf, VOID_PTR recvBuf, uint64_t recvCo
 
     std::shared_ptr<CollectiveOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = recvCount;
-    HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = recvCount;
+        HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_REDUCE_SCATTER, __FUNCTION__);
     return func(sendBuf, recvBuf, recvCount, dataType, op, comm, stream);
@@ -183,10 +219,19 @@ HcclResult HcclReduce(VOID_PTR sendBuf, VOID_PTR recvBuf, uint64_t count, HcclDa
 
     std::shared_ptr<P2pOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = count;
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = count;
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_REDUCE, __FUNCTION__);
     return func(sendBuf, recvBuf, count, dataType, op, root, comm, stream);
@@ -207,11 +252,20 @@ HcclResult HcclAlltoAll(const VOID_PTR sendBuf, uint64_t sendCount, HcclDataType
 
     std::shared_ptr<CollectiveOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = sendType;
-    hcclOpDesc->count = sendCount;
-    HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = sendType;
+        hcclOpDesc->count = sendCount;
+        HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALL_TO_ALL, __FUNCTION__);
     return func(sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm, stream);
@@ -233,13 +287,22 @@ HcclResult HcclAlltoAllV(const VOID_PTR sendBuf, const VOID_PTR sendCounts, cons
 
     std::shared_ptr<All2AllVOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->sendType = sendType;
-    hcclOpDesc->sendCounts = sendCounts;
-    hcclOpDesc->recvType = recvType;
-    hcclOpDesc->recvCounts = recvCounts;
-    HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->sendType = sendType;
+        hcclOpDesc->sendCounts = sendCounts;
+        hcclOpDesc->recvType = recvType;
+        hcclOpDesc->recvCounts = recvCounts;
+        HcclGetRankSize(comm, static_cast<uint32_t *>(&hcclOpDesc->rankSize));
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_ALL_TO_ALLV, __FUNCTION__);
     return func(sendBuf, sendCounts, sdispls, sendType, recvBuf, recvCounts, rdispls, recvType, comm, stream);
@@ -275,10 +338,19 @@ HcclResult HcclScatter(VOID_PTR sendBuf, VOID_PTR recvBuf, uint64_t recvCount, H
 
     std::shared_ptr<CollectiveOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = recvCount;
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = recvCount;
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_SCATTER, __FUNCTION__);
     return func(sendBuf, recvBuf, recvCount, dataType, root, comm, stream);
@@ -299,10 +371,19 @@ HcclResult HcclSend(VOID_PTR sendBuf, uint64_t count, HcclDataType dataType, uin
 
     std::shared_ptr<P2pOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = count;
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = count;
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_SEND, __FUNCTION__);
     return func(sendBuf, count, dataType, destRank, comm, stream);
@@ -323,10 +404,19 @@ HcclResult HcclRecv(VOID_PTR recvBuf, uint64_t count, HcclDataType dataType, uin
 
     std::shared_ptr<P2pOpDesc> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    hcclOpDesc->dataType = dataType;
-    hcclOpDesc->count = count;
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
+    }
+    else
+    {
+        hcclOpDesc->dataType = dataType;
+        hcclOpDesc->count = count;
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
+    }
 
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_RECV, __FUNCTION__);
     return func(recvBuf, count, dataType, srcRank, comm, stream);
@@ -345,22 +435,31 @@ HcclResult HcclBatchSendRecv(HcclSendRecvItem *sendRecvInfo, uint32_t itemNum, H
     THROW_FUNC_NOTFOUND(func, __FUNCTION__, "libhccl.so");
     std::shared_ptr<BatchSendRecvOp> hcclOpDesc;
     Mspti::Common::MsptiMakeSharedPtr(hcclOpDesc);
-    if (sendRecvInfo != nullptr)
+    std::unique_ptr<Mspti::Parser::InnerMark> marker;
+    if (hcclOpDesc == nullptr)
     {
-        for (uint32_t i = 0; i < itemNum; i++)
-        {
-            P2pOpDesc batchSendRecvItemDesc;
-            batchSendRecvItemDesc.dataType = sendRecvInfo[i].dataType;
-            batchSendRecvItemDesc.count = sendRecvInfo[i].count;
-            hcclOpDesc->batchSendRecvItem.emplace_back(batchSendRecvItemDesc);
-        }
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Failed to allocate hccl op desc, %s activity dropped.",
+                           __FUNCTION__);
     }
     else
     {
-        MSPTI_LOGE("op HcclBatchSendRecv, sendRecvInfo is nullptr");
+        if (sendRecvInfo != nullptr)
+        {
+            for (uint32_t i = 0; i < itemNum; i++)
+            {
+                P2pOpDesc batchSendRecvItemDesc;
+                batchSendRecvItemDesc.dataType = sendRecvInfo[i].dataType;
+                batchSendRecvItemDesc.count = sendRecvInfo[i].count;
+                hcclOpDesc->batchSendRecvItem.emplace_back(batchSendRecvItemDesc);
+            }
+        }
+        else
+        {
+            MSPTI_LOGE("op HcclBatchSendRecv, sendRecvInfo is nullptr");
+        }
+        hcclOpDesc->opName = __FUNCTION__;
+        marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
     }
-    hcclOpDesc->opName = __FUNCTION__;
-    auto marker = Mspti::Parser::HcclMarkFactory::createMarker(stream, comm, hcclOpDesc);
     Mspti::Callback::CallbackScope scope(MSPTI_CB_DOMAIN_HCCL, MSPTI_CBID_HCCL_SENDRECV, __FUNCTION__);
     return func(sendRecvInfo, itemNum, comm, stream);
 }

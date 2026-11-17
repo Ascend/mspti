@@ -13,39 +13,48 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PARSER_HCCL_REPORTER_H
 #define MSPTI_PARSER_HCCL_REPORTER_H
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
-#include <mutex>
-#include "csrc/include/mspti_activity.h"
-#include "csrc/common/inject/hccl_inject.h"
-#include "csrc/activity/ascend/entity/hccl_op_desc.h"
 
-namespace Mspti {
-namespace Parser {
-class HcclReporter {
-public:
-    msptiResult RecordHcclMarker(const msptiActivityMarker *markActivity);
+#include "csrc/activity/ascend/entity/hccl_op_desc.h"
+#include "csrc/common/inject/hccl_inject.h"
+#include "csrc/include/mspti_activity.h"
+
+namespace Mspti
+{
+namespace Parser
+{
+class HcclReporter
+{
+   public:
+    msptiResult RecordHcclMarker(const msptiActivityMarker* markActivity);
     msptiResult RecordHcclOp(uint32_t markId, std::shared_ptr<HcclOpDesc> opDesc);
     msptiResult ReportHcclActivity(std::shared_ptr<HcclOpDesc> markActivity);
     static HcclReporter* GetInstance();
-private:
-    msptiResult RecordStartMarker(const msptiActivityMarker *markActivity);
-    msptiResult ReportHcclData(const msptiActivityMarker *markActivity);
+
+   private:
+    msptiResult RecordStartMarker(const msptiActivityMarker* markActivity);
+    msptiResult ReportHcclData(const msptiActivityMarker* markActivity);
     const char* GetSharedHcclName(const std::string& hcclName);
-private:
+
+   private:
     std::mutex markMutex_;
     std::mutex nameMutex_;
-    static std::unordered_map<std::string, std::string> commNameCache_;   // 缓存通信域名称，用于延长生命周期
+    std::atomic<uint64_t> startMarkMissCount_{0};
+    std::atomic<uint64_t> endMarkMissCount_{0};
+    static std::unordered_map<std::string, std::string> commNameCache_;  // 缓存通信域名称，用于延长生命周期
     static std::unordered_map<uint64_t, std::shared_ptr<HcclOpDesc>> markId2HcclOp_;
 };
-}
-}
+}  // namespace Parser
+}  // namespace Mspti
 
-#endif // MSPTI_PARSER_HCCL_REPORTER_H
+#endif  // MSPTI_PARSER_HCCL_REPORTER_H

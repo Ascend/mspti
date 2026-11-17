@@ -19,6 +19,8 @@
 #include "csrc/activity/ascend/parser/memory_parser.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cinttypes>
 #include <deque>
 #include <mutex>
 #include <unordered_map>
@@ -184,7 +186,9 @@ class MemoryParser::MemoryParserImpl
         auto activity = pool.acquire();
         if (UNLIKELY(activity == nullptr))
         {
-            MSPTI_LOGE("Acquire object from pool failed for kind %d.", static_cast<int>(kind));
+            MSPTI_LOGE_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, poolAcquireFailCount_,
+                                     "Acquire object from pool failed, kind: %d, dropped total: %" PRIu64,
+                                     static_cast<int>(kind));
             return MSPTI_ERROR_INNER;
         }
         activity->kind = kind;
@@ -209,7 +213,8 @@ class MemoryParser::MemoryParserImpl
         auto threadData = cache.find(api.threadId);
         if (threadData == cache.end())
         {
-            MSPTI_LOGW("Thread %u not found in cache.", api.threadId);
+            MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, threadNotFoundCount_,
+                                     "Thread %u not found in cache, dropped total: %" PRIu64, api.threadId);
             return ret;
         }
         auto &data = threadData->second;
@@ -228,14 +233,17 @@ class MemoryParser::MemoryParserImpl
             if (UNLIKELY(Activity::ActivityManager::GetInstance()->Record(
                              Common::ReinterpretConvert<msptiActivity *>(it->get()), sizeof(T)) != MSPTI_SUCCESS))
             {
-                MSPTI_LOGE("Record %s activity fail, please check buffer", logMsg);
+                MSPTI_LOGE_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, recordFailCount_,
+                                         "Record %s activity failed, failed total: %" PRIu64, logMsg);
                 ret = MSPTI_ERROR_INNER;
             }
         }
         auto discardCount = std::distance(data.begin(), leftIt);
         if (discardCount > 0)
         {
-            MSPTI_LOGW("Discard %d %s record for thread %u.", discardCount, logMsg, api.threadId);
+            MSPTI_LOGW_EVERY_N_TOTAL_INC(
+                Common::LOG_EVERY_N_FAILURE, discardedRecordCount_, static_cast<uint64_t>(discardCount),
+                "Discard %td %s record(s), thread: %u, discarded total: %" PRIu64, discardCount, logMsg, api.threadId);
         }
         data.erase(data.begin(), rightIt);
         return ret;
@@ -252,6 +260,12 @@ class MemoryParser::MemoryParserImpl
     ObjectCache<msptiActivityMemset> memsetDataCache_;
     std::mutex memcpyMtx_;
     ObjectCache<msptiActivityMemcpy> memcpyDataCache_;
+    std::atomic<uint64_t> poolAcquireFailCount_{0};
+    std::atomic<uint64_t> threadNotFoundCount_{0};
+    std::atomic<uint64_t> recordFailCount_{0};
+    std::atomic<uint64_t> discardedRecordCount_{0};
+    std::atomic<uint64_t> releaseWithoutAllocCount_{0};
+    std::atomic<uint64_t> duplicateAllocCount_{0};
 };
 
 msptiResult MemoryParser::MemoryParserImpl::ReportMemory(const MsprofCompactInfo &record)
@@ -272,7 +286,9 @@ msptiResult MemoryParser::MemoryParserImpl::ReportMemory(const MsprofCompactInfo
         {
             if (memoryOperationType == MSPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE)
             {
-                MSPTI_LOGW("Address %llu release, but not have allocation record.", address);
+                MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, releaseWithoutAllocCount_,
+                                         "Address %" PRIu64 " release without allocation record, total: %" PRIu64,
+                                         address);
             }
             else
             {
@@ -288,7 +304,9 @@ msptiResult MemoryParser::MemoryParserImpl::ReportMemory(const MsprofCompactInfo
             }
             else
             {
-                MSPTI_LOGW("Address %llu more than one allocation record.", address);
+                MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, duplicateAllocCount_,
+                                         "Address %" PRIu64 " has duplicate allocation record, total: %" PRIu64,
+                                         address);
                 iter->second = size;
             }
         }

@@ -187,6 +187,69 @@ TEST_F(ChannelPoolUtest, DrainReaderWillReturnSuccWhenReaderNotExist)
     EXPECT_EQ(MSPTI_SUCCESS, pool->DrainReader(0, PROF_CHANNEL_TS_FW));
 }
 
+// A worker start failure must fail and roll back ChannelPool::Start.
+TEST_F(ChannelPoolUtest, StartWillReturnErrorWhenWorkerStartFail)
+{
+    std::shared_ptr<Mspti::Ascend::Channel::ChannelPool> pool;
+    Mspti::Common::MsptiMakeSharedPtr(pool, 1);
+    ASSERT_NE(pool, nullptr);
+
+    MOCKER_CPP(&Mspti::Common::Thread::Start).stubs().will(returnValue(-1));
+
+    EXPECT_EQ(MSPTI_ERROR_INNER, pool->Start());
+    EXPECT_FALSE(pool->isStarted_);
+    EXPECT_FALSE(pool->thread_.joinable());
+    ASSERT_NE(pool->threadPool_, nullptr);
+    EXPECT_TRUE(pool->threadPool_->threads_.empty());
+
+    pool->Stop();
+    GlobalMockObject::verify();
+}
+
+// A failed Dispatch must reset the scheduling flag.
+TEST_F(ChannelPoolUtest, DispatchChannelWillResetSchedulingWhenDispatchFail)
+{
+    std::shared_ptr<Mspti::Ascend::Channel::ChannelPool> pool;
+    Mspti::Common::MsptiMakeSharedPtr(pool, 1);
+    ASSERT_NE(pool, nullptr);
+    Mspti::Common::MsptiMakeUniquePtr(pool->threadPool_, Mspti::Common::LOAD_BALANCE_METHOD::ID_MOD, 1);
+    ASSERT_NE(pool->threadPool_, nullptr);
+    ASSERT_EQ(0, pool->threadPool_->Start());
+
+    ASSERT_EQ(MSPTI_SUCCESS, pool->AddReader(0, PROF_CHANNEL_TS_FW, DEFAULT_CHANNEL_BUFFER_SIZE));
+    ASSERT_EQ(1, pool->readers_map_.size());
+    auto reader = pool->readers_map_.begin()->second;
+    ASSERT_NE(reader, nullptr);
+    ASSERT_FALSE(reader->GetSchedulingStatus());
+
+    MOCKER_CPP(&Mspti::Common::ThreadPool::Dispatch).expects(exactly(1)).will(returnValue(-1));
+
+    pool->DispatchChannel(0, PROF_CHANNEL_TS_FW);
+    EXPECT_FALSE(reader->GetSchedulingStatus());
+
+    pool->Stop();
+    GlobalMockObject::verify();
+}
+
+// Push drops the task after queue Quit; Dispatch must report the failure.
+TEST_F(ChannelPoolUtest, DispatchWillReturnErrorWhenTaskQueueRejectsTask)
+{
+    Mspti::Common::ThreadPool threadPool(Mspti::Common::LOAD_BALANCE_METHOD::ID_MOD, 1);
+    ASSERT_EQ(0, threadPool.Start());
+    ASSERT_EQ(1U, threadPool.threads_.size());
+    auto queue = threadPool.threads_[0]->GetQueue();
+    ASSERT_NE(queue, nullptr);
+
+    queue->Quit();
+
+    std::shared_ptr<Mspti::Ascend::Channel::ChannelReader> task;
+    Mspti::Common::MsptiMakeSharedPtr(task, 0, PROF_CHANNEL_TS_FW, 4096U);
+    ASSERT_NE(task, nullptr);
+    EXPECT_EQ(-1, threadPool.Dispatch(task));
+
+    threadPool.Stop();
+}
+
 // Test DrainReader forwards to the reader of that channel and propagates its result
 TEST_F(ChannelPoolUtest, DrainReaderWillForwardResultOfReader)
 {

@@ -59,13 +59,16 @@ bool DcmiApi::Init()
     {
         return true;
     }
-    for (int i = 0; i < LIBDCMI_CANDIDATE_NUM; ++i)
+    if (handle_ == nullptr)
     {
-        void *handle = dlopen(LIBDCMI_CANDIDATES[i], RTLD_LAZY | RTLD_NODELETE);
-        if (handle != nullptr)
+        for (int i = 0; i < LIBDCMI_CANDIDATE_NUM; ++i)
         {
-            handle_ = handle;
-            break;
+            void *handle = dlopen(LIBDCMI_CANDIDATES[i], RTLD_LAZY | RTLD_NODELETE);
+            if (handle != nullptr)
+            {
+                handle_ = handle;
+                break;
+            }
         }
     }
     if (handle_ == nullptr)

@@ -18,6 +18,7 @@
 #include "csrc/pm_sampling/pm_sampling_manager.h"
 
 #include <algorithm>
+#include <exception>
 
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/common/plog_manager.h"
@@ -61,6 +62,11 @@ msptiResult PmSamplingManager::Enable(uint32_t deviceId, msptiPmSamplingObjectPt
     }
     auto obj = std::shared_ptr<PmSamplingObject>();
     Mspti::Common::MsptiMakeSharedPtr(obj, deviceId);
+    if (obj == nullptr)
+    {
+        MSPTI_LOGE("Create pm sampling object failed, device %u", deviceId);
+        return MSPTI_ERROR_INNER;
+    }
     objects_[deviceId] = obj;
     ptrIndex_[obj.get()] = {deviceId, true};
     *pObject = Mspti::Common::ReinterpretConvert<msptiPmSamplingObjectPtr>(obj.get());
@@ -140,6 +146,15 @@ std::shared_ptr<PmSamplingObject> PmSamplingManager::GetLiveObject(msptiPmSampli
 
 msptiResult PmSamplingManager::StartCollectors(PmSamplingObject &obj)
 {
+    const uint32_t deviceId = obj.DeviceId();
+    // 先建 parser，失败必须在拉起采集线程前返回，避免会话 Running 却无人解析
+    auto parser = std::unique_ptr<PmSamplingParser>();
+    Mspti::Common::MsptiMakeUniquePtr(parser, obj.MetricIds());
+    if (parser == nullptr)
+    {
+        MSPTI_LOGE("Create pm sampling parser failed: out of memory, device %u", deviceId);
+        return MSPTI_ERROR_INNER;
+    }
     // 先置 Running 再拉线程：并发 StopCollector 的需求检查才能看到本会话，
     // 避免“线程被误判无需求停掉、会话却 Running”的静默无数据
     const msptiResult started = obj.Start();
@@ -154,13 +169,19 @@ msptiResult PmSamplingManager::StartCollectors(PmSamplingObject &obj)
         (void)obj.Stop();
         return ret;
     }
-    const uint32_t deviceId = obj.DeviceId();
+    try
     {
         std::lock_guard<std::mutex> lk(mtx_);
         // 窗口组装需要 parser 基准状态，Start 时重建（上次 Stop/Flush 已清空）
-        auto parser = std::unique_ptr<PmSamplingParser>();
-        Mspti::Common::MsptiMakeUniquePtr(parser, obj.MetricIds());
         parsers_[deviceId] = std::move(parser);
+    }
+    catch (const std::exception &e)
+    {
+        // 注册 parser 失败同样回滚，否则采集线程会持续产出无人解析的样本
+        MSPTI_LOGE("Install pm sampling parser failed: %s, device %u", e.what(), deviceId);
+        (void)obj.Stop();
+        DcmiCollector::GetInstance()->StopCollector();
+        return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;
 }

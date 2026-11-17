@@ -20,6 +20,7 @@
 #include <chrono>
 #include <cstdarg>
 #include <cstdio>
+#include <exception>
 #include <iterator>
 #include <mutex>
 #include <string>
@@ -90,6 +91,8 @@ msptiResult DcmiCollector::StartCollector()
         return MSPTI_ERROR_DEVICE_OFFLINE;
     }
     const auto &devices = DcmiApi::GetInstance()->GetDevices();
+    // 上次启动若中途失败，deviceIds_ 可能残留，先清空避免重复 worker
+    deviceIds_.clear();
     for (const auto &dev : devices)
     {
         deviceIds_.push_back(dev.deviceId);
@@ -103,11 +106,39 @@ msptiResult DcmiCollector::StartCollector()
         doneCount_ = 0;
     }
     const uint32_t totalWorkers = static_cast<uint32_t>(deviceIds_.size());
-    for (uint32_t deviceId : deviceIds_)
+    try
     {
-        workers_.emplace_back(&DcmiCollector::DeviceWorkerLoop, this, deviceId, totalWorkers);
+        for (uint32_t deviceId : deviceIds_)
+        {
+            workers_.emplace_back(&DcmiCollector::DeviceWorkerLoop, this, deviceId, totalWorkers);
+        }
+        coordinator_ = std::thread(&DcmiCollector::CoordinatorLoop, this);
     }
-    coordinator_ = std::thread(&DcmiCollector::CoordinatorLoop, this);
+    catch (const std::exception &e)
+    {
+        // 线程资源不足时回滚已创建的线程，避免 Start 返回失败却留下半启动的采集器
+        MSPTI_LOGE("Start DcmiCollector failed: %s, workers=%zu/%zu", e.what(), workers_.size(), deviceIds_.size());
+        running_ = false;
+        {
+            std::lock_guard<std::mutex> tickLk(tickMtx_);
+            tickCv_.notify_all();
+            doneCv_.notify_all();
+        }
+        if (coordinator_.joinable())
+        {
+            coordinator_.join();
+        }
+        for (auto &worker : workers_)
+        {
+            if (worker.joinable())
+            {
+                worker.join();
+            }
+        }
+        workers_.clear();
+        deviceIds_.clear();
+        return MSPTI_ERROR_INNER;
+    }
     MSPTI_LOGI("DcmiCollector started, %zu device workers", deviceIds_.size());
     return MSPTI_SUCCESS;
 }
@@ -151,7 +182,19 @@ void DcmiCollector::CoordinatorLoop()
 {
     while (running_)
     {
-        CollectTick();
+        try
+        {
+            CollectTick();
+        }
+        catch (const std::exception &e)
+        {
+            // 协调线程异常逃逸会导致 std::terminate；记日志后继续下一拍
+            MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "DcmiCollector tick failed: %s", e.what());
+        }
+        catch (...)
+        {
+            MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "DcmiCollector tick failed with unknown exception");
+        }
         for (uint32_t slept = 0; running_ && slept < DCMI_SAMPLE_INTERVAL_MS; slept += SLEEP_CHUNK_MS)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_CHUNK_MS));
@@ -179,7 +222,21 @@ void DcmiCollector::DeviceWorkerLoop(uint32_t deviceId, uint32_t totalWorkers)
         const TickWork work = tickWork_;
         lk.unlock();
 
-        CollectDevice(deviceId, work);
+        try
+        {
+            CollectDevice(deviceId, work);
+        }
+        catch (const std::exception &e)
+        {
+            // 设备线程异常逃逸会导致 std::terminate；本拍数据作废，但仍要参与汇聚
+            MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "DcmiCollector collect failed: %s, deviceId=%u", e.what(),
+                               deviceId);
+        }
+        catch (...)
+        {
+            MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE,
+                               "DcmiCollector collect failed with unknown exception, deviceId=%u", deviceId);
+        }
 
         // 汇聚：最后一个完成的设备线程代广播代数追平并唤醒协调线程
         lk.lock();
@@ -278,18 +335,52 @@ void DcmiCollector::RunBandwidth(uint32_t deviceId, PmDcmiSample &sample, const 
     {
         if (needs.hccsBw)
         {
-            tHccs = std::thread([this, deviceId, &hccsSample, intervalMs]
-                                { CollectHccsBandwidth(deviceId, hccsSample, intervalMs); });
+            tHccs = std::thread(
+                [this, deviceId, &hccsSample, intervalMs]
+                {
+                    // 瞬态线程里的异常不能逃逸（否则 std::terminate），单路失败只丢该项带宽
+                    try
+                    {
+                        CollectHccsBandwidth(deviceId, hccsSample, intervalMs);
+                    }
+                    catch (const std::exception &e)
+                    {
+                        MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE,
+                                           "Collect hccs bandwidth failed: %s, deviceId=%u", e.what(), deviceId);
+                    }
+                });
         }
         if (needs.pcieBw)
         {
-            tPcie = std::thread([this, deviceId, &pcieSample, intervalMs]
-                                { CollectPcieBandwidth(deviceId, pcieSample, intervalMs); });
+            tPcie = std::thread(
+                [this, deviceId, &pcieSample, intervalMs]
+                {
+                    try
+                    {
+                        CollectPcieBandwidth(deviceId, pcieSample, intervalMs);
+                    }
+                    catch (const std::exception &e)
+                    {
+                        MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE,
+                                           "Collect pcie bandwidth failed: %s, deviceId=%u", e.what(), deviceId);
+                    }
+                });
         }
         if (needs.roceBw)
         {
-            tRoce = std::thread([this, deviceId, &roceSample, intervalMs]
-                                { CollectRdmaBandwidth(deviceId, roceSample, intervalMs); });
+            tRoce = std::thread(
+                [this, deviceId, &roceSample, intervalMs]
+                {
+                    try
+                    {
+                        CollectRdmaBandwidth(deviceId, roceSample, intervalMs);
+                    }
+                    catch (const std::exception &e)
+                    {
+                        MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE,
+                                           "Collect rdma bandwidth failed: %s, deviceId=%u", e.what(), deviceId);
+                    }
+                });
         }
     }
     catch (const std::exception &)

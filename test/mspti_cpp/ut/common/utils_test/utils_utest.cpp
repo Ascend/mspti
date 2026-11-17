@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <map>
+#include <new>
 #include <unordered_map>
 #include <vector>
 
@@ -505,5 +506,28 @@ TEST_F(UtilsUtest, IsLdPreloadedShouldReturnFalseWhenLibraryNotPresentOrNameEmpt
     ScopedLdPreload ld("/usr/lib/libother.so");
     EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded("libmspti.so"));
     EXPECT_FALSE(Mspti::Common::Utils::IsLdPreloaded(""));
+}
+
+class ThrowingAllocObject
+{
+   public:
+    explicit ThrowingAllocObject(bool throwBadAlloc)
+    {
+        if (throwBadAlloc)
+        {
+            throw std::bad_alloc();
+        }
+    }
+};
+
+TEST_F(UtilsUtest, MakePtrShouldSetNullWhenAllocationThrows)
+{
+    std::shared_ptr<ThrowingAllocObject> shared;
+    EXPECT_NO_THROW(Mspti::Common::MsptiMakeSharedPtr(shared, true));
+    EXPECT_EQ(shared, nullptr);
+
+    std::unique_ptr<ThrowingAllocObject> unique;
+    EXPECT_NO_THROW(Mspti::Common::MsptiMakeUniquePtr(unique, true));
+    EXPECT_EQ(unique, nullptr);
 }
 }  // namespace

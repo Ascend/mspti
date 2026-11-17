@@ -98,9 +98,10 @@ class ChannelReader : public Mspti::Common::Task
     size_t dataStructSize_{0};
 
     // status info
-    volatile bool isInited_{false};
+    // Init/UnInit/SetChannelStopped 会在调用线程写，Execute 在 worker 线程读，必须用原子量避免数据竞争
+    std::atomic<bool> isInited_{false};
     std::atomic<bool> isScheduling_{false};
-    volatile bool isChannelStopped_{false};
+    std::atomic<bool> isChannelStopped_{false};
 
     // flush
     bool needWait_{false};

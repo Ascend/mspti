@@ -18,6 +18,8 @@
 
 #include "csrc/activity/ascend/parser/hccl_reporter.h"
 
+#include <cinttypes>
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/parser/hccl_calculator.h"
 #include "csrc/common/plog_manager.h"
@@ -95,7 +97,8 @@ msptiResult HcclReporter::RecordStartMarker(const msptiActivityMarker* markActiv
     auto it = markId2HcclOp_.find(markActivity->id);
     if (it == markId2HcclOp_.end())
     {
-        MSPTI_LOGW("The corresponding start mark is not cached, id is %lu", markActivity->id);
+        MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, startMarkMissCount_,
+                                 "Start mark not cached, id: %" PRIu64 ", total: %" PRIu64, markActivity->id);
         return MSPTI_ERROR_INNER;
     }
     it->second->start = markActivity->timestamp;
@@ -109,7 +112,8 @@ msptiResult HcclReporter::ReportHcclData(const msptiActivityMarker* markActivity
     auto it = markId2HcclOp_.find(markActivity->id);
     if (it == markId2HcclOp_.end())
     {
-        MSPTI_LOGW("The corresponding end mark is not cached, id is %lu", markActivity->id);
+        MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, endMarkMissCount_,
+                                 "End mark not cached, id: %" PRIu64 ", total: %" PRIu64, markActivity->id);
         return MSPTI_ERROR_INNER;
     }
     it->second->end = markActivity->timestamp;

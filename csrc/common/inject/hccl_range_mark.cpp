@@ -55,12 +55,19 @@ HcclInnerMark::~HcclInnerMark() { Mspti::Parser::MstxParser::GetInstance()->Inne
 std::unique_ptr<InnerMark> HcclMarkFactory::createMarker(aclrtStream stream, HcclComm comm,
                                                          std::shared_ptr<HcclOpDesc> opDesc)
 {
-    if (ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_HCCL))
+    try
     {
-        return std::move(
-            static_cast<std::unique_ptr<InnerMark>>(std::make_unique<HcclInnerMark>(stream, comm, opDesc)));
+        if (ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_HCCL))
+        {
+            return std::make_unique<HcclInnerMark>(stream, comm, opDesc);
+        }
+        return std::make_unique<InnerMark>();
     }
-    return std::make_unique<InnerMark>();
+    catch (...)
+    {
+        MSPTI_LOGE_EVERY_N(Mspti::Common::LOG_EVERY_N_HOT_PATH, "Create hccl marker failed, hccl activity dropped.");
+        return nullptr;
+    }
 }
 }  // namespace Parser
 }  // namespace Mspti

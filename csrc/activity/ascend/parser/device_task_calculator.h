@@ -72,7 +72,7 @@ class DeviceTaskCalculator
     using DstsType = std::tuple<uint16_t, uint16_t, uint32_t, uint16_t>;
 
    public:
-    using CompleteFunc = std::function<msptiResult(DeviceTask&)>;
+    using CompleteFunc = std::function<msptiResult(const DeviceTask&)>;
 
     static DeviceTaskCalculator& GetInstance()
     {
@@ -82,6 +82,7 @@ class DeviceTaskCalculator
 
     void RegisterCallBack(const DeviceTask& assembleTask, const DeviceTaskCalculator::CompleteFunc& completeFunc);
     msptiResult ReportStarsSocLog(uint32_t deviceId, const HalLogData& originData);
+    void Clear();
 
    private:
     DeviceTaskCalculator() = default;

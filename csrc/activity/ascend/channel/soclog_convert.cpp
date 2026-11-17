@@ -18,6 +18,8 @@
 
 #include "csrc/activity/ascend/channel/soclog_convert.h"
 
+#include <atomic>
+#include <cinttypes>
 #include <functional>
 
 #include "channel_data.h"
@@ -29,6 +31,13 @@ namespace Convert
 {
 namespace
 {
+void LogUnknownFuncType(uint32_t funcType)
+{
+    static std::atomic<uint64_t> unknownFuncTypeCount{0};
+    MSPTI_LOGW_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, unknownFuncTypeCount,
+                             "unknown funcType %u, failed total: %" PRIu64, funcType);
+}
+
 bool Trans910BSocLog(const void *const buffer, HalLogData &halLogData)
 {
     const auto *originHeader = reinterpret_cast<const StarsSocHeader *>(buffer);
@@ -60,7 +69,7 @@ bool Trans910BSocLog(const void *const buffer, HalLogData &halLogData)
     }
     else
     {
-        MSPTI_LOGW("unknown funcType, funcType is %u", static_cast<uint32_t>(originHeader->funcType));
+        LogUnknownFuncType(static_cast<uint32_t>(originHeader->funcType));
         return false;
     }
     return true;
@@ -81,7 +90,7 @@ bool TransSocLogV6(const void *const buffer, HalLogData &halLogData)
     }
     else
     {
-        MSPTI_LOGW("unknown funcType, funcType is %u", static_cast<uint32_t>(originData->funcType));
+        LogUnknownFuncType(static_cast<uint32_t>(originData->funcType));
         return false;
     }
     return true;

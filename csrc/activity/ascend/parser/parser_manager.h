@@ -13,21 +13,26 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 #ifndef MSPTI_PARSER_PARSER_MANAGER_H
 #define MSPTI_PARSER_PARSER_MANAGER_H
 
-#include <atomic>
 #include <array>
-#include "csrc/common/inject/profapi_inject.h"
-#include "csrc/activity/ascend/channel/channel_data.h"
-#include "csrc/include/mspti_activity.h"
-#include "csrc/activity/ascend/parser/cann_track_cache.h"
+#include <atomic>
+#include <cstdint>
 
-namespace Mspti {
-namespace Parser {
-class ParserManager final {
-public:
+#include "csrc/activity/ascend/channel/channel_data.h"
+#include "csrc/activity/ascend/parser/cann_track_cache.h"
+#include "csrc/common/inject/profapi_inject.h"
+#include "csrc/include/mspti_activity.h"
+
+namespace Mspti
+{
+namespace Parser
+{
+class ParserManager final
+{
+   public:
     static ParserManager *GetInstance();
     // Device Channel
     void ReportStepTrace(uint32_t deviceId, const StepTraceBasic *stepTrace);
@@ -41,10 +46,12 @@ public:
 
     msptiResult StopAnalysisTask(msptiActivityKind kind);
     msptiResult StopAnalysisTasks(const std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT> &kinds);
-private:
+
+   private:
     Mspti::Parser::ProfTask *GetAnalysisTask(msptiActivityKind kind);
+    std::atomic<uint64_t> hashMissCount_{0};
 };
-} // Parser
-} // Mspti
+}  // namespace Parser
+}  // namespace Mspti
 
 #endif

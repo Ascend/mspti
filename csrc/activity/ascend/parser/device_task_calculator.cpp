@@ -18,6 +18,8 @@
 
 #include "csrc/activity/ascend/parser/device_task_calculator.h"
 
+#include <utility>
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/channel/channel_data.h"
 #include "csrc/activity/ascend/channel/stars_common.h"
@@ -60,34 +62,60 @@ msptiResult DeviceTaskCalculator::AssembleTasksTimeWithSocLog(uint32_t deviceId,
     uint16_t streamId = socLog.streamId;
     uint32_t taskId = socLog.taskId;
     auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(deviceId), streamId, taskId);
-    auto iter = assembleTasks_.find(dstKey);
-    if (iter == assembleTasks_.end())
+    CompleteFunc callback;
+    // 线程局部缓冲复用 subTasks 容量，避免每个 END 事件重新分配；回调不得重入本函数。
+    thread_local DeviceTask completedTask;
     {
-        return MSPTI_SUCCESS;
-    }
-    auto& deviceTask = iter->second;
-    if (socLog.funcType == STARS_FUNC_TYPE_BEGIN)
-    {
-        deviceTask.start = socLog.timestamp;
-    }
-    else if (socLog.funcType == STARS_FUNC_TYPE_END)
-    {
+        // 多 device 的消费线程会并发进入；assembleTasks_/completeFunc_ 必须串行访问
+        std::lock_guard<std::mutex> lk(assembleTaskMutex_);
+        auto iter = assembleTasks_.find(dstKey);
+        if (iter == assembleTasks_.end())
+        {
+            return MSPTI_SUCCESS;
+        }
+        auto& deviceTask = iter->second;
+        if (socLog.funcType == STARS_FUNC_TYPE_BEGIN)
+        {
+            deviceTask.start = socLog.timestamp;
+            return MSPTI_SUCCESS;
+        }
+        if (socLog.funcType != STARS_FUNC_TYPE_END)
+        {
+            return MSPTI_SUCCESS;
+        }
         uint64_t startRealTime = deviceTask.start;
         uint64_t endRealTime = socLog.timestamp;
         Common::ContextManager::GetInstance()->GetDeviceRealTime(deviceId, startRealTime, endRealTime);
         deviceTask.start = startRealTime;
         deviceTask.end = endRealTime;
 
-        auto& callback = completeFunc_[dstKey];
-        msptiResult ans = callback(deviceTask);
+        auto callbackIter = completeFunc_.find(dstKey);
+        if (callbackIter == completeFunc_.end() || !callbackIter->second)
+        {
+            // 注册表与任务表应同增同删，不一致时丢弃，避免调用空 std::function
+            MSPTI_LOGE("Missing complete callback, drop device task, deviceId=%u, streamId=%u, taskId=%u", deviceId,
+                       streamId, taskId);
+            assembleTasks_.erase(iter);
+            completeFunc_.erase(dstKey);
+            return MSPTI_ERROR_INNER;
+        }
         if (deviceTask.agingFlag)
         {
-            completeFunc_.erase(dstKey);
+            // aging task 用完即删，任务与回调都 move 出去
+            callback = std::move(callbackIter->second);
+            completedTask = std::move(deviceTask);
+            completeFunc_.erase(callbackIter);
             assembleTasks_.erase(iter);
         }
-        return ans;
+        else
+        {
+            // 非 aging task 留在 map 里复用，只能拷贝
+            callback = callbackIter->second;
+            completedTask = deviceTask;
+        }
     }
-    return MSPTI_SUCCESS;
+    // 回调会再取 CommunicationCalculator 锁，必须在 assembleTaskMutex_ 之外执行
+    return callback(completedTask);
 }
 
 msptiResult DeviceTaskCalculator::AssembleSubTasksTimeWithFftsLog(uint32_t deviceId, const FftsLog& fftsLog)
@@ -97,9 +125,18 @@ msptiResult DeviceTaskCalculator::AssembleSubTasksTimeWithFftsLog(uint32_t devic
     auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(deviceId), streamId, taskId);
     auto dstsKey = std::make_tuple(static_cast<uint16_t>(deviceId), streamId, taskId, fftsLog.subTaskId);
 
+    std::lock_guard<std::mutex> lk(assembleTaskMutex_);
     auto iter = assembleTasks_.find(dstKey);
     if (iter == assembleTasks_.end())
     {
+        return MSPTI_SUCCESS;
+    }
+    // 先校验 funcType 再插入，避免畸形数据在 assembleSubTasks_ 里留下永久条目
+    if (fftsLog.funcType != FFTS_PLUS_TYPE_START && fftsLog.funcType != FFTS_PLUS_TYPE_END)
+    {
+        MSPTI_LOGW_EVERY_N(Common::LOG_EVERY_N_FAILURE,
+                           "Unknown ffts funcType %u, drop sub task, deviceId=%u, streamId=%u, taskId=%u, subTaskId=%u",
+                           static_cast<uint32_t>(fftsLog.funcType), deviceId, streamId, taskId, fftsLog.subTaskId);
         return MSPTI_SUCCESS;
     }
     auto it = assembleSubTasks_.find(dstsKey);
@@ -129,17 +166,34 @@ msptiResult DeviceTaskCalculator::AssembleSubTasksTimeWithFftsLog(uint32_t devic
     return MSPTI_SUCCESS;
 }
 
+void DeviceTaskCalculator::Clear()
+{
+    std::lock_guard<std::mutex> lk(assembleTaskMutex_);
+    const auto taskCount = assembleTasks_.size();
+    const auto subTaskCount = assembleSubTasks_.size();
+    const auto callbackCount = completeFunc_.size();
+    const auto pendingCount = assembleTaskQueue_.size();
+    assembleTasks_.clear();
+    assembleSubTasks_.clear();
+    completeFunc_.clear();
+    assembleTaskQueue_.clear();
+    dealAssembleTaskQueue_.clear();
+    if (taskCount > 0 || subTaskCount > 0 || callbackCount > 0 || pendingCount > 0)
+    {
+        MSPTI_LOGI("DeviceTaskCalculator cleared, tasks=%zu, subTasks=%zu, callbacks=%zu, pending=%zu", taskCount,
+                   subTaskCount, callbackCount, pendingCount);
+    }
+}
+
 void DeviceTaskCalculator::DealCacheDeviceTask()
 {
+    std::lock_guard<std::mutex> lk(assembleTaskMutex_);
+    if (assembleTaskQueue_.empty())
     {
-        std::lock_guard<std::mutex> lk(assembleTaskMutex_);
-        if (assembleTaskQueue_.empty())
-        {
-            return;
-        }
-        dealAssembleTaskQueue_.reserve(assembleTaskQueue_.size());
-        dealAssembleTaskQueue_.swap(assembleTaskQueue_);
+        return;
     }
+    dealAssembleTaskQueue_.reserve(assembleTaskQueue_.size());
+    dealAssembleTaskQueue_.swap(assembleTaskQueue_);
     for (const auto& it : dealAssembleTaskQueue_)
     {
         auto& deviceTask = it.first;

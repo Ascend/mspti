@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cinttypes>
 #include <cstring>
@@ -29,6 +30,7 @@
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/activity/ascend/parser/communication_calculator.h"
+#include "csrc/activity/ascend/parser/device_task_calculator.h"
 #include "csrc/activity/ascend/parser/kernel_parser.h"
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
@@ -46,6 +48,32 @@ constexpr uint32_t ActivityManager::FLUSH_RETRY_MAX_COUNT;
 constexpr uint32_t ActivityManager::FLUSH_RETRY_WAIT_MS;
 namespace
 {
+std::atomic<uint64_t> g_activityBufferDropCount{0};
+std::atomic<uint64_t> g_activityRecordFailCount{0};
+
+void LogActivityBufferDrop(size_t size, size_t validSize, size_t bufSize)
+{
+    // Count regardless of log level.
+    const uint64_t total = g_activityBufferDropCount.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (total == 1 || total % Common::LOG_EVERY_N_FAILURE == 0)
+    {
+        MSPTI_LOGE(
+            "Record dropped due to insufficient Activity Buffer space, size=%zu, validSize=%zu, "
+            "bufSize=%zu, dropped total: %" PRIu64,
+            size, validSize, bufSize, total);
+    }
+}
+
+void LogActivityRecordFail(msptiActivityKind kind)
+{
+    // Exclude buffer-space drops.
+    const uint64_t total = g_activityRecordFailCount.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (total == 1 || total % Common::LOG_EVERY_N_FAILURE == 0)
+    {
+        MSPTI_LOGE("Failed to record activity, kind: %d, failed total: %" PRIu64, static_cast<int>(kind), total);
+    }
+}
+
 inline bool IsValidActivityKind(msptiActivityKind kind)
 {
     return kind > MSPTI_ACTIVITY_KIND_INVALID && kind < MSPTI_ACTIVITY_KIND_COUNT;
@@ -113,7 +141,7 @@ void RetryFlushUntilDrained(msptiActivityKind kind, const std::unordered_set<uin
     for (uint32_t retry = 0; retry < ActivityManager::FLUSH_RETRY_MAX_COUNT; retry++)
     {
         auto pendingCount = getPendingCount();
-        if (pendingCount == 0)
+        if (pendingCount <= 0)
         {
             break;
         }
@@ -217,21 +245,23 @@ void ActivityBuffer::UnInit(msptiBuffersCallbackCompleteFunc func)
     func(buf_, buf_size_, valid_size_);
 }
 
-msptiResult ActivityBuffer::Record(msptiActivity *activity, size_t size)
+msptiResult ActivityBuffer::Record(msptiActivity *activity, size_t size, bool &bufferFull)
 {
+    bufferFull = false;
     if (activity == nullptr)
     {
         MSPTI_LOGE("The activity is nullptr, failed to record.");
         return MSPTI_ERROR_INNER;
     }
-    if (buf_ == nullptr)
+    if (UNLIKELY(buf_ == nullptr))
     {
-        MSPTI_LOGE("The ActivityBuffer is nullptr, failed to record activity.");
+        MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "The ActivityBuffer is nullptr, failed to record activity.");
         return MSPTI_ERROR_INNER;
     }
     if (size > buf_size_ - valid_size_)
     {
-        MSPTI_LOGW("Record is dropped due to insufficient space of Activity Buffer.");
+        bufferFull = true;
+        LogActivityBufferDrop(size, valid_size_, buf_size_);
         return MSPTI_ERROR_INNER;
     }
     if (memcpy_s(buf_ + valid_size_, buf_size_ - valid_size_, activity, size) != EOK)
@@ -377,9 +407,11 @@ msptiResult ActivityManager::TryInitActivityBuffer()
         return MSPTI_ERROR_INNER;
     }
     cur_buf_->Init(bufferRequested_handle_);
-    if (!cur_buf_->BufValid())
+    if (UNLIKELY(!cur_buf_->BufValid()))
     {
-        MSPTI_LOGE("Failed to init activity buffer.");
+        static std::atomic<uint64_t> activityBufferInitFailCount{0};
+        MSPTI_LOGE_EVERY_N_TOTAL(Common::LOG_EVERY_N_FAILURE, activityBufferInitFailCount,
+                                 "Failed to init activity buffer, failed total: %" PRIu64);
         cur_buf_.reset();
         return MSPTI_ERROR_INNER;
     }
@@ -503,6 +535,7 @@ msptiResult ActivityManager::UnRegisterLocked(msptiActivityKind kind)
     else if (kind == MSPTI_ACTIVITY_KIND_COMMUNICATION)
     {
         Parser::CommunicationCalculator::GetInstance().Clear();
+        Parser::DeviceTaskCalculator::GetInstance().Clear();
     }
     unregistering_[kind] = false;
     MSPTI_LOGI("UnRegister Activity kind: %d", static_cast<int>(kind));
@@ -684,7 +717,7 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
     {
         if (TryInitActivityBuffer() != MSPTI_SUCCESS)
         {
-            MSPTI_LOGE("Failed to record activity, kind %d.", static_cast<int>(activity->kind));
+            LogActivityRecordFail(activity->kind);
             return MSPTI_ERROR_INNER;
         }
     }
@@ -698,15 +731,19 @@ msptiResult ActivityManager::Record(msptiActivity *activity, size_t size)
         }
         if (TryInitActivityBuffer() != MSPTI_SUCCESS)
         {
-            MSPTI_LOGE("Failed to record activity, kind %d.", static_cast<int>(activity->kind));
+            LogActivityRecordFail(activity->kind);
             return MSPTI_ERROR_INNER;
         }
     }
-    if (cur_buf_->Record(activity, size) != MSPTI_SUCCESS)
+    bool bufferFull = false;
+    if (cur_buf_->Record(activity, size, bufferFull) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Failed to record activity, kind %d.", static_cast<int>(activity->kind));
         cur_drop_num_++;
         total_drop_num_++;
+        if (!bufferFull)
+        {
+            LogActivityRecordFail(activity->kind);
+        }
         return MSPTI_ERROR_INNER;
     }
     total_record_num_++;
@@ -834,10 +871,18 @@ msptiResult ActivityManager::Detach()
         // Clear parser state.
         Parser::KernelParser::GetInstance().Clear();
         Parser::CommunicationCalculator::GetInstance().Clear();
+        Parser::DeviceTaskCalculator::GetInstance().Clear();
     }
     // Stop the manager thread outside session_mutex_: avoid joining worker
     // threads (which may re-enter MSPTI) while holding the lock.
     StopActivityMgrThread();
+    const auto bufferDropCount = g_activityBufferDropCount.exchange(0, std::memory_order_relaxed);
+    const auto recordFailCount = g_activityRecordFailCount.exchange(0, std::memory_order_relaxed);
+    if (bufferDropCount + recordFailCount > 0)
+    {
+        MSPTI_LOGW("Activity buffer abnormal summary: bufferFullDropped=%" PRIu64 ", recordFail=%" PRIu64,
+                   bufferDropCount, recordFailCount);
+    }
     MSPTI_LOGI("ActivityManager detach done.");
     return ret;
 }

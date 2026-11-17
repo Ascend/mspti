@@ -50,38 +50,28 @@ namespace Common
 {
 
 template <typename Types, typename... Args>
-inline void MsptiMakeSharedPtr(std::shared_ptr<Types>& ptr, Args&&... args)
+inline void MsptiMakeSharedPtr(std::shared_ptr<Types>& ptr, Args&&... args) noexcept
 {
     try
     {
         ptr = std::make_shared<Types>(std::forward<Args>(args)...);
     }
-    catch (std::bad_alloc& e)
-    {
-        throw;
-    }
     catch (...)
     {
         ptr = nullptr;
-        return;
     }
 }
 
 template <typename Types, typename... Args>
-inline void MsptiMakeUniquePtr(std::unique_ptr<Types>& ptr, Args&&... args)
+inline void MsptiMakeUniquePtr(std::unique_ptr<Types>& ptr, Args&&... args) noexcept
 {
     try
     {
         ptr = std::make_unique<Types>(std::forward<Args>(args)...);
     }
-    catch (std::bad_alloc& e)
-    {
-        throw;
-    }
     catch (...)
     {
         ptr = nullptr;
-        return;
     }
 }
 

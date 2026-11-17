@@ -13,20 +13,25 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PROJECT_MEMORY_REPORTER_H
 #define MSPTI_PROJECT_MEMORY_REPORTER_H
 
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <unordered_map>
-#include "csrc/include/mspti_activity.h"
-#include "csrc/common/inject/acl_mem_inject.h"
 
-namespace Mspti {
-namespace Reporter {
-struct MemoryRecord {
+#include "csrc/common/inject/acl_mem_inject.h"
+#include "csrc/include/mspti_activity.h"
+
+namespace Mspti
+{
+namespace Reporter
+{
+struct MemoryRecord
+{
     MemoryRecord(VOID_PTR_PTR devPtr, uint64_t size, msptiActivityMemoryKind memKind,
                  msptiActivityMemoryOperationType opType);
     ~MemoryRecord();
@@ -39,7 +44,8 @@ struct MemoryRecord {
     uint64_t end{0};
 };
 
-struct MemsetRecord {
+struct MemsetRecord
+{
     MemsetRecord(uint32_t value, uint64_t bytes, AclrtStream stream, uint8_t isAsync);
     ~MemsetRecord();
 
@@ -51,7 +57,8 @@ struct MemsetRecord {
     uint64_t end{0};
 };
 
-struct MemcpyRecord {
+struct MemcpyRecord
+{
     MemcpyRecord(AclrtMemcpyKind copyKind, uint64_t bytes, AclrtStream stream, uint8_t isAsync);
     ~MemcpyRecord();
 
@@ -63,9 +70,10 @@ struct MemcpyRecord {
     uint64_t end{0};
 };
 
-class MemoryReporter {
-public:
-    static MemoryReporter* GetInstance();
+class MemoryReporter
+{
+   public:
+    static MemoryReporter *GetInstance();
 
     // Memory Activity
     msptiResult ReportMemoryActivity(const MemoryRecord &record);
@@ -73,11 +81,14 @@ public:
     msptiResult ReportMemsetActivity(const MemsetRecord &record);
     // Memcpy Activity
     msptiResult ReportMemcpyActivity(const MemcpyRecord &record);
-private:
+
+   private:
     std::mutex addrMtx_;
     std::unordered_map<uintptr_t, uint64_t> addrBytesInfo_;
+    std::atomic<uint64_t> releaseWithoutAllocCount_{0};
+    std::atomic<uint64_t> duplicateAllocCount_{0};
 };
-}
-}
+}  // namespace Reporter
+}  // namespace Mspti
 
-#endif // MSPTI_PROJECT_MEMORY_REPORTER_H
+#endif  // MSPTI_PROJECT_MEMORY_REPORTER_H
