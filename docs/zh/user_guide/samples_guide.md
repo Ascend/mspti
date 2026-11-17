@@ -48,7 +48,7 @@ msPTI工具不可与任何其他性能数据采集工具同时使用，否则会
 
 **构建样例执行<a name="zh-cn_topic_0000002257378834_section6122533557"></a>**
 
-1. 安装CANN软件后，需要以CANN运行用户登录环境，执行`source /${install_path}/set_env.sh`命令设置环境变量。其中`${install_path}`为CANN软件安装后文件存储路径，例如：/usr/local/Ascend/cann。
+1. 安装CANN软件后，需要以CANN运行用户登录环境，执行`source ${install_path}/set_env.sh`命令设置环境变量。其中`${install_path}`为CANN安装路径，例如：`/usr/local/Ascend/cann`。
    示例如下：
 
    ```bash
@@ -59,7 +59,7 @@ msPTI工具不可与任何其他性能数据采集工具同时使用，否则会
 
    msPTI样例代码集成在CANN Toolkit开发套件包中，路径为$\{install\_path\}/tools/mspti/samples。
 
-   $\{install\_path\}请替换为CANN软件安装后文件存储路径。以root安装举例，则安装后文件存储路径为：/usr/local/Ascend/cann。
+   $\{install\_path\}请替换为CANN安装路径。例如，以root用户安装时，CANN安装路径为：`/usr/local/Ascend/cann`。
 
    示例如下：
 
