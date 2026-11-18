@@ -14,7 +14,7 @@ msPTI API的功能介绍和使用示例请参见[msPTI工具](../../user_guide/s
 
 |接口|说明|
 |--|--|
-|**HcclMonitor类型**|**HcclMonitor说明**|
+|**HcclMonitor类型（已废弃，推荐使用CommunicationMonitor）**|**HcclMonitor说明**|
 |[HcclMonitor.start](./context/HcclMonitor-start.md)|标识通信算子性能数据采集的开始。|
 |[HcclMonitor.stop](./context/HcclMonitor-stop.md)|标识通信算子性能数据采集的结束。|
 |[HcclMonitor.flush_all](./context/HcclMonitor-flush_all.md)|调用回调函数，将缓冲区中的所有Activity数据写入用户内存。|
@@ -37,7 +37,7 @@ msPTI API的功能介绍和使用示例请参见[msPTI工具](../../user_guide/s
 |[CommunicationMonitor.flush_all](./context/CommunicationMonitor-flush_all.md)|调用回调函数，将缓冲区中的所有Activity数据写入用户内存。|
 |[CommunicationMonitor.set_buffer_size](./context/CommunicationMonitor-set_buffer_size.md)|在采集开始前设置Activity Buffer的大小。|
 |**Data Structure类型**|**Data Structure说明**|
-|[HcclData](./context/HcclData.md)|Activity Record类型MSPTI_ACTIVITY_KIND_HCCL对应的结构体。|
+|[HcclData](./context/HcclData.md)|Activity Record类型MSPTI_ACTIVITY_KIND_HCCL对应的结构体。该Activity Kind已废弃，推荐使用CommunicationMonitor及CommunicationData。|
 |[KernelData](./context/KernelData.md)|Activity Record类型MSPTI_ACTIVITY_KIND_KERNEL对应的结构体。|
 |[MarkerData](./context/MarkerData.md)|Activity Record类型MSPTI_ACTIVITY_KIND_MARKER对应的结构体。|
 |[RangeMarkerData](./context/RangeMarkerData.md)|Activity Record类型MSPTI_ACTIVITY_KIND_MARKER对应的结构体。|

@@ -2,6 +2,10 @@
 
 msptiActivityHccl为Activity Record类型[MSPTI\_ACTIVITY\_KIND\_HCCL](msptiActivityKind.md)对应的结构体，定义如下：
 
+> [!WARNING]
+>
+> `MSPTI_ACTIVITY_KIND_HCCL` 已废弃，仅为兼容旧版本保留。新代码请使用 `MSPTI_ACTIVITY_KIND_COMMUNICATION` 及对应结构体 [msptiActivityCommunication](msptiActivityCommunication.md)。
+
 ```cpp
 typedef struct PACKED_ALIGNMENT {
     msptiActivityKind kind;   // Activity Record类型MSPTI_ACTIVITY_KIND_HCCL

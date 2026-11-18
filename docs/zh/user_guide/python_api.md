@@ -22,7 +22,7 @@ msPTI Python API 提供了高层封装，使 Python 开发者能够快速接入 
 | Monitor | 数据类 | 采集内容 |
 | --- | --- | --- |
 | `KernelMonitor` | `KernelData` | NPU Kernel 执行耗时 |
-| `HcclMonitor` | `HcclData` | HCCL 通信操作（带宽、耗时） |
+| `HcclMonitor`（已废弃，推荐使用 `CommunicationMonitor`） | `HcclData` | HCCL 通信操作（带宽、耗时） |
 | `CommunicationMonitor` | `CommunicationData` | 通信算子数据（数据类型、算法等） |
 | `MstxMonitor` | `MarkerData`, `RangeMarkerData` | 用户自定义打点（瞬时/范围） |
 
@@ -53,7 +53,11 @@ class KernelData:
     name: str                     # Kernel 名称
 ```
 
-### 2.2 HcclData
+### 2.2 HcclData（已废弃）
+
+> [!WARNING]
+>
+> `HcclData` 对应的 `MSPTI_ACTIVITY_KIND_HCCL` 已废弃。新代码请使用 `CommunicationData`（对应 `MSPTI_ACTIVITY_KIND_COMMUNICATION`）。
 
 ```python
 class HcclData:
@@ -171,7 +175,11 @@ monitor.stop()
 
 ---
 
-## 4. HcclMonitor 使用指南
+## 4. HcclMonitor 使用指南（已废弃）
+
+> [!WARNING]
+>
+> `HcclMonitor` 已废弃，仅为兼容旧版本保留。新代码请使用 `CommunicationMonitor` 和 `CommunicationData`，示例参见第 5 章。
 
 采集 HCCL 通信操作的耗时和带宽信息。
 
@@ -195,7 +203,7 @@ monitor.stop()
 
 ## 5. CommunicationMonitor 使用指南
 
-采集通信算子的详细信息，包括数据类型、算法类型等。
+采集通信算子的详细信息，包括数据类型、算法类型等。推荐使用该 Monitor 替代已废弃的 `HcclMonitor`。
 
 ```python
 from mspti import CommunicationMonitor, CommunicationData

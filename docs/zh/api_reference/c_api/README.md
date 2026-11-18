@@ -59,7 +59,7 @@ $\{INSTALL\_DIR\}请替换为CANN Toolkit开发套件包安装后文件存储路
 |**Data Structure类型**|**Data Structure说明**|
 |[msptiActivity](./context/msptiActivity.md)|Activity Record的基础结构体。|
 |[msptiActivityApi](./context/msptiActivityApi.md)|Activity Record类型MSPTI_ACTIVITY_KIND_API对应的结构体。|
-|[msptiActivityHccl](./context/msptiActivityHccl.md)|Activity Record类型MSPTI_ACTIVITY_KIND_HCCL对应的结构体。|
+|[msptiActivityHccl](./context/msptiActivityHccl.md)|Activity Record类型MSPTI_ACTIVITY_KIND_HCCL对应的结构体。该Activity Kind已废弃，推荐使用MSPTI_ACTIVITY_KIND_COMMUNICATION及msptiActivityCommunication。|
 |[msptiActivityKernel](./context/msptiActivityKernel.md)|Activity Record类型MSPTI_ACTIVITY_KIND_KERNEL对应的结构体。|
 |[msptiActivityMarker](./context/msptiActivityMarker.md)|Activity Record类型MSPTI_ACTIVITY_KIND_MARKER对应的结构体。|
 |[msptiActivityMemory](./context/msptiActivityMemory.md)|Activity Record类型MSPTI_ACTIVITY_KIND_MEMORY对应的结构体。|

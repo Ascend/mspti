@@ -10,7 +10,7 @@ class MsptiActivityKind(Enum):
     MSPTI_ACTIVITY_KIND_MARKER = 1   # msPTI打点能力（标记瞬时时刻）的Activity Record类型，支持最大打点个数为uint32_t最大值，返回结构体MarkerData或RangeMarkerData
     MSPTI_ACTIVITY_KIND_KERNEL = 2   # aclnn场景下，计算类算子信息采集的Activity Record类型，返回结构体KernelData
     MSPTI_ACTIVITY_KIND_API = 3   # 预留参数，暂未开放
-    MSPTI_ACTIVITY_KIND_HCCL = 4   # 通信算子采集Activity Record类型，返回结构体HcclData
+    MSPTI_ACTIVITY_KIND_HCCL = 4   # 已废弃。通信算子采集Activity Record类型，返回结构体HcclData；推荐使用MSPTI_ACTIVITY_KIND_COMMUNICATION
     MSPTI_ACTIVITY_KIND_MEMORY = 5   # 预留参数，暂未开放
     MSPTI_ACTIVITY_KIND_MEMSET = 6   # 预留参数，暂未开放
     MSPTI_ACTIVITY_KIND_MEMCPY = 7   # 预留参数，暂未开放
@@ -23,3 +23,7 @@ class MsptiActivityKind(Enum):
     MSPTI_ACTIVITY_KIND_COUNT = 14
     MSPTI_ACTIVITY_KIND_FORCE_INT = 0x7fffffff
 ```
+
+> [!WARNING]
+>
+> `MSPTI_ACTIVITY_KIND_HCCL` 已废弃，仅为兼容旧版本保留。新代码请使用 `MSPTI_ACTIVITY_KIND_COMMUNICATION`，其对应数据类为 [CommunicationData](CommunicationData.md)。

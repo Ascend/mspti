@@ -2,6 +2,10 @@
 
 HcclData为[HcclMonitor.start](HcclMonitor-start.md)调用的结构体，定义如下：
 
+> [!WARNING]
+>
+> `MSPTI_ACTIVITY_KIND_HCCL` 已废弃，`HcclData`/`HcclMonitor` 仅为兼容旧版本保留。新代码请使用 `CommunicationMonitor` 及对应数据类 [CommunicationData](CommunicationData.md)。
+
 ```python
 class HcclData:
     self.kind   # Activity Record类型MSPTI_ACTIVITY_KIND_HCCL

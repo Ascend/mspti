@@ -89,7 +89,7 @@ msPTI工具不可与任何其他性能数据采集工具同时使用，否则会
   | [mspti_activity](../../../samples/mspti_activity)               | 1. 展示Activity API接口的基本功能，样例展示如何采集Kernel和Memory等数据。<br/> 2. 演示Activity API的基本运行，讲述Activity API的基本使用，包括Activity Buffer内存分配，Buffer消费等逻辑。 |
   | [mspti_correlation](../../../samples/mspti_correlation)         | 1. 展示Activity API接口的基本功能，展示如何通过correlationId字段将API和Kernel数据做关联。<br/> 2. 演示runtime API下发与Kernel实际执行数据的关联，关联后可以将算子的下发和执行一一对应，方便分析性能瓶颈。 |
   | [mspti_external_correlation](../../../samples/mspti_external_correlation) | 1. 展示msPTI External Correlation功能。<br/>2. 演示msptiActivityPopExternalCorrelationId和msptiActivityPushExternalCorrelationId两接口使用方法，用户可以通过接口将各种API关联到一起，方便回溯函数的调用栈。 |
-  | [mspti_hccl_activity](../../../samples/mspti_hccl_activity)     | 1. 展示Activity API接口的基本功能，样例展示如何通过Hccl开关采集通信数据。 |
+  | [mspti_hccl_activity](../../../samples/mspti_hccl_activity)     | 1. 展示Activity API接口的基本功能，样例展示如何通过Hccl开关采集通信数据。<br/>2. 该样例使用的MSPTI_ACTIVITY_KIND_HCCL已废弃，仅用于兼容性参考；新代码请使用MSPTI_ACTIVITY_KIND_COMMUNICATION或Python CommunicationMonitor。 |
   | [mspti_mstx_activity_domain](../../../samples/mspti_mstx_activity_domain) | 1. 展示msPTI控制mstxDomain功能，通过开关控制打点数据是否采集。<br/> 2. 用户可以通过msPTI开关实时开关采集打点，减小性能损耗。 |
 
 - Python API
