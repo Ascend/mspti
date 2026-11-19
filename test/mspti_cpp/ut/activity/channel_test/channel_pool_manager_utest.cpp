@@ -18,6 +18,7 @@
 
 #include "csrc/activity/ascend/channel/channel_pool_manager.h"
 #include "csrc/common/inject/driver_inject.h"
+#include "csrc/common/shutdown_flag.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 #include "mspti_result.h"
@@ -186,5 +187,19 @@ TEST_F(ChannelPoolManagerUtest, DrainReaderWillForwardToChannelPool)
 
     ret = Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->DrainReader(0, PROF_CHANNEL_TS_FW);
     EXPECT_EQ(MSPTI_SUCCESS, ret);
+}
+
+// A new session must reset the shutdown flag left by the previous teardown.
+TEST_F(ChannelPoolManagerUtest, InitShouldResetShuttingDownFlag)
+{
+    Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->UnInit();
+
+    Mspti::Common::SetShuttingDown(true);
+    uint32_t devNum = 0;
+    MOCKER_CPP(&DrvGetDevNum).stubs().with(outBoundP(&devNum)).will(returnValue(DRV_ERROR_NONE));
+
+    // 设备数非法提前失败时也应恢复标志。
+    EXPECT_EQ(MSPTI_ERROR_DEVICE_OFFLINE, Mspti::Ascend::Channel::ChannelPoolManager::GetInstance()->Init());
+    EXPECT_FALSE(Mspti::Common::IsShuttingDown());
 }
 }  // namespace

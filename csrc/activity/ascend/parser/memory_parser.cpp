@@ -32,6 +32,7 @@
 #include "csrc/common/object_pool.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "csrc/include/mspti_activity.h"
 
@@ -400,6 +401,8 @@ MemoryParser &MemoryParser::GetInstance()
     static MemoryParser instance;
     return instance;
 }
+
+MemoryParser::~MemoryParser() { Common::SetShuttingDown(true); }
 
 msptiResult MemoryParser::ReportMemory(const MsprofCompactInfo &record) { return pImpl->ReportMemory(record); }
 

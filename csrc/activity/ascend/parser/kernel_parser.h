@@ -40,7 +40,6 @@ class KernelParser
 
    private:
     KernelParser();
-    ~KernelParser();
     class KernelParserImpl;
     std::unique_ptr<KernelParserImpl> pImpl;
 };

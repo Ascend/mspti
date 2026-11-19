@@ -13,31 +13,35 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
-*/
+ */
 
 #ifndef MSPTI_PARSER_MSTX_PARSER_H
 #define MSPTI_PARSER_MSTX_PARSER_H
 
 #include <atomic>
-#include <unordered_map>
 #include <map>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 
-#include "csrc/common/inject/acl_inject.h"
 #include "csrc/activity/ascend/channel/channel_data.h"
 #include "csrc/common/context_manager.h"
+#include "csrc/common/inject/acl_inject.h"
 
-namespace Mspti {
-namespace Parser {
-struct RangeStartContext {
+namespace Mspti
+{
+namespace Parser
+{
+struct RangeStartContext
+{
     AclrtStream stream;
     Common::DevTimeInfo devTimeInfo;
 };
 
-class MstxParser {
-public:
-    static MstxParser* GetInstance();
+class MstxParser
+{
+   public:
+    static MstxParser *GetInstance();
 
     msptiResult ReportMark(const char *msg, AclrtStream stream, const char *domain);
 
@@ -45,23 +49,24 @@ public:
 
     msptiResult ReportRangeEnd(uint64_t rangeId);
 
-    void ReportMarkDataToActivity(uint32_t deviceId, const StepTraceBasic* stepTrace);
+    void ReportMarkDataToActivity(uint32_t deviceId, const StepTraceBasic *stepTrace);
 
     bool IsInnerMarker(uint64_t markId);
 
-    msptiResult InnerDeviceStartA(AclrtStream stream, uint64_t& markId);
+    msptiResult InnerDeviceStartA(AclrtStream stream, uint64_t &markId);
 
     msptiResult InnerDeviceEndA(uint64_t rangeId);
 
-private:
+   private:
     MstxParser() = default;
+    ~MstxParser();
     explicit MstxParser(const MstxParser &obj) = delete;
-    MstxParser& operator=(const MstxParser &obj) = delete;
+    MstxParser &operator=(const MstxParser &obj) = delete;
     explicit MstxParser(MstxParser &&obj) = delete;
-    MstxParser& operator=(MstxParser &&obj) = delete;
-    const std::string* TryCacheMarkMsg(const char* msg);
+    MstxParser &operator=(MstxParser &&obj) = delete;
+    const std::string *TryCacheMarkMsg(const char *msg);
 
-private:
+   private:
     // Marker
     std::atomic<uint64_t> gMarkId_{0};
     static constexpr uint32_t MARK_TAG_ID{11};
@@ -77,6 +82,6 @@ private:
     static std::mutex innerMarkerMutex_;
     static std::unordered_map<uint64_t, AclrtStream> innerMarkIds;
 };
-}
-}
-#endif // MSPTI_PARSER_MSTX_PARSER_H
+}  // namespace Parser
+}  // namespace Mspti
+#endif  // MSPTI_PARSER_MSTX_PARSER_H

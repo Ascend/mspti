@@ -34,6 +34,7 @@
 #include "csrc/common/context_manager.h"
 #include "csrc/common/function_loader.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 
 namespace Mspti
@@ -133,6 +134,10 @@ int32_t MsprofReporterCallbackImpl(uint32_t moduleId, uint32_t type, VOID_PTR da
 
 uint64_t MsptiGetHashIdImpl(const char* hashInfo, size_t len)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return 0;
+    }
     if (hashInfo == nullptr)
     {
         MSPTI_LOGE("GenHashId failed. hashInfo is nullptr");
@@ -143,6 +148,10 @@ uint64_t MsptiGetHashIdImpl(const char* hashInfo, size_t len)
 
 int8_t MsptiHostFreqIsEnableImpl()
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return PROFAPI_ERROR_NONE;
+    }
     constexpr int8_t enable = 1;
     constexpr int8_t disable = 0;
     return Mspti::Common::ContextManager::GetInstance()->IsHostFreqEnabled() ? enable : disable;
@@ -150,6 +159,10 @@ int8_t MsptiHostFreqIsEnableImpl()
 
 int32_t MsptiApiReporterCallbackImpl(uint32_t agingFlag, const MsprofApi* const data)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return PROFAPI_ERROR_NONE;
+    }
     if (!data)
     {
         MSPTI_LOGE("Report Msprof Api data failed with nullptr.");
@@ -227,6 +240,10 @@ int32_t MsptiEventReporterCallbackImpl(uint32_t agingFlag, const MsprofEvent* co
 
 int32_t MsptiCompactInfoReporterCallbackImpl(uint32_t agingFlag, CONST_VOID_PTR data, uint32_t length)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return PROFAPI_ERROR_NONE;
+    }
     if (data == nullptr || length != sizeof(struct MsprofCompactInfo))
     {
         MSPTI_LOGE("Report Msprof Compact failed with nullptr.");
@@ -305,6 +322,10 @@ int32_t MsptiAddiInfoReporterCallbackImpl(uint32_t agingFlag, CONST_VOID_PTR dat
 
 int32_t MsptiRegReportTypeInfoImpl(uint16_t level, uint32_t typeId, const char* name, size_t len)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return PROFAPI_ERROR_NONE;
+    }
     if (name == nullptr)
     {
         MSPTI_LOGE("RegTypeInfo failed. name is nullptr");
@@ -316,6 +337,10 @@ int32_t MsptiRegReportTypeInfoImpl(uint16_t level, uint32_t typeId, const char* 
 
 int32_t MsprofDeviceStateImpl(VOID_PTR deviceState, uint32_t len)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return PROFAPI_ERROR_NONE;
+    }
     if (deviceState == nullptr || len != sizeof(ProfSetDevPara))
     {
         MSPTI_LOGE("Device state callback receive invalid data.");
@@ -327,10 +352,12 @@ int32_t MsprofDeviceStateImpl(VOID_PTR deviceState, uint32_t len)
     if (devPara->isOpen)
     {
         Mspti::Activity::ActivityManager::GetInstance()->SetDevice(devPara->devId);
+        Mspti::Common::ContextManager::GetInstance()->AddDevice(devPara->devId);
     }
     else
     {
         Mspti::Activity::ActivityManager::GetInstance()->ResetDevice(devPara->devId);
+        Mspti::Common::ContextManager::GetInstance()->RemoveDevice(devPara->devId);
     }
     return MSPTI_SUCCESS;
 }

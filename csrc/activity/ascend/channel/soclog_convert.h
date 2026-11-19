@@ -34,7 +34,7 @@ class SocLogConvert : public BasicConvert<SocLogConvert, HalLogData>
 {
    public:
     static SocLogConvert& GetInstance();
-    ~SocLogConvert() = default;
+    ~SocLogConvert();
     size_t GetStructSize(Common::PlatformType chipType) const;
     TransFunc GetTransFunc(Common::PlatformType chipType) const;
 

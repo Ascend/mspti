@@ -20,6 +20,8 @@
 
 #include <functional>
 
+#include "csrc/common/shutdown_flag.h"
+
 namespace Mspti
 {
 namespace Convert
@@ -78,5 +80,7 @@ TsfwConvert &TsfwConvert::GetInstance()
     static TsfwConvert instance;
     return instance;
 }
+
+TsfwConvert::~TsfwConvert() { Common::SetShuttingDown(true); }
 }  // namespace Convert
 }  // namespace Mspti

@@ -18,11 +18,13 @@
 
 #include "csrc/common/context_manager.h"
 
-#include "csrc/activity/activity_manager.h"
+#include <chrono>
+
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
 #include "csrc/common/config.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 
 namespace Mspti
@@ -310,15 +312,16 @@ uint64_t ContextManager::UpdateAndReportCorrelationId()
 
 void ContextManager::Run()
 {
-    while (true)
+    while (!Common::IsShuttingDown())
     {
         std::unique_lock<std::mutex> lock(cv_mutex_);
-        cv_.wait_for(lock, std::chrono::seconds(SYNC_HOST_TERM_SECONDS), [this] { return isQuit_.load(); });
-        if (isQuit_)
+        cv_.wait_for(lock, std::chrono::seconds(SYNC_HOST_TERM_SECONDS),
+                     [this] { return isQuit_.load() || Common::IsShuttingDown(); });
+        if (isQuit_ || Common::IsShuttingDown())
         {
             break;
         }
-        const auto devices = Mspti::Activity::ActivityManager::GetInstance()->GetAllValidDevice();
+        const auto devices = GetValidDevices();
         for (auto device : devices)
         {
             InitDeviceTimeInfo(device);
@@ -327,9 +330,32 @@ void ContextManager::Run()
     }
 }
 
+void ContextManager::AddDevice(uint32_t deviceId)
+{
+    std::lock_guard<std::mutex> lk(devicesMtx_);
+    devices_.insert(deviceId);
+}
+
+void ContextManager::RemoveDevice(uint32_t deviceId)
+{
+    std::lock_guard<std::mutex> lk(devicesMtx_);
+    devices_.erase(deviceId);
+}
+
+std::unordered_set<uint32_t> ContextManager::GetValidDevices()
+{
+    std::lock_guard<std::mutex> lk(devicesMtx_);
+    return devices_;
+}
+
 msptiResult ContextManager::StartSyncTime()
 {
     MSPTI_LOGI("ContextManager thread StartSyncTime");
+    if (UNLIKELY(Common::IsShuttingDown()))
+    {
+        MSPTI_LOGW("Skip StartSyncTime while shutting down");
+        return MSPTI_SUCCESS;
+    }
     if (!t_.joinable())
     {
         isQuit_ = false;
@@ -353,7 +379,11 @@ msptiResult ContextManager::StopSyncTime()
     return MSPTI_SUCCESS;
 }
 
-ContextManager::~ContextManager() { StopSyncTime(); }
+ContextManager::~ContextManager()
+{
+    Common::SetShuttingDown(true);
+    StopSyncTime();
+}
 
 bool ContextManager::GetHostTimeInfo(DevTimeInfo &devTimeInfo)
 {

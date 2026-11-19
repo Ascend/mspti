@@ -207,8 +207,8 @@ msptiResult CannTrackCache::AppendCommunication(bool aging, const MsprofApi *dat
 
 CannTrackCache &CannTrackCache::GetInstance()
 {
-    static CannTrackCache instance;
-    return instance;
+    static CannTrackCache *instance = new CannTrackCache();
+    return *instance;
 }
 
 msptiResult CannTrackCache::StartTask() { return pImpl->StartTask(); }

@@ -25,6 +25,7 @@
 #include "csrc/activity/ascend/channel/channel_reader.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/inject/inject_base.h"
+#include "csrc/common/shutdown_flag.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
@@ -35,6 +36,20 @@ class ChannelReaderUtest : public testing::Test
    protected:
     virtual void SetUp() { GlobalMockObject::verify(); }
     virtual void TearDown() {}
+};
+
+// 临时置位关闭标志，析构时恢复。
+class ScopedShutdownFlag
+{
+   public:
+    explicit ScopedShutdownFlag(bool value) : previous_(Mspti::Common::IsShuttingDown())
+    {
+        Mspti::Common::SetShuttingDown(value);
+    }
+    ~ScopedShutdownFlag() { Mspti::Common::SetShuttingDown(previous_); }
+
+   private:
+    bool previous_;
 };
 
 // Test constructor and basic initialization
@@ -528,7 +543,7 @@ TEST_F(ChannelReaderUtest, DrainBufferedDataShouldParseSynchronouslyAfterConsume
 {
     Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
     EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
-    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // consumer thread is stopped from here on
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // 此后消费线程已停止
 
     const size_t structSize = reader.dataStructSize_;
     ASSERT_GT(structSize, 0u);
@@ -590,5 +605,89 @@ TEST_F(ChannelReaderUtest, ExecuteShouldKeepDataBelowHandoffThreshold)
     EXPECT_EQ(0u, reader.consumerQueue_->size());
     EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // UnInit drains the residual
     GlobalMockObject::verify();
+}
+
+// 关闭标志置位后解析入口应直接丢弃。
+TEST_F(ChannelReaderUtest, TransDataToActivityBufferShouldDropDataWhenShuttingDown)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    std::string data(structSize, '\0');
+
+    ScopedShutdownFlag shuttingDown(true);
+    EXPECT_EQ(0u, reader.TransDataToActivityBuffer(data.data(), data.size(), 0, PROF_CHANNEL_STARS_SOC_LOG));
+    EXPECT_EQ(0u, reader.TransDataToActivityBuffer(data.data(), data.size(), 0, PROF_CHANNEL_TS_FW));
+
+    reader.curPos_ = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// 退出中残留数据直接丢弃。
+TEST_F(ChannelReaderUtest, DrainBufferedDataToConsumerShouldDropResidualWhenShuttingDown)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    reader.buffer_.assign(2 * structSize, '\0');
+    reader.curPos_ = 2 * structSize;
+
+    {
+        ScopedShutdownFlag shuttingDown(true);
+        reader.DrainBufferedDataToConsumer();
+        EXPECT_EQ(0u, reader.curPos_);
+        EXPECT_EQ(0u, reader.consumerQueue_->size());
+        EXPECT_EQ(0, reader.pendingConsumeCount_.load());
+    }
+
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// 退出中 DrainToConsumer 直接返回。
+TEST_F(ChannelReaderUtest, DrainToConsumerShouldSkipHandoffWhenShuttingDown)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    reader.buffer_.assign(structSize, '\0');
+    reader.curPos_ = structSize;
+
+    {
+        ScopedShutdownFlag shuttingDown(true);
+        EXPECT_EQ(MSPTI_SUCCESS, reader.DrainToConsumer());
+        // 未交接/未清理的数据留给停止流程丢弃。
+        EXPECT_EQ(structSize, reader.curPos_);
+        EXPECT_EQ(0u, reader.consumerQueue_->size());
+        EXPECT_EQ(0, reader.pendingConsumeCount_.load());
+    }
+
+    reader.curPos_ = 0;
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());
+}
+
+// join 后队列兜底只归还 buffer 并结算计数。
+TEST_F(ChannelReaderUtest, StopConsumerThreadShouldDropQueuedDataWhenShuttingDown)
+{
+    Mspti::Ascend::Channel::ChannelReader reader(0, PROF_CHANNEL_STARS_SOC_LOG);
+    EXPECT_EQ(MSPTI_SUCCESS, reader.Init());
+    EXPECT_EQ(MSPTI_SUCCESS, reader.UnInit());  // 此后消费线程已停止
+
+    const size_t structSize = reader.dataStructSize_;
+    ASSERT_GT(structSize, 0u);
+    Mspti::Ascend::Channel::ChannelReader::BufferData chunk;
+    chunk.data.assign(structSize, '\0');
+    chunk.validSize = structSize;
+    ASSERT_TRUE(reader.consumerQueue_->TryPush(chunk));
+    reader.pendingConsumeCount_.store(1);
+
+    {
+        ScopedShutdownFlag shuttingDown(true);
+        reader.StopConsumerThread();
+        EXPECT_EQ(0u, reader.consumerQueue_->size());
+        EXPECT_EQ(0, reader.pendingConsumeCount_.load());
+    }
 }
 }  // namespace

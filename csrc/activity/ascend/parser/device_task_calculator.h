@@ -76,8 +76,8 @@ class DeviceTaskCalculator
 
     static DeviceTaskCalculator& GetInstance()
     {
-        static DeviceTaskCalculator instance;
-        return instance;
+        static DeviceTaskCalculator* instance = new DeviceTaskCalculator();
+        return *instance;
     }
 
     void RegisterCallBack(const DeviceTask& assembleTask, const DeviceTaskCalculator::CompleteFunc& completeFunc);

@@ -20,6 +20,7 @@
 
 #include "csrc/activity/activity_manager.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "csrc/include/mspti_activity.h"
 
@@ -33,6 +34,8 @@ ExternalCorrelationReporter *ExternalCorrelationReporter::GetInstance()
     static ExternalCorrelationReporter instance;
     return &instance;
 }
+
+ExternalCorrelationReporter::~ExternalCorrelationReporter() { Common::SetShuttingDown(true); }
 
 msptiResult ExternalCorrelationReporter::ReportExternalCorrelationId(uint64_t correlationId)
 {

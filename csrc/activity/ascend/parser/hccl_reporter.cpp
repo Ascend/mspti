@@ -23,6 +23,7 @@
 #include "csrc/activity/activity_manager.h"
 #include "csrc/activity/ascend/parser/hccl_calculator.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
@@ -39,6 +40,8 @@ HcclReporter* HcclReporter::GetInstance()
     static HcclReporter instance;
     return &instance;
 }
+
+HcclReporter::~HcclReporter() { Common::SetShuttingDown(true); }
 
 msptiResult HcclReporter::RecordHcclMarker(const msptiActivityMarker* markActivity)
 {
@@ -86,7 +89,7 @@ msptiResult HcclReporter::ReportHcclActivity(std::shared_ptr<HcclOpDesc> hcclOpD
     if (Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&activityHccl),
                                                          sizeof(msptiActivityHccl)) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("ReportHcclActivity fail, please check buffer");
+        MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "ReportHcclActivity fail, please check buffer");
         return MSPTI_ERROR_INNER;
     }
     return MSPTI_SUCCESS;

@@ -20,6 +20,7 @@
 
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
@@ -43,6 +44,8 @@ ChannelPoolManager *ChannelPoolManager::GetInstance()
 
 ChannelPoolManager::~ChannelPoolManager()
 {
+    // 兜底析构时置关闭标志，使消费线程丢弃残留数据。
+    Common::SetShuttingDown(true);
     if (drvChannelPoll_ != nullptr)
     {
         drvChannelPoll_->Stop();
@@ -58,6 +61,8 @@ msptiResult ChannelPoolManager::Init()
     {
         return MSPTI_SUCCESS;
     }
+    // 新会话开始，恢复数据解析。
+    Common::SetShuttingDown(false);
     uint32_t dev_num = 0;
     auto ret = DrvGetDevNum(&dev_num);
     if (ret != DRV_ERROR_NONE || dev_num == 0)

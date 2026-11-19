@@ -24,6 +24,7 @@
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "csrc/include/mspti_activity.h"
 
@@ -43,6 +44,8 @@ MstxParser* MstxParser::GetInstance()
     static MstxParser instance;
     return &instance;
 }
+
+MstxParser::~MstxParser() { Common::SetShuttingDown(true); }
 
 const std::string* MstxParser::TryCacheMarkMsg(const char* msg)
 {

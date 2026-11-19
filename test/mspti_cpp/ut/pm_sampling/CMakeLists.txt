@@ -16,6 +16,7 @@ add_executable(pm_sampling_utest
     pm_sampling_metric_table_utest.cpp
     pm_sampling_dcmi_utest.cpp
     ${TOP_DIR}/csrc/common/context_manager.cpp
+    ${TOP_DIR}/csrc/common/shutdown_flag.cpp
     ${TOP_DIR}/csrc/common/utils.cpp
     ${TOP_DIR}/csrc/common/runtime_utils.cpp
     ${TOP_DIR}/csrc/common/thread_pool.cpp

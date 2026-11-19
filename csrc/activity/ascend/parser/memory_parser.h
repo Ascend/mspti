@@ -44,7 +44,7 @@ class MemoryParser
 
    private:
     MemoryParser();
-    ~MemoryParser() = default;
+    ~MemoryParser();
     class MemoryParserImpl;
     std::unique_ptr<MemoryParserImpl> pImpl;
 };
