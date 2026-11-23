@@ -77,7 +77,7 @@ You can query the value of `{tools_name}` by running the `python ms_install.py h
 
 ### Q8: How Do I Upgrade msPTI?
 
-Upgrading means uninstalling the old version first and then installing the new one. Run the installation command of the new version directly. The tool automatically uninstalls the old version and guides you through the overwrite installation. Before upgrading, check the current version by running `pip show mspti` and pay attention to version compatibility. See [Release Notes](https://atomgit.com/Ascend/mspti/releases).
+Upgrading means uninstalling the old version first and then installing the new one. Run the installation command of the new version directly. The tool automatically uninstalls the old version and guides you through the overwrite installation. Before upgrading, check the current version by running `pip show mspti` and pay attention to version compatibility. See [Release Notes](https://gitcode.com/Ascend/mspti/releases).
 
 ### Q9: What Parameters Are Supported When Installing the Run Package?
 
@@ -90,7 +90,7 @@ Upgrading means uninstalling the old version first and then installing the new o
 
 ### Q10: What If the MD5 Checksum Does Not Match?
 
-If the output of `md5sum -c -` shows `FAILED`, do not continue the installation. Delete the current file, download it again, and run the MD5 checksum again. If it still fails, check that the file name and version match those on the releases page, and report the issue through [Issues](https://atomgit.com/Ascend/mspti/issues).
+If the output of `md5sum -c -` shows `FAILED`, do not continue the installation. Delete the current file, download it again, and run the MD5 checksum again. If it still fails, check that the file name and version match those on the releases page, and report the issue through [Issues](https://gitcode.com/Ascend/mspti/issues).
 
 ---
 

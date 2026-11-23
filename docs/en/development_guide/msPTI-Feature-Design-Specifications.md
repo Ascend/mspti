@@ -683,7 +683,7 @@ The integration between msPTI and MindStudio Tools Extension (MSTX) is reflected
 **Version Upgrade**:
 
 - msPTI is released as a run package. During an upgrade, the old version is automatically uninstalled and the new version is installed.
-- The version number matches the CANN version. Pay attention to version compatibility (see [Version Notes](https://atomgit.com/Ascend/mspti/releases)).
+- The version number matches the CANN version. Pay attention to version compatibility (see [Version Notes](https://gitcode.com/Ascend/mspti/releases)).
 - The APIs remain backward compatible. New Activity Kinds are added through enumeration extensions without affecting existing interfaces.
 - Clients can query the current version through `msptiGetVersion`, obtain the struct size of each Kind by version with `msptiActivityGetStructSize`, and parse Activity Records returned by different versions to implement binary-level forward compatibility.
 

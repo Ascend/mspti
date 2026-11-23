@@ -60,7 +60,7 @@ Follow the [msPTI Tool Installation Guide — Compilation Environment Preparatio
 In the compilation container environment, run the following command to download the code:
 
 ```bash
-git clone https://atomgit.com/Ascend/mspti.git
+git clone https://gitcode.com/Ascend/mspti.git
 cd mspti
 ```
 
@@ -295,7 +295,7 @@ After completing feature development, if the changes affect interfaces, samples,
 | C API changes | [C API Overview](../api_reference/c_api/README.md) and its sub-documents |
 | Python API changes | [Python API Overview](../api_reference/python_api/README.md) and its sub-documents |
 | Sample updates | [msPTI Sample Description](../../../samples/README.md) |
-| Version release information | [Release Notes](https://atomgit.com/Ascend/mspti/releases) |
+| Version release information | [Release Notes](https://gitcode.com/Ascend/mspti/releases) |
 
 ## 6. Suggested Commit Process
 
