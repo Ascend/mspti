@@ -59,7 +59,8 @@ elif [ $# -eq 1 ] && [ "$1" != "Debug" ]; then
     VERSION=$1
 fi
 
-bash ${CUR_DIR}/download_thirdparty.sh
+# 产品构建不编译单元测试，无需下载 googletest/mockcpp/boost 等 UT 依赖
+bash ${CUR_DIR}/download_thirdparty.sh --without-ut
 
 rm -rf  ${TOP_DIR}/build
 cmake -S ${TOP_DIR} -B ${TOP_DIR}/build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${TOP_DIR}/prefix -DSECUREC_LIB_DIR=${TOP_DIR}/prefix/securec_shared

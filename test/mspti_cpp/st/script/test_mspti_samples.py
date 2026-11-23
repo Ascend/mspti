@@ -15,6 +15,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+import argparse
 import os
 import sys
 import test_base
@@ -342,21 +343,43 @@ class PythonMstxMonitorTest(test_base.TestProfiling):
             self.assertEqual(rank_id_list, rank_list, f"DEVICE侧数据的rank_id异常，{rank_id_list}")
 
 
-if __name__ == '__main__':
+CASE_TIMEOUT = 120
+CASES = {
+    "test_mspti_correlation": MsptiCorrelationTest,
+    "test_mspti_activity": MsptiActivityTest,
+    "test_hccl_mspti_correlation": MsptiHcclActivityTest,
+    "test_mspti_external_correlation": MsptiExternalCorrelationTest,
+    "test_mspti_mstx_activity_domain": MsptiMstxActivityDomainTest,
+    "test_mspti_callback": CallbackMstxTest,
+    "test_mspti_callback_domain": CallbackDomainTest,
+    "test_python_monitor": PythonMonitorTest,
+    "test_python_mstx_monitor": PythonMstxMonitorTest,
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Run mspti samples test cases.")
+    parser.add_argument(
+        "--cases",
+        default="",
+        help="Comma separated case names to run, empty means all cases: {}".format(", ".join(CASES)),
+    )
+    args = parser.parse_args()
+    case_names = [name.strip() for name in args.cases.split(",") if name.strip()] or list(CASES)
+    unknown_cases = [name for name in case_names if name not in CASES]
+    if unknown_cases:
+        parser.error("unknown case(s): {}, available case(s): {}".format(", ".join(unknown_cases), ", ".join(CASES)))
+
     suite = unittest.TestSuite()
-    timeout = 120
-    suite.addTest(MsptiCorrelationTest("test_mspti_correlation", "sample", "", "", timeout=timeout))
-    suite.addTest(MsptiActivityTest("test_mspti_activity", "sample", "", "", timeout=timeout))
-    suite.addTest(MsptiHcclActivityTest("test_hccl_mspti_correlation", "sample", "", "", timeout=timeout))
-    suite.addTest(MsptiExternalCorrelationTest("test_mspti_external_correlation", "sample", "", "", timeout=timeout))
-    suite.addTest(MsptiMstxActivityDomainTest("test_mspti_mstx_activity_domain", "sample", "", "", timeout=timeout))
-    suite.addTest(CallbackMstxTest("test_mspti_callback", "sample", "", "", timeout=timeout))
-    suite.addTest(CallbackDomainTest("test_mspti_callback_domain", "sample", "", "", timeout=timeout))
-    suite.addTest(PythonMonitorTest("test_python_monitor", "sample", "", "", timeout=timeout))
-    suite.addTest(PythonMstxMonitorTest("test_python_mstx_monitor", "sample", "", "", timeout=timeout))
+    for case_name in case_names:
+        suite.addTest(CASES[case_name](case_name, "sample", "", "", timeout=CASE_TIMEOUT))
     runner = unittest.TextTestRunner(verbosity=2)
     test_result = runner.run(suite)
     if not test_result.wasSuccessful():
         sys.exit(1)
     else:
         sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()

@@ -115,8 +115,6 @@ int main(int argc, char* argv[])
         args[i].device = i;
         args[i].comm = comms[i];
         threads[i].reset(new (std::nothrow) std::thread(&HcclSample, (void*)&args[i]));
-        std::chrono::seconds duration(6);  // 设置6秒睡眠，保证线程正常运行
-        std::this_thread::sleep_for(duration);
     }
     for (uint32_t i = 0; i < ndev; i++)
     {

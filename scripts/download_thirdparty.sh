@@ -28,6 +28,15 @@ THIRDPARTY_LIST="${OPENSOURCE_DIR}/makeself    \\
                  ${LLT_DIR}/googletest         \\
                  ${LLT_DIR}/mockcpp"
 
+WITH_UT=true
+for param in "$@"; do
+    case "${param}" in
+    --without-ut)
+        WITH_UT=false
+        ;;
+    esac
+done
+
 if [ -n "$1" ]; then
     if [ "$1" == "force" ]; then
         echo "force delete origin opensource files"
@@ -72,17 +81,19 @@ mkdir -p ${OPENSOURCE_DIR} && cd ${OPENSOURCE_DIR}
 [ ! -d "makeself" ] && patch_makeself
 
 
-download_boost
-mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
-if [ ! -d "googletest" ]; then
-    git clone https://gitcode.com/GitHub_Trending/go/googletest.git -b release-1.10.0
-    # 移除 googletest 内部 -Werror，避免 GCC 编译失败
-    sed -i 's/set(cxx_base_flags "-Wall -Wshadow -Werror")/set(cxx_base_flags "-Wall -Wshadow")/' \
-        googletest/googletest/cmake/internal_utils.cmake
-    sed -i 's/set(cxx_base_flags "-Wall -Wshadow -Werror -Wconversion")/set(cxx_base_flags "-Wall -Wshadow -Wconversion")/' \
-        googletest/googletest/cmake/internal_utils.cmake
+if [ "${WITH_UT}" = "true" ]; then
+    download_boost
+    mkdir -p ${LLT_DIR} && cd ${LLT_DIR}
+    if [ ! -d "googletest" ]; then
+        git clone https://gitcode.com/GitHub_Trending/go/googletest.git -b release-1.10.0
+        # 移除 googletest 内部 -Werror，避免 GCC 编译失败
+        sed -i 's/set(cxx_base_flags "-Wall -Wshadow -Werror")/set(cxx_base_flags "-Wall -Wshadow")/' \
+            googletest/googletest/cmake/internal_utils.cmake
+        sed -i 's/set(cxx_base_flags "-Wall -Wshadow -Werror -Wconversion")/set(cxx_base_flags "-Wall -Wshadow -Wconversion")/' \
+            googletest/googletest/cmake/internal_utils.cmake
+    fi
+    [ ! -d "mockcpp" ] && git clone https://gitcode.com/hhz0/mockcpp.git -b msprof
 fi
-[ ! -d "mockcpp" ] && git clone https://gitcode.com/hhz0/mockcpp.git -b msprof
 
 mkdir -p ${PLATFORM_DIR} && cd ${PLATFORM_DIR}
 [ ! -d "securec" ] && git clone https://gitcode.com/openeuler/libboundscheck.git securec
