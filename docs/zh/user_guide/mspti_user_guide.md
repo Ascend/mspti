@@ -8,7 +8,7 @@
 
 | 接口类型 | 适用语言 | 核心能力 | 典型场景 |
 | --- | --- | --- | --- |
-| Activity API | C / C++ | 异步缓冲区模式采集 Kernel、Memory、HCCL、Marker 等活动数据，开销低，覆盖类型最全 | 构建 Tracing / Profiling 工具，性能瓶颈定位 |
+| Activity API | C / C++ | 异步缓冲区模式采集 Kernel、Memory、通信、Marker 等活动数据，开销低，覆盖类型最全 | 构建 Tracing / Profiling 工具，性能瓶颈定位 |
 | Callback API | C / C++ | 在 Runtime / HCCL API 调用前后注册回调，支持 userdata 透传和 correlationData 共享 | API 调用拦截、打点采集、自定义逻辑注入 |
 | Python API | Python | Monitor 封装模式，一行启动采集，内置多线程消费者 | 快速为 Python 训练脚本添加性能监控 |
 
@@ -16,9 +16,9 @@
 
 | 文档 | 适用语言 | 适用场景 |
 | --- | --- | --- |
-| 《[Activity API 使用指南](./activity_api.md)》 | C / C++ | 采集 Kernel、Memory、HCCL、Marker 等活动数据，构建 Tracing 和 Profiling 工具 |
+| 《[Activity API 使用指南](./activity_api.md)》 | C / C++ | 采集 Kernel、Memory、通信、Marker 等活动数据，构建 Tracing 和 Profiling 工具 |
 | 《[Callback API 使用指南](./callback_api.md)》 | C / C++ | 订阅 Runtime / HCCL 回调，在 API 调用前后执行自定义逻辑 |
-| 《[Python API 使用指南](./python_api.md)》 | Python | 使用 `KernelMonitor`、`HcclMonitor`、`MstxMonitor`、`CommunicationMonitor` 快速接入 |
+| 《[Python API 使用指南](./python_api.md)》 | Python | 使用 `KernelMonitor`、`MstxMonitor`、`CommunicationMonitor` 快速接入（`HcclMonitor` 已废弃） |
 
 ### 1.3 混合使用策略
 
@@ -33,7 +33,7 @@ Callback API 和 Activity API 可以同时开启，互不冲突。典型组合�
 | --- | --- | --- |
 | 环境准备与工具安装 | 《[msPTI 快速入门](../quick_start/mspti_quick_start.md)》 | 首次使用必读：硬件要求、软件安装、环境配置 |
 | C 接口完整参考 | 《[C API 参考](../api_reference/c_api/README.md)》 | Activity API + Callback API 全部函数与数据结构 |
-| Python 接口完整参考 | 《[Python API 参考](../api_reference/python_api/README.md)》 | KernelMonitor / HcclMonitor / MstxMonitor / CommunicationMonitor 全接口 |
+| Python 接口完整参考 | 《[Python API 参考](../api_reference/python_api/README.md)》 | KernelMonitor / CommunicationMonitor / MstxMonitor 全接口（HcclMonitor 已废弃） |
 | 样例列表与说明 | 《[msPTI 样例指南](../user_guide/samples_guide.md)》 | 9 个覆盖各类接口的实战样例 |
 | 最佳实践与典型案例 | 《[msPTI 最佳实践](../best_practices/basic_cases.md)》 | 接口选型、缓冲区管理、反模式规避 |
 

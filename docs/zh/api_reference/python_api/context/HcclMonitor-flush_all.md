@@ -1,5 +1,9 @@
 # HcclMonitor.flush\_all<a name="ZH-CN_TOPIC_0000002108084152"></a>
 
+> [!WARNING]
+>
+> `HcclMonitor` 已废弃，仅为兼容旧版本保留。新代码请使用 `CommunicationMonitor`。
+
 ## 产品支持情况<a name="zh-cn_topic_0000002111094444_section5889102116569"></a>
 
 > [!NOTE]

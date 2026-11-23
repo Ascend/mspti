@@ -257,23 +257,24 @@ monitor.start(callback)
 
 ### 4.4 多 Monitor 并发
 
-```python
-from mspti import KernelMonitor, HcclMonitor, CommunicationMonitor
+> [!NOTE]
+>
+> `HcclMonitor` 已废弃，请使用 `CommunicationMonitor` 采集通信数据。
 
-# 同时启动三个 Monitor
+```python
+from mspti import KernelMonitor, CommunicationMonitor
+
+# 同时启动两个 Monitor
 kernel_mon = KernelMonitor()
-hccl_mon = HcclMonitor()
 comm_mon = CommunicationMonitor()
 
 kernel_mon.start(kernel_cb)
-hccl_mon.start(hccl_cb)
 comm_mon.start(comm_cb)
 
 run_distributed_training()
 
 # 按任意顺序停止
 kernel_mon.stop()
-hccl_mon.stop()
 comm_mon.stop()
 ```
 

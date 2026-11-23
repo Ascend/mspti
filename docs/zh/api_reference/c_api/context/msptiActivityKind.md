@@ -10,7 +10,7 @@ typedef enum {
     MSPTI_ACTIVITY_KIND_MARKER = 1,   // msPTI打点能力（标记瞬时时刻）的Activity Record类型，支持最大打点个数为uint32_t最大值，对应结构体msptiActivityMarker
     MSPTI_ACTIVITY_KIND_KERNEL = 2,   // aclnn场景下，计算类算子信息采集的Activity Record类型，调用结构体msptiActivityKernel
     MSPTI_ACTIVITY_KIND_API = 3,   // aclnn场景下，aclnn组件信息采集的Activity Record类型，调用结构体msptiActivityApi
-    MSPTI_ACTIVITY_KIND_HCCL = 4,   // HCCL通信算子采集Activity Record类型，调用结构体msptiActivityHccl
+    MSPTI_ACTIVITY_KIND_HCCL = 4,   // 已废弃。HCCL通信算子采集Activity Record类型，对应结构体msptiActivityHccl；推荐使用MSPTI_ACTIVITY_KIND_COMMUNICATION
     MSPTI_ACTIVITY_KIND_MEMORY = 5,   // 内存请求（分配或释放），调用结构体msptiActivityMemory
     MSPTI_ACTIVITY_KIND_MEMSET = 6,   // 内存设置，调用结构体msptiActivityMemset
     MSPTI_ACTIVITY_KIND_MEMCPY = 7,   // 内存拷贝，调用结构体msptiActivityMemcpy
@@ -24,3 +24,7 @@ typedef enum {
     MSPTI_ACTIVITY_KIND_FORCE_INT = 0x7fffffff
 } msptiActivityKind;
 ```
+
+> [!WARNING]
+>
+> `MSPTI_ACTIVITY_KIND_HCCL` 已废弃，仅为兼容旧版本保留。新代码请使用 `MSPTI_ACTIVITY_KIND_COMMUNICATION`，其对应结构体为 [msptiActivityCommunication](msptiActivityCommunication.md)，可提供更完整的通信算子信息。

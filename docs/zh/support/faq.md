@@ -126,9 +126,9 @@ msPTI 提供两类 API：
 
 | API 类型 | 说明 |
 | --- | --- |
-| **C Activity API** | 采集 Kernel、Memory、HCCL、Marker 等活动数据，用于 Tracing 和 Profiling |
+| **C Activity API** | 采集 Kernel、Memory、通信、Marker 等活动数据，用于 Tracing 和 Profiling |
 | **C Callback API** | 订阅 Runtime / HCCL 回调，在 API 调用前后执行自定义逻辑 |
-| **Python API** | 提供 `KernelMonitor`、`HcclMonitor`、`MstxMonitor`、`CommunicationMonitor` 等高层接口 |
+| **Python API** | 提供 `KernelMonitor`、`MstxMonitor`、`CommunicationMonitor` 等高层接口；`HcclMonitor` 已废弃 |
 
 详细接口定义请参见《[C API 参考](../api_reference/c_api/README.md)》和《[Python API 参考](../api_reference/python_api/README.md)》。
 
