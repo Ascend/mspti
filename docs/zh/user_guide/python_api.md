@@ -1,4 +1,4 @@
-# Python API 使用指南
+# Python API使用指南
 
 ## 1. 概述
 
@@ -54,10 +54,6 @@ class KernelData:
 ```
 
 ### 2.2 HcclData（已废弃）
-
-> [!WARNING]
->
-> `HcclData` 对应的 `MSPTI_ACTIVITY_KIND_HCCL` 已废弃。新代码请使用 `CommunicationData`（对应 `MSPTI_ACTIVITY_KIND_COMMUNICATION`）。
 
 ```python
 class HcclData:
@@ -128,7 +124,7 @@ class MsptiObjectId:
 
 ---
 
-## 3. KernelMonitor 使用指南
+## 3. KernelMonitor使用指南
 
 ### 3.1 基本用法
 
@@ -175,11 +171,7 @@ monitor.stop()
 
 ---
 
-## 4. HcclMonitor 使用指南（已废弃）
-
-> [!WARNING]
->
-> `HcclMonitor` 已废弃，仅为兼容旧版本保留。新代码请使用 `CommunicationMonitor` 和 `CommunicationData`，示例参见第 5 章。
+## 4. HcclMonitor使用指南（已废弃）
 
 采集 HCCL 通信操作的耗时和带宽信息。
 
@@ -201,7 +193,7 @@ monitor.stop()
 
 ---
 
-## 5. CommunicationMonitor 使用指南
+## 5. CommunicationMonitor使用指南
 
 采集通信算子的详细信息，包括数据类型、算法类型等。推荐使用该 Monitor 替代已废弃的 `HcclMonitor`。
 
@@ -223,7 +215,7 @@ monitor.stop()
 
 ---
 
-## 6. MstxMonitor 使用指南
+## 6. MstxMonitor使用指南
 
 采集用户自定义的打点数据，支持瞬时标记和范围标记两种模式。
 

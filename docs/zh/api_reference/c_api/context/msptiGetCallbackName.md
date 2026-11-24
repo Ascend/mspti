@@ -39,11 +39,11 @@ msptiResult msptiGetCallbackName(msptiCallbackDomain domain, uint32_t cbid, cons
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |
-| domain | 输入 | 回调所在的domain域。 |
+| domain | 输入 | 回调所在的domain。 |
 | cbid | 输入 | 回调的ID。 |
 | name | 输出 | 返回回调名称字符串的指针，失败时返回NULL。 |
 

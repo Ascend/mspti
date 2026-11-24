@@ -1,6 +1,6 @@
 # msptiActivityOverhead<a name="ZH-CN_TOPIC_0000002120186622"></a>
 
-msptiActivityOverhead为Activity Record类型[MSPTI\_ACTIVITY\_KIND\_OVERHEAD](msptiActivityKind.md)对应的结构体，用于上报msPTI自身在采集过程中产生的额外开销，如msPTI内部资源创建/销毁、Activity Buffer请求/刷新等，定义如下：
+msptiActivityOverhead为Activity Record类型[MSPTI\_ACTIVITY\_KIND\_OVERHEAD](msptiActivityKind.md)对应的结构体，用于上报msPTI自身在采集过程中产生的额外开销，如msPTI内部资源创建/销毁、Activity Buffer申请/刷新等，定义如下：
 
 ```cpp
 typedef struct PACKED_ALIGNMENT {

@@ -1,4 +1,4 @@
-# PM Sampling API 使用指南
+# PM Sampling API使用指南
 
 ## 1. 概述
 
@@ -10,7 +10,7 @@ PM Sampling API 是 msPTI 的设备硬件指标周期采集接口。它以固定
 
 - **PM Sampling Object**：一次 PM 采样会话的不透明句柄，由 `msptiPmSamplingEnable` 创建，`msptiPmSamplingDisable` 销毁。每台设备同一时刻最多存在一个已使能的会话。
 - **Metric ID**：静态指标表的指标编号，通过 `msptiPmSamplingMetricId` 枚举标识。
-- **Sample（样本）**：一个采样窗口的指标集合，携带起止时间戳（host 纳秒）。
+- **Sample（样本）**：一个采样窗口的指标集合，携带起止时间戳（Host 纳秒）。
 - **Sample Entry（值条目）**：样本的自描述组成单元，每条携带 `{metricId, instanceId, value}`。逐实例指标（如 HCCS 逐链路）为每个实例产出一条条目，因此样本条目数不固定，通常大于等于配置的指标数。
 - **Counter Data Image**：对用户不透明的缓冲区，由用户按 `msptiPmSamplingGetCounterDataSize` 返回的大小分配，只能通过本模块接口访问，用于承接解码后的样本。
 
@@ -37,14 +37,14 @@ Start/Stop 可反复执行，多个窗口的样本累积在同一会话中；Sto
 | 3 | `MSPTI_PM_SAMPLING_METRIC_ID_AICUBE_UTIL` | AI Cube 利用率 | % |
 | 4 | `MSPTI_PM_SAMPLING_METRIC_ID_HBM_BW_UTIL` | HBM 带宽利用率 | % |
 | 5 | `MSPTI_PM_SAMPLING_METRIC_ID_HBM_MEM_UTIL` | HBM 内存利用率（已用容量/总容量） | % |
-| 6 | `MSPTI_PM_SAMPLING_METRIC_ID_HCCS_TX_BW` | HCCS 发送带宽（逐链路上报） | bytes/s |
-| 7 | `MSPTI_PM_SAMPLING_METRIC_ID_HCCS_RX_BW` | HCCS 接收带宽（逐链路上报） | bytes/s |
-| 8 | `MSPTI_PM_SAMPLING_METRIC_ID_PCIE_TX_BW` | PCIe 发送带宽 | bytes/s |
-| 9 | `MSPTI_PM_SAMPLING_METRIC_ID_PCIE_RX_BW` | PCIe 接收带宽 | bytes/s |
-| 10 | `MSPTI_PM_SAMPLING_METRIC_ID_ROCE_TX_BW` | RoCE 发送带宽 | bytes/s |
-| 11 | `MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW` | RoCE 接收带宽 | bytes/s |
+| 6 | `MSPTI_PM_SAMPLING_METRIC_ID_HCCS_TX_BW` | HCCS 发送带宽（逐链路上报） | Byte/s |
+| 7 | `MSPTI_PM_SAMPLING_METRIC_ID_HCCS_RX_BW` | HCCS 接收带宽（逐链路上报） | Byte/s |
+| 8 | `MSPTI_PM_SAMPLING_METRIC_ID_PCIE_TX_BW` | PCIe 发送带宽 | Byte/s |
+| 9 | `MSPTI_PM_SAMPLING_METRIC_ID_PCIE_RX_BW` | PCIe 接收带宽 | Byte/s |
+| 10 | `MSPTI_PM_SAMPLING_METRIC_ID_ROCE_TX_BW` | RoCE 发送带宽 | Byte/s |
+| 11 | `MSPTI_PM_SAMPLING_METRIC_ID_ROCE_RX_BW` | RoCE 接收带宽 | Byte/s |
 | 12 | `MSPTI_PM_SAMPLING_METRIC_ID_POWER` | 功耗 | W |
-| 13 | `MSPTI_PM_SAMPLING_METRIC_ID_TEMPERATURE` | 温度 | 摄氏度 |
+| 13 | `MSPTI_PM_SAMPLING_METRIC_ID_TEMPERATURE` | 温度 | °C |
 | 14 | `MSPTI_PM_SAMPLING_METRIC_ID_AICORE_FREQ` | AI Core 当前频率 | MHz |
 
 说明：
@@ -71,7 +71,7 @@ typedef struct
     char shortName[64];                     // 指标短名，如 "power"、"hccs_tx_bw"
     msptiPmSamplingMetricGroup metricGroup; // 指标分组
     msptiPmSamplingMetricDataType dataType; // 数据类型
-    char unit[32];                          // 值的单位字符串，如 "bytes/s"、"%"、"W"
+    char unit[32];                          // 值的单位字符串，如 "Byte/s"、"%"、"W"
     bool available;                         // 该指标在当前芯片型号上是否可采
 } msptiPmSamplingMetricProperties;
 ```
@@ -91,7 +91,7 @@ metricGroup 与 dataType 的取值如下：
 | --- | --- | --- |
 | 0 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_RATIO` | 无量纲比值 |
 | 1 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_PERCENT` | 百分比 |
-| 2 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_THROUGHPUT` | 吞吐（bytes/s） |
+| 2 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_THROUGHPUT` | 吞吐（Byte/s） |
 | 3 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_POWER` | 功耗（W） |
 | 4 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_TEMPERATURE` | 温度（摄氏度） |
 | 5 | `MSPTI_PM_SAMPLING_METRIC_DATA_TYPE_FREQUENCY` | 频率（MHz） |
@@ -174,7 +174,7 @@ msptiResult msptiPmSamplingSetConfig(msptiPmSamplingSetConfigParams *params);
 - `params.numMetrics`/`params.pMetricIds`：指标集。metricId 越界、重复或设备不可采时返回 `MSPTI_ERROR_PM_SAMPLING_INVALID_METRIC`，配置前建议先经 `msptiPmSamplingGetCounterAvailability` 过滤。
 - `params.samplingInterval`：采样间隔，单位 ns，范围 [1ms, 1s]。
 - `params.triggerMode`：触发模式，当前仅支持 `MSPTI_PM_SAMPLING_TRIGGER_MODE_TIME_INTERVAL`。
-- `params.hardwareBufferSize`：内部样本队列容量（字节），0 表示默认大小（容纳 10000 个样本）；非 0 时最小需容纳单个样本、最大 512MB，超出范围返回 `MSPTI_ERROR_INVALID_PARAMETER`。队列内单样本开销视指标集而定，容量可按单样本大小与预期在队样本数估算，通常与镜像容量同量级即可。
+- `params.hardwareBufferSize`：内部样本队列容量（字节），0 表示默认大小（容纳 10000 个样本）；非 0 时最小需容纳单个样本、最大 512 兆字节，超出范围返回 `MSPTI_ERROR_INVALID_PARAMETER`。队列内单样本开销视指标集而定，容量可按单样本大小与预期在队样本数估算，通常与镜像容量同量级即可。
 - `params.hwBufferAppendMode`：队列满时的追加策略，`KEEP_OLDEST` 保留已采集样本、丢弃新样本，`KEEP_LATEST` 覆盖最早样本、保留最新样本。
 - Stopped 状态重新配置会清空待取的样本队列，原因见第 4 章。
 
@@ -240,7 +240,7 @@ msptiResult msptiPmSamplingGetCounterAvailability(msptiPmSamplingGetCounterAvail
 
 计算镜像所需字节数。单样本条目容量由指标集在接口内部推导，用户只需通过 `maxSamples` 指定镜像可容纳的样本数。
 
-容量估算与建议：单个值条目固定 16 字节（metricId + instanceId + 8 字节值），逐实例指标按实例数展开，单样本大小由指标集决定，可按"样本头 + 条目数 × 16 字节"估算，也可用本接口返回的字节数除以 `maxSamples` 得到单样本均摊大小。`maxSamples` 常规配置 10000 即可（与样本队列默认容量一致）；上限受镜像总大小 512MB 预算约束：maxSamples ≤ (512MB - 镜像目录区大小) / 单样本大小，超出上限返回 `MSPTI_ERROR_INVALID_PARAMETER`，需减小后重试。若解码间隔更长，按单个解码周期内的产出样本数相应放大。
+容量估算与建议：单个值条目固定 16 字节（metricId + instanceId + 8 字节值），逐实例指标按实例数展开，单样本大小由指标集决定，可按“样本头 + 条目数 × 16 字节”估算，也可用本接口返回的字节数除以 `maxSamples` 得到单样本均摊大小。`maxSamples` 常规配置 10000 即可（与样本队列默认容量一致）；上限受镜像总大小 512MB 预算约束：maxSamples ≤ (512MB - 镜像目录区大小) / 单样本大小，超出上限返回 `MSPTI_ERROR_INVALID_PARAMETER`，需减小后重试。若解码间隔更长，按单个解码周期内的产出样本数相应放大。
 
 ```c
 msptiResult msptiPmSamplingGetCounterDataSize(msptiPmSamplingGetCounterDataSizeParams *params);
@@ -289,7 +289,7 @@ msptiResult msptiPmSamplingDecodeData(msptiPmSamplingDecodeDataParams *params);
 
 #### 5.4.5 msptiPmSamplingGetSampleInfo
 
-按索引获取样本的起止时间戳（host 纳秒），用于与 Activity 记录的时间轴对齐。
+按索引获取样本的起止时间戳（Host 纳秒），用于与 Activity 记录的时间轴对齐。
 
 ```c
 msptiResult msptiPmSamplingGetSampleInfo(msptiPmSamplingGetSampleInfoParams *params);

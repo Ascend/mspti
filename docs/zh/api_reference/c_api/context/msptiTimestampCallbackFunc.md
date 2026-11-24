@@ -43,4 +43,4 @@ typedef uint64_t (*msptiTimestampCallbackFunc)()
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回 msPTI 需要使用的归一化时间戳，单位为纳秒（ns）。
+返回msPTI需要使用的归一化时间戳，单位为纳秒（ns）。

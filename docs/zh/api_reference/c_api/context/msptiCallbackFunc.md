@@ -39,7 +39,7 @@ typedef void (*msptiCallbackFunc)(void *userdata, msptiCallbackDomain domain, ms
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 <a name="table827101275518"></a>
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>参数名</p>
@@ -61,7 +61,7 @@ typedef void (*msptiCallbackFunc)(void *userdata, msptiCallbackDomain domain, ms
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p11831211181716"><a name="p11831211181716"></a><a name="p11831211181716"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p540710654112"><a name="p540710654112"></a><a name="p540710654112"></a>当前回调触发所属的domain域。</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p540710654112"><a name="p540710654112"></a><a name="p540710654112"></a>当前回调触发所属的domain。</p>
 </td>
 </tr>
 <tr id="row56118904112"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p1614944111"><a name="p1614944111"></a><a name="p1614944111"></a>cbid</p>

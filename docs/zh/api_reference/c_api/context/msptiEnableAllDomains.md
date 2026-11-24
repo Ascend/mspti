@@ -29,7 +29,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-为订阅者开启或关闭所有domain的所有回调。
+为订阅者开启或关闭所有域的所有回调。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -39,7 +39,7 @@ msptiResult msptiEnableAllDomains(uint32_t enable, msptiSubscriberHandle subscri
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |

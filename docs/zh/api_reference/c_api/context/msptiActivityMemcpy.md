@@ -20,13 +20,13 @@ typedef struct PACKED_ALIGNMENT {
 
 | API | 说明 |
 | --- | --- |
-| `aclrtMemcpy` | 同步内存拷贝 |
-| `aclrtMemcpyAsync` | 异步内存拷贝 |
-| `aclrtMemcpyAsyncWithCondition` | 带条件的异步内存拷贝 |
-| `aclrtMemcpyBatch` | 批量同步内存拷贝 |
-| `aclrtMemcpyBatchAsync` | 批量异步内存拷贝 |
-| `aclrtMemcpy2d` | 2D同步内存拷贝 |
-| `aclrtMemcpy2dAsync` | 2D异步内存拷贝 |
-| `aclrtMemcpyAsyncWithOffset` | 带偏移的异步内存拷贝 |
-| `aclrtMemcpyBatchV2` | 批量同步内存拷贝（V2版本） |
-| `aclrtMemcpyBatchAsyncV2` | 批量异步内存拷贝（V2版本） |
+| aclrtMemcpy | 同步内存拷贝 |
+|`aclrtMemcpyAsync | 异步内存拷贝 |
+| aclrtMemcpyAsyncWithCondition | 带条件的异步内存拷贝 |
+| aclrtMemcpyBatch | 批量同步内存拷贝 |
+| aclrtMemcpyBatchAsync | 批量异步内存拷贝 |
+| aclrtMemcpy2d | 2D同步内存拷贝 |
+| aclrtMemcpy2dAsync | 2D异步内存拷贝 |
+| aclrtMemcpyAsyncWithOffset | 带偏移的异步内存拷贝 |
+| aclrtMemcpyBatchV2 | 批量同步内存拷贝（V2版本） |
+| aclrtMemcpyBatchAsyncV2 | 批量异步内存拷贝（V2版本） |

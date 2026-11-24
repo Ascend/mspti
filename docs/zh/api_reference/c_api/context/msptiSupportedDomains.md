@@ -29,9 +29,9 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-获取可用的回调domain列表。
+获取可用的回调域列表。
 
-通过domainTable返回一个大小为domainCount的数组，包含所有可用的回调domain。
+通过domainTable返回一个大小为domainCount的数组，包含所有可用的回调域。
 
 ## 函数原型<a name="section11218831947"></a>
 
@@ -41,7 +41,7 @@ msptiResult msptiSupportedDomains(size_t *domainCount, msptiDomainTable *domainT
 
 ## 参数说明<a name="section8220926"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |

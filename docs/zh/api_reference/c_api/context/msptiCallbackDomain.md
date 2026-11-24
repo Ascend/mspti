@@ -2,7 +2,7 @@
 
 msptiCallbackDomain为[msptiEnableCallback](msptiEnableCallback.md)、[msptiEnableDomain](msptiEnableDomain.md)和[msptiCallbackFunc](msptiCallbackFunc.md)调用的回调域枚举类。
 
-每个枚举值代表一组相关API函数的回调点。定义如下：
+每个枚举值代表一组相关API函数的回调点，定义如下：
 
 ```cpp
 typedef enum {

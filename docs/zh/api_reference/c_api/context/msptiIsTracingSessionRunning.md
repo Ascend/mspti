@@ -29,7 +29,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-查询 msPTI 数据采集是否仍在运行。
+查询msPTI数据采集是否仍在运行。
 
 如果其他线程已通过调用任意msPTI API加载了msPTI库，执行数据采集，该接口通过isRunning参数返回1；当msPTI采集流程已结束且当前没有msPTI库被加载时，该接口通过isRunning参数返回0。
 
@@ -43,7 +43,7 @@ msptiResult msptiIsTracingSessionRunning(uint8_t *isRunning)
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |

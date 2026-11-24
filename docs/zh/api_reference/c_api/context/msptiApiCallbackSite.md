@@ -2,7 +2,7 @@
 
 msptiApiCallbackSite为[msptiCallbackData](msptiCallbackData.md)调用的枚举类。
 
-指定API调用中发出回调的点。定义如下：
+指定API调用中发出回调的点，定义如下：
 
 ```cpp
 typedef enum {

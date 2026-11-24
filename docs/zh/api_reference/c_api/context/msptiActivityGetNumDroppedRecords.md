@@ -29,9 +29,9 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-获取因Activity缓冲区空间不足而丢弃的Activity Record数量。
+获取因Activity Buffer空间不足而丢弃的Activity Record数量。
 
-丢弃数量包括：由于msPTI没有可用的Activity缓冲区空间（例如msptiBuffersCallbackRequestFunc回调未返回足够大小的空缓冲区）而无法记录的Record数量。调用该接口后，丢弃计数会被重置为0。
+丢弃数量包括：由于msPTI没有可用的Activity Buffer空间（例如msptiBuffersCallbackRequestFunc回调未返回足够大小的空缓冲区）而无法记录的Record数量。调用该接口后，丢弃计数会被重置为0。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -41,7 +41,7 @@ msptiResult msptiActivityGetNumDroppedRecords(void *context, uint32_t streamId, 
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |

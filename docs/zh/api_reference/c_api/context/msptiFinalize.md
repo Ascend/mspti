@@ -34,7 +34,7 @@
 卸载后状态：
 
 - 进程继续运行，但不再受 msPTI 拦截，所有被劫持的 CANN 接口恢复为直接透传。
-- 卸载后调用 `msptiIsTracingSessionRunning` 接口会返回 0，随后可通过开启接口（`msptiSubscribe`、`msptiActivityRegisterCallbacks` 以及 `msptiActivityEnable`）重新发起采集，支持 “采集 → 卸载 → 再采集” 的循环操作。
+- 卸载后调用 `msptiIsTracingSessionRunning` 接口会返回 0，随后可通过开启接口（`msptiSubscribe`、`msptiActivityRegisterCallbacks` 以及 `msptiActivityEnable`）重新发起采集，支持“采集 → 卸载 → 再采集”的循环操作。
 
 调用该接口将执行以下清理操作：
 
@@ -44,14 +44,14 @@
 
 > [!NOTE]
 >
-> 为安全使用本接口，推荐在任意已订阅CANN API的 MSPTI_API_EXIT 回调点调用。<br>
+> 为安全使用本接口，推荐在任意已订阅 CANN API 的 MSPTI_API_EXIT 回调点调用。<br>
 > 若在非回调点的普通代码中调用，调用方必须自行确保以下前提条件已满足：<br>
 >
 > - 完成所需的 CANN 同步。
 > - 刷新 Activity 缓冲区并等待处理完成（调用 `msptiActivityFlushAll` 并等待 `msptiBuffersCallbackCompleteFunc` 回调结束）。
 >
 > 本接口本身不处理 Activity 缓冲区，需由调用方预先处理。<br>
-> 在 MSPTI_API_ENTER 回调点调用时，当前API仍会执行完毕，但其配对的 EXIT 回调将被丢弃。<br>
+> 在 MSPTI_API_ENTER 回调点调用时，当前API仍会执行完毕，但其配对的 EXIT 回调将被丢弃。
 
 > [!WARNING]
 >

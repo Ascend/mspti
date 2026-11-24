@@ -42,7 +42,7 @@ msptiResult msptiActivityGetAttribute(msptiActivityAttribute attr, size_t *value
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 | 参数名 | 输入/输出 | 说明 |
 | --- | --- | --- |

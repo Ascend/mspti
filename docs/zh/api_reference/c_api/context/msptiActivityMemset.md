@@ -20,7 +20,7 @@ typedef struct PACKED_ALIGNMENT {
 
 | API | 说明 |
 | --- | --- |
-| `aclrtMemset` | 同步内存设置 |
-| `aclrtMemsetAsync` | 异步内存设置 |
-| `aclrtMemsetD32` | 以32位整数进行内存设置 |
-| `aclrtMemsetD32Async` | 以32位整数进行异步内存设置 |
+| aclrtMemset | 同步内存设置 |
+| aclrtMemsetAsync | 异步内存设置 |
+| aclrtMemsetD32 | 以32位整数进行内存设置 |
+| aclrtMemsetD32Async | 以32位整数进行异步内存设置 |

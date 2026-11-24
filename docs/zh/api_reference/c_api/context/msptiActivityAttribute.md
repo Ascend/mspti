@@ -11,4 +11,4 @@ typedef enum {
 ```
 
 MSPTI\_ACTIVITY\_ATTR\_CHANNEL\_BUFFER\_SIZE仅在设置之后创建的Channel Buffer上生效，对已创建的Channel无效。建议在启用Activity采集之前完成设置。
-Channel Buffer用于缓存Activity Record数据，合理配置Channel Buffer大小可以平衡采集性能与内存占用。
+Channel Buffer用于缓存Activity Record数据，合理配置Channel Buffer大小可以平衡采集性能与存储占用。

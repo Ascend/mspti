@@ -7,7 +7,7 @@ typedef struct {
     char shortName[64];   // 指标短名，如"hccs_tx_bw"
     msptiPmSamplingMetricGroup metricGroup;   // 指标所属分组
     msptiPmSamplingMetricDataType dataType;   // 指标值的数据类型
-    char unit[32];   // 指标值单位，如"bytes/s"、"%"
+    char unit[32];   // 指标值单位，如"Byte/s"、"%"
     bool available;   // 该指标在当前芯片型号上是否可采集
 } msptiPmSamplingMetricProperties;
 ```

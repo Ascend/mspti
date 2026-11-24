@@ -1,6 +1,6 @@
 # msptiActivityMemoryOperationType<a name="ZH-CN_TOPIC_0000002155706477"></a>
 
-内存操作类型。msptiActivityMemoryOperationType为[msptiActivityMemory](./msptiActivityMemory.md)调用的枚举类，定义如下：
+内存操作类型。msptiActivityMemoryOperationType为[msptiActivityMemory](./msptiActivityMemory.md)对应的枚举类，定义如下：
 
 ```cpp
 typedef enum {

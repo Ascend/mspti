@@ -59,7 +59,7 @@ def start(self, mark_cb: Callable[[MarkerData], None] = empty_callback, range_cb
 </td>
 <td class="cellrowborder" valign="top" width="14.000000000000002%" headers="mcps1.1.4.1.2 "><p id="p86031728153812"><a name="p86031728153812"></a><a name="p86031728153812"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p126031228143811"><a name="p126031228143811"></a><a name="p126031228143811"></a>用于传递采集到的msTX range打点数据。调用结构体<a href="RangeMarkerData.md">RangeMarkerData</a>。</p>
+<td class="cellrowborder" valign="top" width="72%" headers="mcps1.1.4.1.3 "><p id="p126031228143811"><a name="p126031228143811"></a><a name="p126031228143811"></a>用于传递采集到的msTX Range打点数据。调用结构体<a href="RangeMarkerData.md">RangeMarkerData</a>。</p>
 </td>
 </tr>
 </tbody>

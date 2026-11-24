@@ -29,7 +29,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-为调用线程拉取外部关联ID。
+为调用线程弹出外部关联ID。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -39,7 +39,7 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 <a name="table827101275518"></a>
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>参数名</p>

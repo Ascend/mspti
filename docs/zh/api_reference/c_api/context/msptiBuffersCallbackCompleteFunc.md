@@ -29,7 +29,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-向msPTI注册回调函数，释放Activity Buffer中的数据。用户（订阅者）在使用Activity API时，需要自定义该函数并在msPTI注册，当活动缓冲区的存储空间被占满时，msPTI会调用该函数通知用户消费Activity Buffer中数据，并释放内存空间。
+向msPTI注册回调函数，释放Activity Buffer中的数据。用户（订阅者）在使用Activity API时，需要自定义该函数并在msPTI注册，当Activity Buffer的存储空间被占满时，msPTI会调用该函数通知用户消费Activity Buffer中数据，并释放内存空间。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -39,7 +39,7 @@ typedef void(*msptiBuffersCallbackCompleteFunc)(uint8_t *buffer, size_t size, si
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 2**  参数说明
+**表 2** 参数说明
 
 <a name="table827101275518"></a>
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>参数名</p>

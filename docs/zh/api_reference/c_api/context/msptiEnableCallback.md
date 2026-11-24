@@ -41,7 +41,7 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 <a name="table827101275518"></a>
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>参数名</p>
@@ -70,7 +70,7 @@ msptiResult msptiEnableCallback(uint32_t enable, msptiSubscriberHandle subscribe
 </td>
 <td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p1599514253189"><a name="p1599514253189"></a><a name="p1599514253189"></a>输入</p>
 </td>
-<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1840545320573"><a name="p1840545320573"></a><a name="p1840545320573"></a>组件，当前仅支持Runtime和Hccl。</p>
+<td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p1840545320573"><a name="p1840545320573"></a><a name="p1840545320573"></a>组件，当前仅支持Runtime和HCCL。</p>
 </td>
 </tr>
 <tr id="row255615065712"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p1655711508571"><a name="p1655711508571"></a><a name="p1655711508571"></a>cbid</p>

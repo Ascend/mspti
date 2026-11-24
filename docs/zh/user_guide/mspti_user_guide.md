@@ -1,4 +1,4 @@
-# msPTI 用户指南
+# msPTI用户指南
 
 ## 1. 概述
 
@@ -73,7 +73,7 @@ export LD_PRELOAD=${ASCEND_HOME_PATH}/lib64/libmspti.so
 
 > [!NOTE]
 >
-> 详细错误处理请参见各 API 参考文档中的"返回值说明"章节。
+> 详细错误处理请参见各 API 参考文档中的“返回值说明”章节。
 
 ### 3.3 约束与限制
 

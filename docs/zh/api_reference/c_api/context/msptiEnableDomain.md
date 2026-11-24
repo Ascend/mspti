@@ -31,7 +31,7 @@
 
 为特定domain的订阅者开启或关闭所有回调。
 
-当这个回调ID所在位置触发时，msPTI会主动调用msptiSubscribe接口注册的回调函数。
+当订阅的回调触发时，msPTI会主动调用通过msptiSubscribe接口注册的回调函数。
 
 ## 函数原型<a name="section1121883194711"></a>
 
@@ -41,7 +41,7 @@ msptiResult msptiEnableDomain(uint32_t enable, msptiSubscriberHandle subscriber,
 
 ## 参数说明<a name="section11506138144714"></a>
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 <a name="table827101275518"></a>
 <table><thead align="left"><tr id="row429121265517"><th class="cellrowborder" valign="top" width="28.65286528652865%" id="mcps1.2.4.1.1"><p id="p1329121214558"><a name="p1329121214558"></a><a name="p1329121214558"></a>参数名</p>
