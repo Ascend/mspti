@@ -18,6 +18,9 @@
 
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
 
+#include <atomic>
+#include <vector>
+
 #include "csrc/activity/activity_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/shutdown_flag.h"
@@ -29,7 +32,7 @@ namespace Mspti
 namespace Reporter
 {
 
-ExternalCorrelationReporter *ExternalCorrelationReporter::GetInstance()
+ExternalCorrelationReporter* ExternalCorrelationReporter::GetInstance()
 {
     static ExternalCorrelationReporter instance;
     return &instance;
@@ -37,23 +40,112 @@ ExternalCorrelationReporter *ExternalCorrelationReporter::GetInstance()
 
 ExternalCorrelationReporter::~ExternalCorrelationReporter() { Common::SetShuttingDown(true); }
 
-msptiResult ExternalCorrelationReporter::ReportExternalCorrelationId(uint64_t correlationId)
+ExternalCorrelationReporter::ThreadRegistration::ThreadRegistration()
+    : tid(Common::Utils::GetTid()), stacks(std::make_shared<ThreadStacks>())
+{
+}
+
+ExternalCorrelationReporter::ThreadRegistration::~ThreadRegistration()
+{
+    // An in-flight reporter may still own the stacks. It must not keep this
+    // source TID registered after its thread has exited.
+    // During process shutdown the singleton may already be in destruction.
+    if (!Common::IsShuttingDown())
+    {
+        ExternalCorrelationReporter::GetInstance()->UnregisterThread(tid, stacks);
+    }
+}
+
+std::shared_ptr<ExternalCorrelationReporter::ThreadStacks> ExternalCorrelationReporter::GetCallingThreadStacks()
+{
+    static thread_local ThreadRegistration registration;
+    return registration.stacks;
+}
+
+void ExternalCorrelationReporter::RegisterThread(uint32_t tid, const std::shared_ptr<ThreadStacks>& stacks)
+{
+    std::lock_guard<std::mutex> lock(mapMtx_);
+    // O(1) average insertion; no full registry sweep on repeated Push/Pop.
+    externalCorrelationByThread_[tid] = stacks;
+}
+
+void ExternalCorrelationReporter::UnregisterThread(uint32_t tid, const std::shared_ptr<ThreadStacks>& stacks)
+{
+    std::lock_guard<std::mutex> lock(mapMtx_);
+    auto iter = externalCorrelationByThread_.find(tid);
+    // A delayed destructor must never remove a newer registration for the same TID.
+    if (iter != externalCorrelationByThread_.end() && iter->second.lock() == stacks)
+    {
+        externalCorrelationByThread_.erase(iter);
+    }
+}
+
+msptiResult ExternalCorrelationReporter::ReportExternalCorrelationId(uint64_t correlationId, uint32_t tid)
 {
     if (!Activity::ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION))
     {
         return MSPTI_SUCCESS;
     }
-    std::lock_guard<std::mutex> lock(mapMtx_);
-    for (const auto &pair : externalCorrelationMap)
+
+    std::shared_ptr<ThreadStacks> stacks;
+    bool expiredRegistration = false;
+    {
+        std::lock_guard<std::mutex> lock(mapMtx_);
+        auto iter = externalCorrelationByThread_.find(tid);
+        if (iter != externalCorrelationByThread_.end())
+        {
+            stacks = iter->second.lock();
+            if (!stacks)
+            {
+                expiredRegistration = true;
+                externalCorrelationByThread_.erase(iter);
+            }
+        }
+    }
+    if (!stacks)
+    {
+        if (expiredRegistration)
+        {
+            static std::atomic_flag warnedExpired = ATOMIC_FLAG_INIT;
+            if (!warnedExpired.test_and_set(std::memory_order_relaxed))
+            {
+                MSPTI_LOGW("External correlation state expired for source tid %u; no external record emitted.", tid);
+            }
+        }
+        else
+        {
+            // A missing registration is normal when no external scope was pushed.
+            static std::atomic_flag loggedMissing = ATOMIC_FLAG_INIT;
+            if (!loggedMissing.test_and_set(std::memory_order_relaxed))
+            {
+                MSPTI_LOGD("No external correlation state for source tid %u; this may be expected.", tid);
+            }
+        }
+        return MSPTI_SUCCESS;
+    }
+
+    // Snapshot the source thread's active scopes without holding either lock
+    // while ActivityManager::Record calls into the buffer / user callbacks.
+    std::vector<std::pair<msptiExternalCorrelationKind, uint64_t>> active;
+    {
+        std::lock_guard<std::mutex> lock(stacks->mutex);
+        for (const auto& pair : stacks->stacks)
+        {
+            if (!pair.second.empty())
+            {
+                active.emplace_back(pair.first, pair.second.top());
+            }
+        }
+    }
+    for (const auto& pair : active)
     {
         msptiActivityExternalCorrelation result{};
         result.kind = MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION;
         result.externalKind = pair.first;
-        result.externalId = pair.second.top();
+        result.externalId = pair.second;
         result.correlationId = correlationId;
-        if (Mspti::Activity::ActivityManager::GetInstance()->Record(
-                Common::ReinterpretConvert<msptiActivity *>(&result), sizeof(msptiActivityExternalCorrelation)) !=
-            MSPTI_SUCCESS)
+        if (Activity::ActivityManager::GetInstance()->Record(Common::ReinterpretConvert<msptiActivity*>(&result),
+                                                             sizeof(msptiActivityExternalCorrelation)) != MSPTI_SUCCESS)
         {
             return MSPTI_ERROR_INNER;
         }
@@ -63,40 +155,45 @@ msptiResult ExternalCorrelationReporter::ReportExternalCorrelationId(uint64_t co
 
 msptiResult ExternalCorrelationReporter::PushExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t id)
 {
-    std::lock_guard<std::mutex> lock(mapMtx_);
-    auto iter = externalCorrelationMap.find(kind);
-    if (iter == externalCorrelationMap.end())
+    auto stacks = GetCallingThreadStacks();
     {
-        std::stack<uint64_t> newStack;
-        newStack.push(id);
-        externalCorrelationMap.insert({kind, newStack});
+        std::lock_guard<std::mutex> lock(stacks->mutex);
+        stacks->stacks[kind].push(id);
     }
-    else
-    {
-        iter->second.push(id);
-    }
+    RegisterThread(Common::Utils::GetTid(), stacks);
     return MSPTI_SUCCESS;
 }
 
-msptiResult ExternalCorrelationReporter::PopExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t *lastId)
+msptiResult ExternalCorrelationReporter::PopExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t* lastId)
 {
     if (lastId == nullptr)
     {
         return MSPTI_ERROR_INVALID_PARAMETER;
     }
-    std::lock_guard<std::mutex> lock(mapMtx_);
-    auto iter = externalCorrelationMap.find(kind);
-    if (iter == externalCorrelationMap.end())
+    auto stacks = GetCallingThreadStacks();
+    bool empty = false;
     {
-        return MSPTI_ERROR_QUEUE_EMPTY;
-    }
-    else
-    {
+        std::lock_guard<std::mutex> lock(stacks->mutex);
+        auto iter = stacks->stacks.find(kind);
+        if (iter == stacks->stacks.end())
+        {
+            return MSPTI_ERROR_QUEUE_EMPTY;
+        }
         *lastId = iter->second.top();
         iter->second.pop();
         if (iter->second.empty())
         {
-            externalCorrelationMap.erase(kind);
+            stacks->stacks.erase(iter);
+        }
+        empty = stacks->stacks.empty();
+    }
+    if (empty)
+    {
+        std::lock_guard<std::mutex> lock(mapMtx_);
+        auto iter = externalCorrelationByThread_.find(Common::Utils::GetTid());
+        if (iter != externalCorrelationByThread_.end() && iter->second.lock() == stacks)
+        {
+            externalCorrelationByThread_.erase(iter);
         }
     }
     return MSPTI_SUCCESS;

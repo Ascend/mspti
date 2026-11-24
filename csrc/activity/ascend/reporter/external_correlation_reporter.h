@@ -19,8 +19,10 @@
 #define EXTERNAL_CORRELATION_REPORTER_H
 
 #include <map>
+#include <memory>
 #include <mutex>
 #include <stack>
+#include <unordered_map>
 
 #include "csrc/include/mspti_activity.h"
 
@@ -33,14 +35,37 @@ class ExternalCorrelationReporter
    public:
     static ExternalCorrelationReporter* GetInstance();
 
-    msptiResult ReportExternalCorrelationId(uint64_t correlationId);
+    // tid identifies the source CANN API thread, which may differ from the reporter thread.
+    msptiResult ReportExternalCorrelationId(uint64_t correlationId, uint32_t tid);
     msptiResult PushExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t id);
     msptiResult PopExternalCorrelationId(msptiExternalCorrelationKind kind, uint64_t* lastId);
 
    private:
     ~ExternalCorrelationReporter();
+    struct ThreadStacks
+    {
+        std::mutex mutex;
+        std::map<msptiExternalCorrelationKind, std::stack<uint64_t>> stacks;
+    };
+
+    // Thread registration ends on TLS destruction, even if an in-flight
+    // report still owns the ThreadStacks object.
+    struct ThreadRegistration
+    {
+        ThreadRegistration();
+        ~ThreadRegistration();
+
+        uint32_t tid;
+        std::shared_ptr<ThreadStacks> stacks;
+    };
+
+    static std::shared_ptr<ThreadStacks> GetCallingThreadStacks();
+    void RegisterThread(uint32_t tid, const std::shared_ptr<ThreadStacks>& stacks);
+    void UnregisterThread(uint32_t tid, const std::shared_ptr<ThreadStacks>& stacks);
+
     std::mutex mapMtx_;
-    std::map<msptiExternalCorrelationKind, std::stack<uint64_t>> externalCorrelationMap;
+    // TLS deregistration prevents stale TID reuse while preserving weak ownership.
+    std::unordered_map<uint32_t, std::weak_ptr<ThreadStacks>> externalCorrelationByThread_;
 };
 }  // namespace Reporter
 }  // namespace Mspti

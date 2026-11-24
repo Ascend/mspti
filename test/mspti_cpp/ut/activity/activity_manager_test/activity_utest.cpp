@@ -17,6 +17,8 @@
  */
 #include <atomic>
 #include <chrono>
+#include <future>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -384,16 +386,16 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenPushAndPopExternalCorrelationId)
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 1));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, 1));
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(1));
+    EXPECT_EQ(MSPTI_SUCCESS, Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(
+                                 1, Mspti::Common::Utils::GetTid()));
 
     uint64_t value = 12345678901234567890;  // 一个具体的uint64_t类型的变量
     uint64_t *test = &value;
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, test));
     EXPECT_EQ(1, *test);
 
-    EXPECT_EQ(MSPTI_SUCCESS,
-              Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(1));
+    EXPECT_EQ(MSPTI_SUCCESS, Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(
+                                 1, Mspti::Common::Utils::GetTid()));
 
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, test));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, test));
@@ -401,6 +403,282 @@ TEST_F(ActivityUtest, ShouldRetSuccessWhenPushAndPopExternalCorrelationId)
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityDisable(MSPTI_ACTIVITY_KIND_MARKER));
     EXPECT_EQ(MSPTI_SUCCESS, msptiActivityFlushAll(1));
+}
+
+TEST_F(ActivityUtest, ExternalCorrelationPushPopIsolatedAcrossThreads)
+{
+    std::promise<void> aReady;
+    std::promise<void> bReady;
+    std::promise<void> aPopped;
+    auto aReadyFuture = aReady.get_future();
+    auto bReadyFuture = bReady.get_future();
+    auto aPoppedFuture = aPopped.get_future();
+    uint64_t aId = 0;
+    uint64_t bId = 0;
+    msptiResult aPush = MSPTI_ERROR_INNER;
+    msptiResult bPush = MSPTI_ERROR_INNER;
+    msptiResult aPop = MSPTI_ERROR_INNER;
+    msptiResult bPop = MSPTI_ERROR_INNER;
+
+    std::thread a(
+        [&]()
+        {
+            aPush = msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 111);
+            aReady.set_value();
+            bReadyFuture.wait();
+            aPop = msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &aId);
+            aPopped.set_value();
+        });
+    std::thread b(
+        [&]()
+        {
+            aReadyFuture.wait();
+            bPush = msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 222);
+            bReady.set_value();
+            aPoppedFuture.wait();
+            bPop = msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &bId);
+        });
+    a.join();
+    b.join();
+    EXPECT_EQ(MSPTI_SUCCESS, aPush);
+    EXPECT_EQ(MSPTI_SUCCESS, bPush);
+    EXPECT_EQ(MSPTI_SUCCESS, aPop);
+    EXPECT_EQ(MSPTI_SUCCESS, bPop);
+    EXPECT_EQ(111ULL, aId);
+    EXPECT_EQ(222ULL, bId);
+}
+
+std::mutex g_externalRecordsMutex;
+std::vector<msptiActivityExternalCorrelation> g_externalRecords;
+
+msptiResult CaptureExternalCorrelationRecord(Mspti::Activity::ActivityManager * /*self*/, msptiActivity *activity,
+                                             size_t size)
+{
+    if (activity != nullptr && activity->kind == MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION &&
+        size == sizeof(msptiActivityExternalCorrelation))
+    {
+        std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+        g_externalRecords.push_back(*reinterpret_cast<msptiActivityExternalCorrelation *>(activity));
+    }
+    return MSPTI_SUCCESS;
+}
+
+TEST_F(ActivityUtest, ExternalCorrelationRecordsUseSourceThread)
+{
+    // The reporting callback is intentionally invoked from the main thread,
+    // while both source threads remain inside independent external scopes.
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::IsActivityKindEnable).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::Record).stubs().will(invoke(CaptureExternalCorrelationRecord));
+    {
+        std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+        g_externalRecords.clear();
+    }
+
+    std::promise<uint32_t> aTidPromise;
+    std::promise<uint32_t> bTidPromise;
+    auto aTid = aTidPromise.get_future();
+    auto bTid = bTidPromise.get_future();
+    std::promise<void> release;
+    auto releaseFuture = release.get_future().share();
+    uint64_t aPoppedId = 0;
+    uint64_t bPoppedId = 0;
+    msptiResult aPushRc = MSPTI_ERROR_INNER;
+    msptiResult bPushRc = MSPTI_ERROR_INNER;
+    msptiResult aPopRc = MSPTI_ERROR_INNER;
+    msptiResult bPopRc = MSPTI_ERROR_INNER;
+
+    std::thread a(
+        [&]()
+        {
+            aPushRc = msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 111);
+            aTidPromise.set_value(Mspti::Common::Utils::GetTid());
+            releaseFuture.wait();
+            aPopRc = msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &aPoppedId);
+        });
+    std::thread b(
+        [&]()
+        {
+            bPushRc = msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 222);
+            bTidPromise.set_value(Mspti::Common::Utils::GetTid());
+            releaseFuture.wait();
+            bPopRc = msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &bPoppedId);
+        });
+
+    uint32_t threadA = aTid.get();
+    uint32_t threadB = bTid.get();
+    auto *context = Mspti::Common::ContextManager::GetInstance();
+    auto correlationA = context->UpdateAndReportCorrelationId(threadA);
+    auto correlationB = context->UpdateAndReportCorrelationId(threadB);
+    release.set_value();
+    a.join();
+    b.join();
+
+    EXPECT_EQ(MSPTI_SUCCESS, aPushRc);
+    EXPECT_EQ(MSPTI_SUCCESS, bPushRc);
+    EXPECT_EQ(MSPTI_SUCCESS, aPopRc);
+    EXPECT_EQ(MSPTI_SUCCESS, bPopRc);
+    EXPECT_NE(threadA, threadB);
+    EXPECT_EQ(111ULL, aPoppedId);
+    EXPECT_EQ(222ULL, bPoppedId);
+    std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+    ASSERT_EQ(2U, g_externalRecords.size());
+    EXPECT_EQ(correlationA, g_externalRecords[0].correlationId);
+    EXPECT_EQ(111ULL, g_externalRecords[0].externalId);
+    EXPECT_EQ(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, g_externalRecords[0].externalKind);
+    EXPECT_EQ(correlationB, g_externalRecords[1].correlationId);
+    EXPECT_EQ(222ULL, g_externalRecords[1].externalId);
+    EXPECT_EQ(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, g_externalRecords[1].externalKind);
+}
+
+TEST_F(ActivityUtest, ExternalCorrelationStateExpiresWhenThreadExitsWithoutPop)
+{
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::IsActivityKindEnable).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::Record).stubs().will(invoke(CaptureExternalCorrelationRecord));
+    {
+        std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+        g_externalRecords.clear();
+    }
+    uint32_t threadId = 0;
+    msptiResult pushRc = MSPTI_ERROR_INNER;
+    std::thread worker(
+        [&]()
+        {
+            pushRc = msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 333);
+            threadId = Mspti::Common::Utils::GetTid();
+            // Deliberately exit without Pop: the reporter must not retain this scope.
+        });
+    worker.join();
+    ASSERT_EQ(MSPTI_SUCCESS, pushRc);
+
+    EXPECT_EQ(MSPTI_SUCCESS,
+              Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(919, threadId));
+    std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+    EXPECT_TRUE(g_externalRecords.empty());
+}
+
+TEST_F(ActivityUtest, ExternalCorrelationRepeatedPushPopAcrossThreads)
+{
+    constexpr uint32_t kThreads = 8;
+    constexpr uint32_t kIterations = 1000;
+    std::atomic<uint32_t> failures{0};
+    std::vector<std::thread> workers;
+    auto start = std::chrono::steady_clock::now();
+    for (uint32_t thread = 0; thread < kThreads; ++thread)
+    {
+        workers.emplace_back(
+            [&, thread]()
+            {
+                for (uint32_t i = 0; i < kIterations; ++i)
+                {
+                    uint64_t expected = static_cast<uint64_t>(thread) * kIterations + i + 1;
+                    auto pushRc =
+                        msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, expected);
+                    uint64_t popped = 0;
+                    auto popRc =
+                        msptiActivityPopExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, &popped);
+                    if (pushRc != MSPTI_SUCCESS || popRc != MSPTI_SUCCESS || popped != expected)
+                    {
+                        ++failures;
+                    }
+                }
+            });
+    }
+    for (auto &worker : workers)
+    {
+        worker.join();
+    }
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    // Report elapsed time for comparison; do not enforce a flaky CI timing threshold.
+    printf("External correlation: %u threads x %u Push/Pop pairs: %lld ms\n", kThreads, kIterations,
+           static_cast<long long>(elapsed.count()));
+    EXPECT_EQ(0U, failures.load());
+}
+
+// Hold a report in ActivityManager::Record while the source thread exits.
+// A shared_ptr held by that report must not keep the source TID registered.
+struct BlockingExternalRecordState
+{
+    std::promise<void> entered;
+    std::shared_future<void> release;
+};
+
+BlockingExternalRecordState *g_blockingExternalRecordState = nullptr;
+
+msptiResult CaptureBlockedExternalCorrelationRecord(Mspti::Activity::ActivityManager *self, msptiActivity *activity,
+                                                    size_t size)
+{
+    if (activity != nullptr && activity->kind == MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION &&
+        size == sizeof(msptiActivityExternalCorrelation))
+    {
+        auto *record = reinterpret_cast<msptiActivityExternalCorrelation *>(activity);
+        if (record->correlationId == 9001ULL)
+        {
+            g_blockingExternalRecordState->entered.set_value();
+            g_blockingExternalRecordState->release.wait();
+        }
+    }
+    return CaptureExternalCorrelationRecord(self, activity, size);
+}
+
+TEST_F(ActivityUtest, ExternalCorrelationDoesNotReuseExitedThreadScopeDuringInFlightReport)
+{
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::IsActivityKindEnable).stubs().will(returnValue(true));
+    MOCKER_CPP(&Mspti::Activity::ActivityManager::Record).stubs().will(invoke(CaptureBlockedExternalCorrelationRecord));
+    {
+        std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+        g_externalRecords.clear();
+    }
+
+    std::promise<void> releaseWorker;
+    auto releaseWorkerFuture = releaseWorker.get_future();
+    std::promise<uint32_t> sourceTidPromise;
+    auto sourceTidFuture = sourceTidPromise.get_future();
+    msptiResult pushRc = MSPTI_ERROR_INNER;
+    std::thread source(
+        [&]()
+        {
+            pushRc = msptiActivityPushExternalCorrelationId(MSPTI_EXTERNAL_CORRELATION_KIND_CUSTOM0, 111);
+            sourceTidPromise.set_value(Mspti::Common::Utils::GetTid());
+            releaseWorkerFuture.wait();
+            // Exit without Pop, while a report still owns this ThreadStacks.
+        });
+    uint32_t sourceTid = sourceTidFuture.get();
+
+    std::promise<void> releaseRecord;
+    BlockingExternalRecordState blockedState;
+    blockedState.release = releaseRecord.get_future().share();
+    auto recordEntered = blockedState.entered.get_future();
+    g_blockingExternalRecordState = &blockedState;
+
+    msptiResult firstReportRc = MSPTI_ERROR_INNER;
+    std::thread reporter(
+        [&]()
+        {
+            firstReportRc = Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(
+                9001, sourceTid);
+        });
+    auto enteredStatus = recordEntered.wait_for(std::chrono::seconds(5));
+
+    releaseWorker.set_value();
+    source.join();  // TLS destructor must unregister sourceTid, even with reporter blocked.
+
+    // Simulate a later CANN event carrying the reused source TID. The new
+    // thread did not Push any scope, so it must not inherit externalId=111.
+    auto reusedTidReportRc =
+        Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(9002, sourceTid);
+
+    releaseRecord.set_value();
+    reporter.join();
+    g_blockingExternalRecordState = nullptr;
+
+    EXPECT_EQ(MSPTI_SUCCESS, pushRc);
+    EXPECT_EQ(std::future_status::ready, enteredStatus);
+    EXPECT_EQ(MSPTI_SUCCESS, firstReportRc);
+    EXPECT_EQ(MSPTI_SUCCESS, reusedTidReportRc);
+    std::lock_guard<std::mutex> lock(g_externalRecordsMutex);
+    ASSERT_EQ(1U, g_externalRecords.size());
+    EXPECT_EQ(9001ULL, g_externalRecords[0].correlationId);
+    EXPECT_EQ(111ULL, g_externalRecords[0].externalId);
 }
 
 TEST_F(ActivityUtest, GetRecordSuccessWhenBufferNull)

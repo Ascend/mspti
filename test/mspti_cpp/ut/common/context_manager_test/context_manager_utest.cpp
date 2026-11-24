@@ -231,6 +231,12 @@ TEST_F(ContextManagerUtest, UpdateAndReportCorrelationIdWithTid)
     EXPECT_GT(correlationId2, correlationId1);
 }
 
+TEST_F(ContextManagerUtest, UpdateAndReportCorrelationIdWithUnspecifiedTidUsesCallingThread)
+{
+    auto correlationId = contextManager->UpdateAndReportCorrelationId(0);
+    EXPECT_EQ(correlationId, contextManager->GetCorrelationId());
+}
+
 TEST_F(ContextManagerUtest, TimeCalculationFunctions)
 {
     DevTimeInfo devTimeInfo;

@@ -193,7 +193,7 @@ class MemoryParser::MemoryParserImpl
             return MSPTI_ERROR_INNER;
         }
         activity->kind = kind;
-        activity->correlationId = Common::ContextManager::GetInstance()->GetCorrelationId();
+        activity->correlationId = Common::ContextManager::GetInstance()->GetCorrelationId(record.threadId);
         activity->start = record.timeStamp;
         activity->end = record.timeStamp;
 

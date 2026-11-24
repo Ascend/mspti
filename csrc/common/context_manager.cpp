@@ -289,13 +289,16 @@ uint64_t ContextManager::GetCorrelationId(uint32_t threadId)
 
 uint64_t ContextManager::UpdateAndReportCorrelationId(uint32_t tid)
 {
+    // Keep the same fallback as GetCorrelationId(0): an unspecified thread
+    // refers to the current caller, never to a persistent thread-0 entry.
+    uint32_t sourceTid = (tid > 0 ? tid : Common::Utils::GetTid());
     uint64_t correlationId = correlationId_.fetch_add(1);
-    Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(correlationId);
-    auto guard = threadCorrelationIdInfo_.GetGuard(tid);
-    auto ans = guard->UnSafeFind(tid);
+    Mspti::Reporter::ExternalCorrelationReporter::GetInstance()->ReportExternalCorrelationId(correlationId, sourceTid);
+    auto guard = threadCorrelationIdInfo_.GetGuard(sourceTid);
+    auto ans = guard->UnSafeFind(sourceTid);
     if (!ans.second)
     {
-        guard->UnSafeInsert(tid, correlationId);
+        guard->UnSafeInsert(sourceTid, correlationId);
     }
     else
     {

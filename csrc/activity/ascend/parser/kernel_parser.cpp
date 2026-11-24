@@ -126,12 +126,11 @@ msptiResult KernelParser::KernelParserImpl::ReportRtTaskTrack(uint32_t agingFlag
     {
         return MSPTI_SUCCESS;
     }
-    Common::ContextManager::GetInstance()->UpdateAndReportCorrelationId(data->threadId);
+    auto correlationId = Common::ContextManager::GetInstance()->UpdateAndReportCorrelationId(data->threadId);
     {
         std::lock_guard<std::mutex> lk(hostTaskMutex_);
         hostTasks_.emplace_back(data->threadId, data->data.runtimeTrack.deviceId, data->data.runtimeTrack.streamId,
-                                data->data.runtimeTrack.taskType, data->data.runtimeTrack.kernelName,
-                                Common::ContextManager::GetInstance()->GetCorrelationId(),
+                                data->data.runtimeTrack.taskType, data->data.runtimeTrack.kernelName, correlationId,
                                 data->data.runtimeTrack.taskInfo, agingFlag == 1);
     }
     if (agingFlag == 1)
