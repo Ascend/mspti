@@ -24,6 +24,7 @@
 #include "csrc/activity/ascend/dev_task_manager.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/mstx_inject.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 
 namespace Mspti
@@ -148,6 +149,8 @@ CallbackManager* CallbackManager::GetInstance()
     static CallbackManager instance;
     return &instance;
 }
+
+CallbackManager::~CallbackManager() { Common::SetShuttingDown(true); }
 
 msptiResult CallbackManager::Init(msptiSubscriberHandle* subscriber, msptiCallbackFunc callback, void* userdata)
 {

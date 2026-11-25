@@ -23,6 +23,7 @@
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
@@ -122,6 +123,8 @@ MemoryReporter* MemoryReporter::GetInstance()
     static MemoryReporter instance;
     return &instance;
 }
+
+MemoryReporter::~MemoryReporter() { Common::SetShuttingDown(true); }
 
 msptiResult MemoryReporter::ReportMemoryActivity(const MemoryRecord& record)
 {

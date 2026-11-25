@@ -48,6 +48,7 @@ class ParserManager final
     msptiResult StopAnalysisTasks(const std::array<std::atomic<bool>, MSPTI_ACTIVITY_KIND_COUNT> &kinds);
 
    private:
+    ~ParserManager();
     Mspti::Parser::ProfTask *GetAnalysisTask(msptiActivityKind kind);
     std::atomic<uint64_t> hashMissCount_{0};
 };

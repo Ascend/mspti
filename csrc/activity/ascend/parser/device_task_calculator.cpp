@@ -43,17 +43,21 @@ msptiResult DeviceTaskCalculator::ReportStarsSocLog(uint32_t deviceId, const Hal
     {
         return MSPTI_SUCCESS;
     }
+    if (originData.type != ACSQ_LOG && originData.type != FFTS_LOG)
+    {
+        MSPTI_LOGW("stars log from device %u is not ffts or stars, funcType is %u", deviceId, originData.type);
+        return MSPTI_SUCCESS;
+    }
+
     DealCacheDeviceTask();
     if (originData.type == ACSQ_LOG)
     {
         return AssembleTasksTimeWithSocLog(deviceId, originData.acsq);
     }
-
-    if (originData.type == FFTS_LOG)
+    else if (originData.type == FFTS_LOG)
     {
         return AssembleSubTasksTimeWithFftsLog(deviceId, originData.ffts);
     }
-    MSPTI_LOGW("stars log from device %u is not ffts or stars, funcType is %u", deviceId, originData.type);
     return MSPTI_SUCCESS;
 }
 

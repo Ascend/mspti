@@ -83,6 +83,7 @@ class MemoryReporter
     msptiResult ReportMemcpyActivity(const MemcpyRecord &record);
 
    private:
+    ~MemoryReporter();
     std::mutex addrMtx_;
     std::unordered_map<uintptr_t, uint64_t> addrBytesInfo_;
     std::atomic<uint64_t> releaseWithoutAllocCount_{0};

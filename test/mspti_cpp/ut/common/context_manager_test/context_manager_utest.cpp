@@ -22,6 +22,7 @@
 
 #include "csrc/common/context_manager.h"
 #include "csrc/common/inject/driver_inject.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
@@ -29,6 +30,19 @@
 namespace
 {
 using namespace Mspti::Common;
+// Restores the process-wide shutdown flag so a test cannot leak state into later cases.
+class ScopedShutdownFlag
+{
+   public:
+    ScopedShutdownFlag() : previous_(IsShuttingDown()) {}
+    ~ScopedShutdownFlag() { SetShuttingDown(previous_); }
+    ScopedShutdownFlag(const ScopedShutdownFlag&) = delete;
+    ScopedShutdownFlag& operator=(const ScopedShutdownFlag&) = delete;
+
+   private:
+    bool previous_;
+};
+
 class ContextManagerUtest : public testing::Test
 {
    protected:
@@ -285,6 +299,53 @@ TEST_F(ContextManagerUtest, StartStopSyncTime)
     EXPECT_EQ(startResult, MSPTI_SUCCESS);
     msptiResult stopResult = contextManager->StopSyncTime();
     EXPECT_EQ(stopResult, MSPTI_SUCCESS);
+}
+
+TEST_F(ContextManagerUtest, StartSyncTimeShouldNotResetShuttingDownFlag)
+{
+    ScopedShutdownFlag flagGuard;
+    SetShuttingDown(true);
+
+    // 关闭标志是库级只读保护：StartSyncTime 不能把它清掉，也不能在析构阶段拉起线程。
+    EXPECT_EQ(contextManager->StartSyncTime(), MSPTI_SUCCESS);
+    EXPECT_TRUE(IsShuttingDown());
+
+    EXPECT_EQ(contextManager->StopSyncTime(), MSPTI_SUCCESS);
+}
+
+TEST_F(ContextManagerUtest, StopSyncTimeJoinsThreadWhenShuttingDownIsSet)
+{
+    ScopedShutdownFlag flagGuard;
+    ASSERT_EQ(contextManager->StartSyncTime(), MSPTI_SUCCESS);
+    EXPECT_FALSE(IsShuttingDown());
+
+    SetShuttingDown(true);
+    // The sync thread observes the flag and exits; StopSyncTime must still join it without hanging.
+    EXPECT_EQ(contextManager->StopSyncTime(), MSPTI_SUCCESS);
+}
+
+TEST_F(ContextManagerUtest, AddRemoveValidDevice)
+{
+    constexpr uint32_t deviceId = 4242;
+    contextManager->AddDevice(deviceId);
+    auto snapshot = contextManager->GetValidDevices();
+    EXPECT_NE(snapshot.find(deviceId), snapshot.end());
+
+    contextManager->RemoveDevice(deviceId);
+    auto emptySnapshot = contextManager->GetValidDevices();
+    EXPECT_EQ(emptySnapshot.find(deviceId), emptySnapshot.end());
+}
+
+TEST_F(ContextManagerUtest, GetValidDevicesReturnsSnapshot)
+{
+    constexpr uint32_t deviceId = 4243;
+    contextManager->AddDevice(deviceId);
+    auto snapshot = contextManager->GetValidDevices();
+
+    contextManager->RemoveDevice(deviceId);
+    EXPECT_NE(snapshot.find(deviceId), snapshot.end());
+    auto currentSnapshot = contextManager->GetValidDevices();
+    EXPECT_EQ(currentSnapshot.find(deviceId), currentSnapshot.end());
 }
 
 TEST_F(ContextManagerUtest, EncodeDstKeyWithAllZerosProducesZeroKey)

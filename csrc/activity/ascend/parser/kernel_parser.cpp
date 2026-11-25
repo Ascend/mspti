@@ -147,29 +147,22 @@ msptiResult KernelParser::KernelParserImpl::ReportSocLog(uint32_t deviceId, cons
     {
         return MSPTI_SUCCESS;
     }
+    if (originData.type != ACSQ_LOG)
+    {
+        return MSPTI_SUCCESS;
+    }
     // Hold across device processing: concurrent UnRegister/Clear blocks here instead of
     // racing the maps, and channel workers serialize with each other.
     std::lock_guard<std::mutex> lk(hostTaskMutex_);
     DealCacheHostTask();
-    if (originData.type == ACSQ_LOG)
+    DeviceKernelTaskPtr task;
+    if (!ParseDeviceTask(deviceId, originData.acsq, task))
     {
-        DeviceKernelTaskPtr task;
-        if (!ParseDeviceTask(deviceId, originData.acsq, task))
-        {
-            return MSPTI_SUCCESS;
-        }
-        auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task->deviceId),
-                                                           static_cast<uint16_t>(task->streamId), task->taskId);
-        if (IsGraphTask(dstKey))
-        {
-            return DealUnAgingRtTaskTrack(*task);
-        }
-        else
-        {
-            return DealAgingRtTaskTrack(*task);
-        }
+        return MSPTI_SUCCESS;
     }
-    return MSPTI_SUCCESS;
+    auto dstKey = Common::ContextManager::EncodeDstKey(static_cast<uint16_t>(task->deviceId),
+                                                       static_cast<uint16_t>(task->streamId), task->taskId);
+    return IsGraphTask(dstKey) ? DealUnAgingRtTaskTrack(*task) : DealAgingRtTaskTrack(*task);
 }
 
 msptiResult KernelParser::KernelParserImpl::DealCacheHostTask()
@@ -345,13 +338,11 @@ void KernelParser::KernelParserImpl::Clear()
 // KernelParser
 KernelParser& KernelParser::GetInstance()
 {
-    static KernelParser instance;
-    return instance;
+    static KernelParser* instance = new KernelParser();
+    return *instance;
 }
 
 KernelParser::KernelParser() : pImpl(std::make_unique<KernelParserImpl>()) {};
-
-KernelParser::~KernelParser() = default;
 
 msptiResult KernelParser::ReportRtTaskTrack(uint32_t agingFlag, const MsprofCompactInfo* data)
 {
@@ -366,5 +357,6 @@ msptiResult KernelParser::ReportStarsSocLog(uint32_t deviceId, const HalLogData&
 int64_t KernelParser::GetPendingKernelCount() { return pImpl->GetPendingKernelCount(); }
 
 void KernelParser::Clear() { pImpl->Clear(); }
+
 }  // namespace Parser
 }  // namespace Mspti

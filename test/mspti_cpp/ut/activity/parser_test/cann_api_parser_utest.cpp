@@ -56,7 +56,7 @@ class CannApiParserUtest : public testing::Test
     {
         // reset type info
         std::pair<uint16_t, uint32_t> key = {MSPROF_REPORT_ACL_LEVEL, 0};
-        Mspti::Parser::CannHashCache::typeHashIdMap_.Erase(key);
+        Mspti::Parser::CannHashCache::TypeHashIdMap().Erase(key);
 
         // reset record cnt;
         g_recordCnt = 0;

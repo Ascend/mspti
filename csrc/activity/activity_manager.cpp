@@ -35,8 +35,10 @@
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
 #include "csrc/activity/ascend/reporter/overhead_reporter.h"
+#include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
 #include "csrc/common/runtime_utils.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
@@ -297,8 +299,12 @@ ActivityManager *ActivityManager::GetInstance()
 
 ActivityManager::~ActivityManager()
 {
+    Common::SetShuttingDown(true);
     StopActivityMgrThread();
-    devices_.clear();
+    {
+        std::lock_guard<std::mutex> lk(devices_mtx_);
+        devices_.clear();
+    }
     MSPTI_EVENT("Total activity record: %lu. Total activity drop: %lu", total_record_num_.load(),
                 total_drop_num_.load());
 }

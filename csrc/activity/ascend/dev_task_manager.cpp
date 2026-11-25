@@ -24,6 +24,7 @@
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/inject/profapi_inject.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
@@ -51,6 +52,7 @@ DevTaskManager* DevTaskManager::GetInstance()
 
 DevTaskManager::~DevTaskManager()
 {
+    Common::SetShuttingDown(true);
     for (auto iter = task_map_.begin(); iter != task_map_.end(); iter++)
     {
         StopAllDevKindProfTask(iter->second);

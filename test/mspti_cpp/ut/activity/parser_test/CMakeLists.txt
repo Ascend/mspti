@@ -28,6 +28,7 @@ add_executable(mspti_parser_utest
     ${TOP_DIR}/csrc/activity/ascend/reporter/external_correlation_reporter.cpp
     ${TOP_DIR}/csrc/activity/ascend/reporter/overhead_reporter.cpp
     ${TOP_DIR}/csrc/common/context_manager.cpp
+    ${TOP_DIR}/csrc/common/shutdown_flag.cpp
     ${TOP_DIR}/csrc/common/utils.cpp
     ${TOP_DIR}/csrc/common/runtime_utils.cpp
     ${TOP_DIR}/csrc/common/thread_pool.cpp

@@ -34,7 +34,7 @@ class TsfwConvert : public BasicConvert<TsfwConvert, StepTraceBasic>
 {
    public:
     static TsfwConvert& GetInstance();
-    ~TsfwConvert() = default;
+    ~TsfwConvert();
     size_t GetStructSize(Common::PlatformType chipType) const;
     TransFunc GetTransFunc(Common::PlatformType chipType) const;
 

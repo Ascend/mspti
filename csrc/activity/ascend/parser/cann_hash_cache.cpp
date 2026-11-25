@@ -25,13 +25,22 @@ namespace Mspti
 namespace Parser
 {
 
-Common::ConcurrentMap<uint64_t, std::string> CannHashCache::hashInfoMap_;
-Common::ConcurrentMap<std::pair<uint16_t, uint32_t>, std::string, Common::PairHash> CannHashCache::typeHashIdMap_;
+Common::ConcurrentMap<uint64_t, std::string> &CannHashCache::HashInfoMap()
+{
+    static auto *map = new Common::ConcurrentMap<uint64_t, std::string>();
+    return *map;
+}
+
+Common::ConcurrentMap<std::pair<uint16_t, uint32_t>, std::string, Common::PairHash> &CannHashCache::TypeHashIdMap()
+{
+    static auto *map = new Common::ConcurrentMap<std::pair<uint16_t, uint32_t>, std::string, Common::PairHash>();
+    return *map;
+}
 
 uint64_t CannHashCache::GenHashId(const std::string &hashInfo)
 {
     uint64_t hashId = Common::GetHashIdImple(hashInfo);
-    hashInfoMap_.Insert(hashId, hashInfo);
+    HashInfoMap().Insert(hashId, hashInfo);
     return hashId;
 }
 
@@ -39,14 +48,14 @@ uint64_t CannHashCache::GenHashId(std::string &&hashInfo)
 {
     // DoubleHash耗时和map find的耗时比较
     uint64_t hashId = Common::GetHashIdImple(hashInfo);
-    hashInfoMap_.Emplace(hashId, std::move(hashInfo));
+    HashInfoMap().Emplace(hashId, std::move(hashInfo));
     return hashId;
 }
 
 std::string &CannHashCache::GetHashInfo(uint64_t hashId)
 {
-    static std::string nullInfo = "";
-    auto guard = hashInfoMap_.GetGuard(hashId);
+    static auto &nullInfo = *new std::string();
+    auto guard = HashInfoMap().GetGuard(hashId);
     const auto iter = guard->UnSafeFind(hashId);
     if (iter.second)
     {
@@ -57,9 +66,9 @@ std::string &CannHashCache::GetHashInfo(uint64_t hashId)
 
 std::string &CannHashCache::GetTypeHashInfo(uint16_t level, uint32_t typeId)
 {
-    static std::string nullInfo = "";
+    static auto &nullInfo = *new std::string();
     std::pair<uint16_t, uint32_t> key = {level, typeId};
-    auto guard = typeHashIdMap_.GetGuard(key);
+    auto guard = TypeHashIdMap().GetGuard(key);
     const auto iter = guard->UnSafeFind(key);
     if (iter.second)
     {
@@ -71,13 +80,13 @@ std::string &CannHashCache::GetTypeHashInfo(uint16_t level, uint32_t typeId)
 void CannHashCache::RegTypeHashInfo(uint16_t level, uint32_t typeId, std::string &&hashInfo)
 {
     std::pair<uint16_t, uint32_t> key = {level, typeId};
-    typeHashIdMap_.Emplace(key, std::forward<std::string>(hashInfo));
+    TypeHashIdMap().Emplace(key, std::forward<std::string>(hashInfo));
 }
 
 void CannHashCache::RegTypeHashInfo(uint16_t level, uint32_t typeId, const std::string &hashInfo)
 {
     std::pair<uint16_t, uint32_t> key = {level, typeId};
-    typeHashIdMap_.Insert(key, hashInfo);
+    TypeHashIdMap().Insert(key, hashInfo);
 }
 }  // namespace Parser
 }  // namespace Mspti

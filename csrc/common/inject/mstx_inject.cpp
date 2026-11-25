@@ -25,6 +25,7 @@
 #include "csrc/common/function_loader.h"
 #include "csrc/common/inject/mstx_inject.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 
 using namespace Mspti::Activity;
@@ -70,6 +71,8 @@ MstxDomainMgr* MstxDomainMgr::GetInstance()
                    });
     return &instance;
 }
+
+MstxDomainMgr::~MstxDomainMgr() { Mspti::Common::SetShuttingDown(true); }
 
 mstxDomainHandle_t MstxDomainMgr::CreateDomainHandle(const char* name)
 {
@@ -135,6 +138,10 @@ void MstxDomainMgr::DestroyDomainHandle(mstxDomainHandle_t domain)
 
 std::shared_ptr<std::string> MstxDomainMgr::GetDomainNameByHandle(mstxDomainHandle_t domain)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return nullptr;
+    }
     std::lock_guard<std::mutex> lk(domainMutex_);
     auto iter = domainHandleMap_.find(domain);
     if (iter == domainHandleMap_.end() || iter->second->isDestroyed)
@@ -220,6 +227,10 @@ static bool IsMsgValid(const char* msg)
 
 void MstxMarkAFunc(const char* msg, AclrtStream stream)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return;
+    }
     if (!ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER))
     {
         return;
@@ -235,12 +246,16 @@ void MstxMarkAFunc(const char* msg, AclrtStream stream)
     if (Mspti::Parser::MstxParser::GetInstance()->ReportMark(msg, stream, Mspti::g_defaultDomainName.c_str()) !=
         MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Report Mark data failed.");
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_FAILURE, "Report Mark data failed.");
     }
 }
 
 uint64_t MstxRangeStartAFunc(const char* msg, AclrtStream stream)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return MSTX_INVALID_RANGE_ID;
+    }
     if (!ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER))
     {
         return MSTX_INVALID_RANGE_ID;
@@ -257,7 +272,7 @@ uint64_t MstxRangeStartAFunc(const char* msg, AclrtStream stream)
     if (Mspti::Parser::MstxParser::GetInstance()->ReportRangeStartA(
             msg, stream, markId, Mspti::g_defaultDomainName.c_str()) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Report RangeStart data failed.");
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_FAILURE, "Report RangeStart data failed.");
         return MSTX_INVALID_RANGE_ID;
     }
     return markId;
@@ -265,6 +280,10 @@ uint64_t MstxRangeStartAFunc(const char* msg, AclrtStream stream)
 
 void MstxRangeEndFunc(uint64_t rangeId)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return;
+    }
     if (!ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER))
     {
         return;
@@ -275,12 +294,16 @@ void MstxRangeEndFunc(uint64_t rangeId)
     }
     if (Mspti::Parser::MstxParser::GetInstance()->ReportRangeEnd(rangeId) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Report RangeEnd data failed.");
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_FAILURE, "Report RangeEnd data failed.");
     }
 }
 
 mstxDomainHandle_t MstxDomainCreateAFunc(const char* name)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return nullptr;
+    }
     if (!IsMsgValid(name))
     {
         return nullptr;
@@ -290,11 +313,19 @@ mstxDomainHandle_t MstxDomainCreateAFunc(const char* name)
 
 void MstxDomainDestroyFunc(mstxDomainHandle_t domain)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return;
+    }
     Mspti::MstxDomainMgr::GetInstance()->DestroyDomainHandle(domain);
 }
 
 void MstxDomainMarkAFunc(mstxDomainHandle_t domain, const char* msg, AclrtStream stream)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return;
+    }
     if (!ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER))
     {
         return;
@@ -314,12 +345,16 @@ void MstxDomainMarkAFunc(mstxDomainHandle_t domain, const char* msg, AclrtStream
     }
     if (Mspti::Parser::MstxParser::GetInstance()->ReportMark(msg, stream, namePtr->c_str()) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Report Mark data failed.");
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_FAILURE, "Report Mark data failed.");
     }
 }
 
 uint64_t MstxDomainRangeStartAFunc(mstxDomainHandle_t domain, const char* msg, AclrtStream stream)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return MSTX_INVALID_RANGE_ID;
+    }
     if (!ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER))
     {
         return MSTX_INVALID_RANGE_ID;
@@ -341,7 +376,7 @@ uint64_t MstxDomainRangeStartAFunc(mstxDomainHandle_t domain, const char* msg, A
     if (Mspti::Parser::MstxParser::GetInstance()->ReportRangeStartA(msg, stream, markId, namePtr->c_str()) !=
         MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Report RangeStart data failed.");
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_FAILURE, "Report RangeStart data failed.");
         return MSTX_INVALID_RANGE_ID;
     }
     return markId;
@@ -349,6 +384,10 @@ uint64_t MstxDomainRangeStartAFunc(mstxDomainHandle_t domain, const char* msg, A
 
 void MstxDomainRangeEndFunc(mstxDomainHandle_t domain, uint64_t rangeId)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return;
+    }
     if (!ActivityManager::GetInstance()->IsActivityKindEnable(MSPTI_ACTIVITY_KIND_MARKER))
     {
         return;
@@ -364,7 +403,7 @@ void MstxDomainRangeEndFunc(mstxDomainHandle_t domain, uint64_t rangeId)
     }
     if (Mspti::Parser::MstxParser::GetInstance()->ReportRangeEnd(rangeId) != MSPTI_SUCCESS)
     {
-        MSPTI_LOGE("Report RangeEnd data failed.");
+        MSPTI_LOGE_EVERY_N(LOG_EVERY_N_FAILURE, "Report RangeEnd data failed.");
     }
 }
 
@@ -514,6 +553,10 @@ void ProfEnableMstxFunc(ProfModule module)
 
 msptiResult msptiActivityEnableMarkerDomain(const char* name)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return MSPTI_SUCCESS;
+    }
     if (!MsptiMstxApi::IsMsgValid(name))
     {
         MSPTI_LOGE("domainHandle is nullptr, check your input params");
@@ -525,6 +568,10 @@ msptiResult msptiActivityEnableMarkerDomain(const char* name)
 
 msptiResult msptiActivityDisableMarkerDomain(const char* name)
 {
+    if (UNLIKELY(Mspti::Common::IsShuttingDown()))
+    {
+        return MSPTI_SUCCESS;
+    }
     if (!MsptiMstxApi::IsMsgValid(name))
     {
         MSPTI_LOGE("domainHandle is nullptr, check your input params");

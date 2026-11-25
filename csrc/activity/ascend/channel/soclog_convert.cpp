@@ -23,6 +23,7 @@
 #include <functional>
 
 #include "channel_data.h"
+#include "csrc/common/shutdown_flag.h"
 #include "stars_common.h"
 
 namespace Mspti
@@ -132,5 +133,7 @@ SocLogConvert &SocLogConvert::GetInstance()
     static SocLogConvert instance;
     return instance;
 }
+
+SocLogConvert::~SocLogConvert() { Common::SetShuttingDown(true); }
 }  // namespace Convert
 }  // namespace Mspti

@@ -25,6 +25,7 @@
 #include "csrc/activity/ascend/parser/mstx_parser.h"
 #include "csrc/activity/ascend/reporter/external_correlation_reporter.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 
 namespace Mspti
@@ -37,6 +38,8 @@ ParserManager* ParserManager::GetInstance()
     static ParserManager instance;
     return &instance;
 }
+
+ParserManager::~ParserManager() { Common::SetShuttingDown(true); }
 
 msptiResult ParserManager::ReportApi(const MsprofApi* const data)
 {

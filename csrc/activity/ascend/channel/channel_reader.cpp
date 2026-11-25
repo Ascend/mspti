@@ -31,6 +31,7 @@
 #include "csrc/activity/ascend/parser/parser_manager.h"
 #include "csrc/common/inject/driver_inject.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 #include "csrc/common/utils.h"
 #include "securec.h"
 
@@ -103,6 +104,13 @@ void ChannelReader::DrainBufferedDataToConsumer()
     {
         return;
     }
+    if (UNLIKELY(Common::IsShuttingDown()))
+    {
+        MSPTI_LOGW("Discard %zu residual bytes while shutting down, deviceId=%u, channelId=%d", curPos_, deviceId_,
+                   channelId_);
+        curPos_ = 0;
+        return;
+    }
     if (!consumerRunning_.load(std::memory_order_acquire) || consumerQueue_ == nullptr)
     {
         size_t directSize = (dataStructSize_ == 0) ? curPos_ : curPos_ / dataStructSize_ * dataStructSize_;
@@ -131,6 +139,34 @@ void ChannelReader::DrainBufferedDataToConsumer()
 msptiResult ChannelReader::DrainToConsumer(bool wait)
 {
     // 非破坏性排空：只在 UnRegister 关开关前调用，不停止消费线程，reader 仍可继续使用
+    if (UNLIKELY(Common::IsShuttingDown()))
+    {
+        size_t residualBytes = 0;
+        bool bufferLockAcquired = false;
+        {
+            std::unique_lock<std::mutex> bufferGuard(bufferMutex_, std::try_to_lock);
+            bufferLockAcquired = bufferGuard.owns_lock();
+            if (bufferLockAcquired)
+            {
+                residualBytes = curPos_;
+            }
+        }
+        const int64_t pendingChunks = pendingConsumeCount_.load(std::memory_order_acquire);
+        if (bufferLockAcquired)
+        {
+            MSPTI_LOGW(
+                "DrainToConsumer skipped while shutting down, %zu residual bytes will be dropped by stop path, "
+                "%" PRId64 " pending chunks remain, deviceId=%u, channelId=%d",
+                residualBytes, pendingChunks, deviceId_, channelId_);
+        }
+        else
+        {
+            MSPTI_LOGW("DrainToConsumer skipped while shutting down (buffer busy), %" PRId64
+                       " pending chunks remain, deviceId=%u, channelId=%d",
+                       pendingChunks, deviceId_, channelId_);
+        }
+        return MSPTI_SUCCESS;
+    }
     if (consumerQueue_ == nullptr)
     {
         // AICPU/AiCustomCpu 等丢弃型 channel：数据不入队，直接返回
@@ -178,11 +214,11 @@ bool ChannelReader::IsAsyncChannel() const { return channelId_ == PROF_CHANNEL_S
 
 void ChannelReader::ConsumeBufferData(BufferData& buff)
 {
-    if (buff.validSize > 0)
+    if (buff.validSize > 0 && !Common::IsShuttingDown())
     {
         TransDataToActivityBuffer(buff.data.data(), buff.validSize, deviceId_, channelId_);
     }
-    // 解析完把 buffer 归还给 reader 复用，避免下一次交接重新分配并清零整块 buffer
+    // 解析后归还 buffer 以复用；退出时仅归还并结算，不再上报。
     ReturnFreeBuffer(std::move(buff.data));
     int64_t prev = pendingConsumeCount_.load(std::memory_order_acquire);
     while (prev > 0 && !pendingConsumeCount_.compare_exchange_weak(prev, prev - 1, std::memory_order_acq_rel))
@@ -246,7 +282,7 @@ void ChannelReader::StopConsumerThread()
     {
         consumerThread_.join();
     }
-    // join 之后队列里最多剩 Quit 前已入队的块，直接同步解析掉（不访问 buffer_/curPos_，无需持锁）
+    // join 后同步清空剩余队列；退出时只归还 buffer 并结算计数。
     if (consumerQueue_ != nullptr)
     {
         BufferData buff;
@@ -577,6 +613,10 @@ void ChannelReader::SendFlushFinished()
 size_t ChannelReader::TransDataToActivityBuffer(const char buffer[], size_t valid_size, uint32_t deviceId,
                                                 AI_DRV_CHANNEL channelId)
 {
+    if (UNLIKELY(Common::IsShuttingDown()))
+    {
+        return 0;
+    }
     switch (channelId)
     {
         case PROF_CHANNEL_TS_FW:
@@ -599,6 +639,10 @@ size_t ChannelReader::TransTsFwData(const char buffer[], size_t valid_size, uint
     }
     while (valid_size - pos >= logStructSize)
     {
+        if (UNLIKELY(Common::IsShuttingDown()))
+        {
+            break;
+        }
         StepTraceBasic stepTrace;
         const TsTrackHead* tsHead = reinterpret_cast<const TsTrackHead*>(buffer + pos);
         MSPTI_LOGD("ts track data type is %d", tsHead->rptType);
@@ -640,6 +684,10 @@ size_t ChannelReader::TransStarsLog(const char buffer[], size_t valid_size, uint
     }
     while (valid_size - pos >= logStructSize)
     {
+        if (UNLIKELY(Common::IsShuttingDown()))
+        {
+            break;
+        }
         size_t prevPos = pos;
         if (!Convert::SocLogConvert::GetInstance().TransData(buffer, valid_size, deviceId, pos, logData))
         {
@@ -655,11 +703,11 @@ size_t ChannelReader::TransStarsLog(const char buffer[], size_t valid_size, uint
         }
         if (Mspti::Parser::DeviceTaskCalculator::GetInstance().ReportStarsSocLog(deviceId, logData) != MSPTI_SUCCESS)
         {
-            MSPTI_LOGE("DeviceTaskCalculator parse SocLog failed");
+            MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "DeviceTaskCalculator parse SocLog failed");
         }
         if (Mspti::Parser::KernelParser::GetInstance().ReportStarsSocLog(deviceId, logData) != MSPTI_SUCCESS)
         {
-            MSPTI_LOGE("KernelParser parse SocLog failed");
+            MSPTI_LOGE_EVERY_N(Common::LOG_EVERY_N_FAILURE, "KernelParser parse SocLog failed");
         }
     }
     return pos;

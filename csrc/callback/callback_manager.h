@@ -69,6 +69,7 @@ class CallbackManager final
 
    private:
     CallbackManager() = default;
+    ~CallbackManager();
     explicit CallbackManager(const CallbackManager& obj) = delete;
     CallbackManager& operator=(const CallbackManager& obj) = delete;
     explicit CallbackManager(CallbackManager&& obj) = delete;

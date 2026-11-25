@@ -26,6 +26,7 @@
 #include <thread>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "csrc/common/concurrent_map.h"
@@ -96,6 +97,10 @@ class ContextManager final
     msptiResult StartSyncTime();
     msptiResult StopSyncTime();
 
+    void AddDevice(uint32_t deviceId);
+    void RemoveDevice(uint32_t deviceId);
+    std::unordered_set<uint32_t> GetValidDevices();
+
     static uint64_t EncodeDstKey(uint16_t deviceId, uint16_t streamId, uint32_t taskId);
     static std::tuple<uint16_t, uint16_t, uint32_t> DecodeDstKey(uint64_t key);
 
@@ -118,6 +123,9 @@ class ContextManager final
     std::once_flag hostTimeInfoInitFlag_;
     std::mutex hostTimeMtx_;
     std::unique_ptr<DevTimeInfo> hostTimeInfo_;
+
+    std::unordered_set<uint32_t> devices_;
+    std::mutex devicesMtx_;
 
     std::atomic<bool> isQuit_{false};
     std::thread t_;

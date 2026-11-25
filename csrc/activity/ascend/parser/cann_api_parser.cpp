@@ -27,6 +27,7 @@
 #include "csrc/activity/ascend/parser/cann_hash_cache.h"
 #include "csrc/common/context_manager.h"
 #include "csrc/common/plog_manager.h"
+#include "csrc/common/shutdown_flag.h"
 
 namespace Mspti
 {
@@ -104,6 +105,6 @@ msptiResult CannApiParser::ReportApi(uint32_t agingFlag, const MsprofApi* data)
 
 CannApiParser::CannApiParser() : pImpl(std::make_unique<CannApiParserImpl>()) {}
 
-CannApiParser::~CannApiParser() = default;
+CannApiParser::~CannApiParser() { Common::SetShuttingDown(true); }
 }  // namespace Parser
 }  // namespace Mspti

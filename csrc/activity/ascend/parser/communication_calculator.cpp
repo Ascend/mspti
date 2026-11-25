@@ -37,8 +37,8 @@ namespace Parser
 {
 CommunicationCalculator& CommunicationCalculator::GetInstance()
 {
-    static CommunicationCalculator instance;
-    return instance;
+    static CommunicationCalculator* instance = new CommunicationCalculator();
+    return *instance;
 }
 
 msptiResult CommunicationCalculator::AppendCompactInfo(bool agingFlag, const MsprofCompactInfo* data)

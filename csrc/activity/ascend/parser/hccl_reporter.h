@@ -42,6 +42,7 @@ class HcclReporter
     static HcclReporter* GetInstance();
 
    private:
+    ~HcclReporter();
     msptiResult RecordStartMarker(const msptiActivityMarker* markActivity);
     msptiResult ReportHcclData(const msptiActivityMarker* markActivity);
     const char* GetSharedHcclName(const std::string& hcclName);
