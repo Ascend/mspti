@@ -29,7 +29,7 @@
 
 ## 功能说明<a name="section20806203412478"></a>
 
-向msPTI注册回调函数，释放Activity Buffer中的数据。用户（订阅者）在使用Activity API时，需要自定义该函数并在msPTI注册，当活动缓冲区的存储空间被占满时，msPTI会调用该函数通知用户消费Activity Buffer中数据，并释放内存空间。
+向msPTI注册回调函数，释放Activity Buffer中的数据。用户（订阅者）在使用Activity API时，需要自定义该函数并在msPTI注册，当活动缓冲区的存储空间被占满时，msPTI会调用该函数通知用户消费Activity Buffer中的数据，并释放内存空间。
 
 ## 函数原型<a name="section1121883194711"></a>
 

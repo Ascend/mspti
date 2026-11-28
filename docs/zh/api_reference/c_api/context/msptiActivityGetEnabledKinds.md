@@ -47,7 +47,7 @@ msptiResult msptiActivityGetEnabledKinds(msptiSubscriberHandle subscriber, mspti
 | --- | --- | --- |
 | subscriber | 输入 | 订阅者句柄。 |
 | buffer | 输出 | 用于存储已开启Activity Kind的缓冲区。如果为NULL，则仅通过enabledKindsCount返回已开启的Activity Kind数量。 |
-| bufferSize | 输入 | buffer的大小。如果为NULL，则仅通过enabledKindsCount返回已开启的Activity Kind数量。如果为NULL且buffer不为NULL，返回MSPTI\_ERROR\_INVALID\_PARAMETER。 |
+| bufferSize | 输入 | buffer的大小。如果为NULL，则仅通过enabledKindsCount返回已开启的Activity Kind数量。如果bufferSize为NULL且buffer不为NULL，返回MSPTI\_ERROR\_INVALID\_PARAMETER。 |
 | enabledKindsCount | 输出 | 已开启的Activity Kind数量。如果为NULL，返回MSPTI\_ERROR\_INVALID\_PARAMETER。 |
 
 ## 返回值说明<a name="section16621124213476"></a>

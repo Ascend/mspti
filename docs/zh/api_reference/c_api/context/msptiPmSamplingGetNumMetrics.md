@@ -44,7 +44,7 @@ msptiResult msptiPmSamplingGetNumMetrics(msptiPmSamplingGetNumMetricsParams *par
 |params|输入|msptiPmSamplingGetNumMetricsParams类型的指针。|
 |params.structSize|输入|结构体大小，配置为sizeof(msptiPmSamplingGetNumMetricsParams)。|
 |params.pPriv|输入|私有指针，msPTI原样透传，配置为NULL。|
-|params.deviceId|输入|目标设备ID。当前未使用，可配置指标总数与设备无关。|
+|params.deviceId|输入|目标设备ID。当前未使用，可配置的指标总数与设备无关。|
 |params.pNumMetrics|输出|可配置的指标总数。|
 
 ## 返回值说明<a name="section16621124213476"></a>

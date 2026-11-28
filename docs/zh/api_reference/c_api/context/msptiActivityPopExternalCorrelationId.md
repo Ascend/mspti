@@ -59,7 +59,7 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 </tr>
 <tr id="row12929154417467"><td class="cellrowborder" valign="top" width="28.65286528652865%" headers="mcps1.2.4.1.1 "><p id="p10930104415467"><a name="p10930104415467"></a><a name="p10930104415467"></a>lastId</p>
 </td>
-<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p493014448469"><a name="p493014448469"></a><a name="p493014448469"></a>输入</p>
+<td class="cellrowborder" valign="top" width="13.661366136613662%" headers="mcps1.2.4.1.2 "><p id="p493014448469"><a name="p493014448469"></a><a name="p493014448469"></a>输出</p>
 </td>
 <td class="cellrowborder" valign="top" width="57.68576857685769%" headers="mcps1.2.4.1.3 "><p id="p119301744204613"><a name="p119301744204613"></a><a name="p119301744204613"></a>msPTI会pop出Stack里面的ID，并写到lastId里。</p>
 </td>
@@ -69,4 +69,4 @@ msptiResult msptiActivityPopExternalCorrelationId(msptiExternalCorrelationKind k
 
 ## 返回值说明<a name="section16621124213476"></a>
 
-返回MSPTI\_SUCCESS表示成功；外部关联类型无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER和外部关联ID栈空时出栈返回MSPTI\_ERROR\_QUEUE\_EMPTY，表示失败。
+返回MSPTI\_SUCCESS表示成功；外部关联类型无效时返回MSPTI\_ERROR\_INVALID\_PARAMETER，外部关联ID栈空时出栈返回MSPTI\_ERROR\_QUEUE\_EMPTY，表示失败。

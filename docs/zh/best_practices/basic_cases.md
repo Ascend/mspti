@@ -101,7 +101,7 @@ std::unordered_map<uint64_t, std::vector<msptiActivityKernel*>> kernelMap;
 kernelMap[correlationId].push_back(copiedKernel);
 ```
 
-### 2.4 Quick Sort
+### 2.4 Quick Dispatch
 
 在 CompleteFunc 中通过 `kind` 快速分派：
 

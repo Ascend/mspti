@@ -122,14 +122,14 @@ typedef struct
 | 接口 | Created | Configured | Running | Stopped |
 | --- | :-: | :-: | :-: | :-: |
 | msptiPmSamplingSetConfig | √ | √ | × | √（清空样本队列） |
-| msptiPmSamplingStart | × | √ | √（幂等） | √ |
+| msptiPmSamplingStart | × | √ | × | √ |
 | msptiPmSamplingStop | × | × | √ | × |
 | msptiPmSamplingDecodeData | × | × | √ | √ |
 | msptiPmSamplingDisable | √ | √ | √（内部先 Stop） | √ |
 
 - SetConfig 在 Stopped 状态重新配置时会清空会话中待取的样本队列，因为指标集可能变化，旧样本与新条目布局不匹配。
 - Stop 保留对象、配置与已采集的样本，会话可再次 Start 或解码。
-- Disable 在 Running 状态调用时内部先停止采样（冲出最后一个样本窗口）再销毁对象。
+- Disable 在 Running 状态调用时内部先停止采样（冲刷最后一个样本窗口）再销毁对象。
 
 ---
 
@@ -152,7 +152,7 @@ msptiResult msptiPmSamplingEnable(msptiPmSamplingEnableParams *params);
 
 #### 5.1.2 msptiPmSamplingDisable
 
-销毁 PM Sampling 对象并在设备上去使能 PM 采样。Running 状态调用时内部先停止采样（冲出最后一个样本窗口）再销毁。
+销毁 PM Sampling 对象并在设备上去使能 PM 采样。Running 状态调用时内部先停止采样（冲刷最后一个样本窗口）再销毁。
 
 ```c
 msptiResult msptiPmSamplingDisable(msptiPmSamplingDisableParams *params);
@@ -180,7 +180,7 @@ msptiResult msptiPmSamplingSetConfig(msptiPmSamplingSetConfigParams *params);
 
 #### 5.2.2 msptiPmSamplingStart / msptiPmSamplingStop
 
-开启/结束采样窗口。Running 状态重复 Start 幂等；Stop 保留对象、配置与已采集的样本，会话可再次 Start 或解码。Start/Stop 可反复执行，多个窗口的样本累积在同一会话中。
+开启/结束采样窗口。Running 状态重复调用 Start 返回 `MSPTI_ERROR_INVALID_OPERATION`；Stop 保留对象、配置与已采集的样本，会话可再次 Start 或解码。Start/Stop 可反复执行，多个窗口的样本累积在同一会话中。
 
 ```c
 msptiResult msptiPmSamplingStart(msptiPmSamplingStartParams *params);
@@ -285,7 +285,7 @@ msptiResult msptiPmSamplingDecodeData(msptiPmSamplingDecodeDataParams *params);
 - `params.pCounterDataImage`/`params.counterDataImageSize`：已初始化的镜像及其大小（字节）。
 - `params.pOverflow`：[out] 自上次解码以来队列是否因溢出丢弃过样本，读取后自动清除。
 - `params.pDecodeStopReason`：[out] 解码停止原因，镜像写满为 `MSPTI_PM_SAMPLING_DECODE_STOP_REASON_COUNTER_DATA_FULL`，队列取空为 `MSPTI_PM_SAMPLING_DECODE_STOP_REASON_END_OF_RECORDS`。
-- 镜像容量不足时返回 `MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW`，此时队列中的样本不丢失，调整容量后重新解码即可。
+- 镜像容量不足时返回 `MSPTI_ERROR_PM_SAMPLING_BUFFER_OVERFLOW`，此时已从队列取出的该批样本会被丢弃且不会回滚，调整容量后无法通过重试恢复。
 
 #### 5.4.5 msptiPmSamplingGetSampleInfo
 

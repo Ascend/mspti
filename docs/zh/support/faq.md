@@ -181,7 +181,7 @@ Activity Buffer 是 msPTI 用于缓存 Activity Record 数据的内存缓冲区�
 
 ### Q22: 样例运行报错，提示找不到 `set_env.sh`？
 
-请确认 `${install_path}` 替换为 CANN 实际安装路径，例如 `/usr/local/Ascend/cann`。若不确定安装路径，可通过 `find / -name "set_env.sh" 2>/dev/null` 查找。
+请确认已将 `${install_path}` 替换为 CANN 实际安装路径，例如 `/usr/local/Ascend/cann`。若不确定安装路径，可通过 `find / -name "set_env.sh" 2>/dev/null` 查找。
 
 ### Q23: `ms_install.py` 下载失败或 SSL 证书错误？
 

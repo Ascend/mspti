@@ -31,7 +31,7 @@
 
 查询 msPTI 数据采集是否仍在运行。
 
-如果其他线程已通过调用任意msPTI API加载了msPTI库，执行数据采集，该接口通过isRunning参数返回1；当msPTI采集流程已结束且当前没有msPTI库被加载时，该接口通过isRunning参数返回0。
+如果其他线程已通过调用任意msPTI API加载了msPTI库，并执行数据采集，该接口通过isRunning参数返回1；当msPTI采集流程已结束且当前没有msPTI库被加载时，该接口通过isRunning参数返回0。
 
 该接口可用于判断是否可以安全卸载基于msPTI的工具。注意：该接口本身不会加载msPTI库，仅检查msPTI库是否已被加载。
 

@@ -29,7 +29,7 @@
 
 启动PM采样窗口。
 
-可在Configured或Stopped状态下调用；Running状态下重复调用成功返回且无副作用。各Start/Stop窗口的样本累积在同一会话中。
+可在Configured或Stopped状态下调用。各Start/Stop窗口的样本累积在同一会话中。
 
 ## 函数原型<a name="section1121883194711"></a>
 

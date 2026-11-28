@@ -119,7 +119,7 @@ python3 -c "import mspti; print('All is OK')"
 2. 执行卸载。
 
    ```bash
-   python ms_install.py uninstall {tools_name}
+   python3 ms_install.py uninstall {tools_name}
    ```
 
    其中{tools_name}配置为需卸载的工具名称，可通过`python ms_install.py help`命令查询，在打印信息中的Available Tools字段下显示工具名称。

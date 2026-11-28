@@ -2,7 +2,7 @@
 
 ## 接口简介<a name="section883612815318"></a>
 
-Profiling模块提供msPTI C接口，用于实现采集各模块性能数据。
+Profiling模块提供msPTI C接口，用于采集各模块性能数据。
 
 msPTI API的功能介绍和使用示例请参见[msPTI工具](../../user_guide/samples_guide.md)。
 
@@ -100,7 +100,7 @@ Activity Buffer：用于缓存Activity Record数据，并将一个或多个Activ
 |[msptiCallbackDomain](./context/msptiCallbackDomain.md)|相关API函数的回调点。|
 |[msptiApiCallbackSite](./context/msptiApiCallbackSite.md)|指定API调用中发出回调的点，如回调的开始和回调的结束。|
 |[msptiCallbackIdRuntime](./context/msptiCallbackIdRuntime.md)|Runtime API函数的索引定义。|
-|[msptiCallbackIdHccl](./context/msptiCallbackIdHccl.md)|通信API函数的索引的简要定义。|
+|[msptiCallbackIdHccl](./context/msptiCallbackIdHccl.md)|通信API函数索引的简要定义。|
 |**Data Structure类型**|**Data Structure说明**|
 |[msptiCallbackData](./context/msptiCallbackData.md)|用于指定传递到回调函数的数据。|
 
